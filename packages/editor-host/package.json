@@ -1,0 +1,22 @@
+{
+  "name": "@pli.dev/editor-host",
+  "version": "0.0.0",
+  "description": "The Pli editor as one HTML file, for the web views of the Swift and Kotlin packages, with a small message interface to the app around it.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "@pli.dev/docs": "workspace:*",
+    "@pli.dev/react": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "esbuild": "^0.25.0"
+  }
+}

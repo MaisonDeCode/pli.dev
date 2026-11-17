@@ -1,0 +1,70 @@
+---
+title: PDF
+description: Open, view, annotate, reorganise, fill, redact and save PDF files, with a headless engine and a React viewer and editor.
+sidebar:
+  badge:
+    text: In progress
+    variant: caution
+tableOfContents: false
+---
+
+import ProductHero from "../../../components/marketing/ProductHero.astro";
+
+<ProductHero
+  product="pdf"
+  title="Open, annotate and edit PDFs"
+  tagline="View, annotate, reorganise, fill, redact and save PDF files that every other reader opens, with a headless engine and a React editor."
+  status="In progress"
+  actions={[
+    { text: "Get started", href: "/pdf/getting-started/", variant: "brand" },
+    { text: "The PDF editor", href: "/pdf/ready-made-ui/", variant: "ghost" },
+    { text: "Roadmap", href: "/pdf/roadmap/", variant: "ghost" },
+  ]}
+  badges={["Standard annotations", "Redaction", "Forms"]}
+/>
+
+**Status:** in progress. The engine and a React editor (viewer, annotation tools, page tools, a File menu, form filling and preparing, redaction, editing text and pictures, comments and live editing) are built and tested, and the engine runs in Swift and Kotlin (`PliPdf`), though there is no native viewer yet. What is left needs checking in other PDF programs and on real devices. Pli.PDF is number 6 on the [roadmap](/roadmap/).
+
+Pli.PDF opens a PDF file, lets people and code change it, and saves it again as a real PDF that every other reader opens.
+
+- **View** it: pages, thumbnails, outline, text selection, search, zoom, single, continuous and two-page layouts. See [Viewing](/pdf/viewing/).
+- **Annotate** it: highlight, underline, strike out, draw, shapes, lines, text boxes, sticky notes, stamps, signatures, pictures, links. They are saved as standard PDF annotations. See [Annotations](/pdf/annotations/).
+- **Organise pages**: turn, delete, reorder, insert blank pages, duplicate, extract, split, merge other files, make pages from pictures, number pages, edit bookmarks. See [Pages](/pdf/pages/).
+- **Fill forms**: read, fill, make and flatten form fields. See [Forms](/pdf/forms/).
+- **Search and redact**: read the text of a page, search, remove text, pictures and drawings for good (with a Redact tool and "Redact all matches" in the editor), replace text and pictures (click a word and retype it, swap a picture). See [Text, search and redaction](/pdf/text-and-redaction/).
+- **Save** it as an update of the original file (which keeps digital signatures valid), a new file, an optimised smaller file, or a flattened one. See [Files](/pdf/files/).
+- **Work together**: comments, people and live editing, the same as in the other Pli editors. See [Collaboration](/pdf/collaboration/).
+
+```ts
+import { openPdf } from "@pli.dev/pdf";
+
+const session = await openPdf(bytes, { name: "contract.pdf" });
+const [first] = session.doc.pages;
+session.annots.addHighlight(first!.id, [{ x: 72, y: 100, w: 180, h: 14 }], { contents: "Check this" });
+session.pages.rotate([first!.id], 90);
+const saved = await session.save();      // the original file plus these two changes
+```
+
+## How it is offered
+
+Like [Documents](/documents/) and [Decks](/decks/), Pli.PDF comes as two packages:
+
+- **Build your own:** `@pli.dev/pdf`, a headless engine. A PDF is read into plain JSON (pages, annotations, form fields, outline) and changed with small invertible operations on a session, with undo and redo, as in the other editors. It has no screen and no DOM, so it runs in a browser, in Node and in the JavaScript engines the [Swift and Kotlin packages](/platform/swift-and-kotlin/) use. See [Get started](/pdf/getting-started/) and [How it works](/pdf/concepts/).
+- **Ready-made UI:** `@pli.dev/pdf-react`, a React editor. `PdfEditor` is the whole editor. `PliPdf` is the viewer (pages, thumbnails, outline, search, page tools, and a menu bar with File, Edit, View, Insert, Format, Tools and Help), and `AnnotatedPdf` is the viewer with the annotation tools. Both are smaller pieces to build on. Pages are drawn by [pdf.js](/pdf/viewing/#why-pdfjs) behind a small interface you can replace. See [The PDF editor](/pdf/ready-made-ui/), [Toolbar and menus](/pdf/toolbar/) and [Keyboard shortcuts](/pdf/shortcuts/).
+
+## What it shares with the other editors
+
+Comments, people, presence, live editing and file storage are not written again for PDF. They come from `@pli.dev/core`, as in Documents, and a PDF connects to them with a few lines. Comments are kept in the PDF itself as notes and replies (so other readers show them) or in your own database; people and presence use the same `Users` and `CollabRoom`; live editing uses the same `SyncClient` and server. See [Collaboration](/pdf/collaboration/).
+
+## What it does not do
+
+- **It does not draw pages itself.** The React viewer uses pdf.js, and a headless session cannot draw a page (it can read its text, annotations and forms). Why, and how to swap the renderer, is on [Viewing](/pdf/viewing/).
+- **It does not sign.** An update of a signed file keeps its signature valid, and an empty signature field can be made, but Pli.PDF cannot make or check a cryptographic signature. The signature annotation is a picture of a signature.
+- **No OCR, no XFA.** Scanned pages are shown, but their text is not read. Forms made with XFA are edited through their ordinary fields.
+- **Text is read, not laid out again.** Columns are read line by line across the page. Changing text replaces a piece of text in place. It does not reflow a page.
+- **Passwords are for opening.** Encrypted files open with the user or owner password. A file saved as a new file is written without encryption. Pli.PDF does not set passwords.
+- **No native viewer yet.** The engine runs in the Swift and Kotlin packages (`PliPdf`, see [Swift and Kotlin](/pdf/swift-and-kotlin/)), but there is no page view drawn with UIKit, SwiftUI or Compose.
+
+See the [roadmap](/pdf/roadmap/) for what needs a check by hand.
+
+For how the engine is shared with the other editors, see [Architecture](/platform/architecture/).

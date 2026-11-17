@@ -1,0 +1,248 @@
+---
+import LiveEditor from "../../live/LiveEditor";
+import Poster from "./Poster.astro";
+
+/**
+ * The scroll tour. One tall section (4 chapters x 3 steps x 45vh) holds a sticky stage; scripts/motion.ts turns the scroll
+ * position into data-chapter / data-step / --p / --cp on the section and data-active on every [data-chapter-for]. All of the
+ * motion here is CSS reading those: chapters cross-fade and slide (opacity and transform only), the rail fills with --p, the
+ * glow behind the window changes with the chapter.
+ *
+ * It is only pinned when it can work: 900px or wider, no reduced-motion preference, and the script is running. Otherwise (phones,
+ * reduced motion, no JavaScript, or a script that failed) the four chapters simply follow one another, each with its poster or
+ * its finished editor, and the section is as tall as its content, so there is no empty scroll.
+ */
+const CHAPTERS = [
+  {
+    kind: "docs" as const,
+    name: "Documents",
+    menu: "Pli.Documents",
+    href: "/documents/",
+    title: "Paged documents",
+    lede: "A paged document editor with a ruler, headers and footers, tables, images and a table of contents, on a model that is plain JSON.",
+    steps: [
+      { label: "Typing", text: "Text flows onto real pages, and the toolbar follows the formatting under the caret." },
+      { label: "Review", text: "A teammate's comment and a suggested edit land on the sentence, each with a name and a reply thread." },
+      { label: "Export", text: "The same document saves as DOCX, Markdown or HTML, from the state you see." },
+    ],
+  },
+  {
+    kind: "sheets" as const,
+    name: "Sheets",
+    menu: "Pli.Sheets",
+    href: "/sheets/",
+    title: "Formulas and charts",
+    lede: "A spreadsheet with 475 Excel-compatible functions, tables, pivot tables and charts, and XLSX files in and out.",
+    steps: [
+      { label: "Type", text: "Numbers go into cells, and the formula bar suggests functions as you type." },
+      { label: "Calculate", text: "SUM, XLOOKUP and friends recalculate only the cells that depend on the one you changed." },
+      { label: "Chart", text: "Select a range and a chart is drawn from it, and it follows the cells when they change." },
+    ],
+  },
+  {
+    kind: "decks" as const,
+    name: "Decks",
+    menu: "Pli.Decks",
+    href: "/decks/",
+    title: "Slides and present mode",
+    lede: "A slide editor with themes, layouts and templates, a filmstrip, present mode, and PPTX and PDF files.",
+    steps: [
+      { label: "Layout", text: "A slide starts from a theme and a layout, so titles and bullets land where they belong." },
+      { label: "Flip", text: "Slides flip in the filmstrip while the canvas follows, each one built from the same theme." },
+      { label: "Present", text: "Present mode fills the screen, and the deck exports to PPTX or PDF." },
+    ],
+  },
+  {
+    kind: "pdf" as const,
+    name: "PDF",
+    menu: "Pli.PDF",
+    href: "/pdf/",
+    title: "Annotate and redact",
+    lede: "Open, view, annotate, reorganise, fill, redact and save PDFs, with a headless engine under a React editor.",
+    steps: [
+      { label: "Open", text: "A PDF opens in the viewer, with page thumbnails, search and zoom." },
+      { label: "Annotate", text: "Highlights, notes and a drawn shape are added as annotations that stay in the file." },
+      { label: "Redact", text: "A name is redacted for good, a form field is filled, and the file is saved." },
+    ],
+  },
+];
+const chapters = CHAPTERS.length;
+const steps = 3;
+---
+<div class="pli-container story-intro">
+  <p class="pli-eyebrow" data-reveal="fade">Four editors</p>
+  <h2 class="pli-h2" id="story-title" data-reveal>What each editor does</h2>
+  <p class="pli-lede" data-reveal style="--i:1">
+    The editors below run on the page. On a wide screen they step through each task as you scroll, and you can click into any of them to try it.
+  </p>
+</div>
+
+<section class="story" id="tour" data-story="tour" data-chapters={chapters} data-steps={steps} data-chapter="0" data-step="0" style={`--story-n:${chapters * steps}`} aria-labelledby="story-title">
+  <div class="story__stage">
+    <div class="story__glows" aria-hidden="true">
+      {CHAPTERS.map((c) => (
+        <div class="pli-glow story__glow" data-product={c.kind} data-glow-for={c.kind}></div>
+      ))}
+    </div>
+
+    <div class="pli-container story__inner">
+      <ol class="story__rail" aria-label="Tour chapters">
+        {CHAPTERS.map((c, i) => (
+          <li data-chapter-for={i} data-product={c.kind} {...(i === 0 ? { "data-active": "" } : {})}>
+            <button type="button" data-jump={i} aria-label={`Jump to ${c.name}`}>
+              <i aria-hidden="true"></i>
+              <span class="story__num" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+              <span>{c.name}</span>
+            </button>
+          </li>
+        ))}
+        <li class="story__track" aria-hidden="true"><b></b></li>
+      </ol>
+
+      <div class="story__chapters">
+        {CHAPTERS.map((c, i) => (
+          <article class="story__chapter" data-chapter-for={i} data-product={c.kind} {...(i === 0 ? { "data-active": "" } : {})} aria-labelledby={`story-h-${c.kind}`}>
+            <div class="story__copy">
+              <p class="story__kicker">{c.menu}</p>
+              <h3 class="pli-h3 story__title" id={`story-h-${c.kind}`}>{c.title}</h3>
+              <p class="story__lede">{c.lede}</p>
+              <ol class="story__steps">
+                {c.steps.map((s, k) => (
+                  <li data-step-for={k}>
+                    <span class="story__bar" aria-hidden="true"><i style={`--si:${k}`}></i></span>
+                    <em aria-hidden="true">{k + 1}</em>
+                    <span><strong>{s.label}.</strong> {s.text}</span>
+                  </li>
+                ))}
+              </ol>
+              <a class="pli-link story__more" href={c.href}>Learn more about {c.menu}<span aria-hidden="true"> &rarr;</span></a>
+            </div>
+            <div class="story__panel">
+              <LiveEditor client:visible={{ rootMargin: "300px" }} kind={c.kind} mode="story" story="tour" chapter={i} title={c.menu}>
+                <Poster kind={c.kind} />
+              </LiveEditor>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // The chapter rail: each button scrolls to the start of its chapter, and the current one is marked for assistive technology.
+  // (The scrolling and the highlight themselves are the motion engine's and the stylesheet's.)
+  const story = document.querySelector<HTMLElement>("[data-story]");
+  if (story) {
+    const buttons = [...story.querySelectorAll<HTMLButtonElement>("[data-jump]")];
+    const mark = (chapter: number) => buttons.forEach((b) => (Number(b.dataset.jump) === chapter ? b.setAttribute("aria-current", "step") : b.removeAttribute("aria-current")));
+    buttons.forEach((b) =>
+      b.addEventListener("click", () => {
+        const chapters = Number(story.dataset.chapters ?? 1);
+        const chapter = Number(b.dataset.jump);
+        const rect = story.getBoundingClientRect();
+        // The engine reaches a chapter's first step at 0.96 * chapter / chapters of the way through the scrollable height.
+        const progress = (0.96 * chapter) / chapters + 0.004;
+        window.scrollTo({ top: window.scrollY + rect.top + progress * (rect.height - window.innerHeight) });
+      }),
+    );
+    window.addEventListener("pli:story", (e) => {
+      const detail = (e as CustomEvent<{ id: string; chapter: number }>).detail;
+      if (detail.id === story.dataset.story) mark(detail.chapter);
+    });
+    mark(0);
+  }
+</script>
+
+<style is:global>
+  .story-intro { padding-top: var(--pli-s9); padding-bottom: var(--pli-s7); text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--pli-s4); }
+  .story-intro .pli-h2 { max-width: 16ch; }
+  .story-intro .pli-lede { text-align: center; }
+
+  /* Four product accents, by chapter. The section's own --accent follows the chapter being shown. */
+  .story { position: relative; --accent: var(--pli-docs); }
+  .story[data-chapter="1"] { --accent: var(--pli-sheets); }
+  .story[data-chapter="2"] { --accent: var(--pli-decks); }
+  .story[data-chapter="3"] { --accent: var(--pli-pdf); }
+
+  /* ---- Stacked layout (phones, reduced motion, no script): chapters follow one another. ---- */
+  .story__stage { position: relative; }
+  .story__glows, .story__rail { display: none; }
+  .story__chapters { display: grid; gap: var(--pli-s8); padding-block: var(--pli-s5) var(--pli-s8); }
+  .story__chapter { display: grid; gap: var(--pli-s5); align-content: start; }
+  .story__kicker { margin: 0 0 var(--pli-s3); display: inline-flex; align-items: center; gap: 0.5rem; font: 650 var(--pli-text-xs)/1 var(--pli-font); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pli-ink-2); }
+  .story__kicker::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--accent); }
+  .story__title { font-size: clamp(1.6rem, 1.25rem + 1.5vw, 2.4rem); line-height: 1.1; }
+  .story__lede { margin: var(--pli-s3) 0 0; color: var(--pli-muted); line-height: 1.55; max-width: 34rem; text-wrap: pretty; }
+  .story__steps { list-style: none; margin: var(--pli-s5) 0 var(--pli-s4); padding: 0; display: grid; gap: var(--pli-s3); counter-reset: none; }
+  .story__steps li { position: relative; display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); column-gap: 0.75rem; align-items: start; font-size: var(--pli-text-sm); line-height: 1.5; color: var(--pli-ink-2); }
+  .story__steps em { grid-column: 1; grid-row: 1; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; font: 700 0.72rem/1 var(--pli-font); font-style: normal;
+    color: var(--pli-ink); background: var(--accent-soft); }
+  .story__steps li > span:last-child { grid-column: 2; grid-row: 1; }
+  .story__steps strong { color: var(--pli-ink); font-weight: 650; }
+  .story__bar { display: none; }
+  .story__more { display: inline-block; margin-top: var(--pli-s2); }
+  .story__more:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: 4px; border-radius: 2px; }
+  .story__panel { position: relative; min-width: 0; --live-h: clamp(26rem, 58vh, 36rem); }
+  .story__panel .pli-live { box-shadow: var(--pli-shadow-lg), 0 0 0 1px var(--pli-line); }
+  @media (min-width: 900px) {
+    .story__chapter { grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr); gap: var(--pli-s7); align-items: center; }
+  }
+
+  /* ---- Pinned layout: wide screens, motion allowed, script running. ---- */
+  @media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+    html.pli-js .story { height: calc(var(--story-n) * 45vh); }
+    html.pli-js .story__stage {
+      position: sticky; top: var(--pli-header-h); height: calc(100vh - var(--pli-header-h)); overflow: clip; isolation: isolate;
+    }
+    html.pli-js .story__glows { display: block; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+    html.pli-js .story__glow { z-index: auto; right: -8rem; top: 50%; margin-top: -23rem; width: 46rem; opacity: 0; transition: opacity 0.9s var(--pli-ease); --glow: color-mix(in srgb, var(--accent) 34%, transparent); }
+    html.pli-js .story[data-chapter="0"] .story__glow[data-product="docs"],
+    html.pli-js .story[data-chapter="1"] .story__glow[data-product="sheets"],
+    html.pli-js .story[data-chapter="2"] .story__glow[data-product="decks"],
+    html.pli-js .story[data-chapter="3"] .story__glow[data-product="pdf"] { opacity: 0.85; }
+    html.pli-js .story__inner { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--pli-s4); padding-block: var(--pli-s4) var(--pli-s6); }
+
+    /* The progress rail: four chapter buttons over a track that fills with the page's scroll. */
+    html.pli-js .story__rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: relative; list-style: none; margin: 0; padding: 0; }
+    html.pli-js .story__rail li:not(.story__track) { position: relative; z-index: 1; }
+    html.pli-js .story__rail button { display: flex; align-items: center; gap: 0.6rem; width: 100%; min-height: 2.75rem; padding: 0 0.25rem 0.35rem 0; border: 0; background: none;
+      color: var(--pli-ink); font: 620 0.95rem/1 var(--pli-font); text-align: left; cursor: pointer; opacity: 0.66; transition: opacity var(--pli-dur) var(--pli-ease); border-radius: 0.4rem; }
+    html.pli-js .story__rail button:hover { opacity: 1; }
+    html.pli-js .story__rail button:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: 2px; opacity: 1; }
+    html.pli-js .story__rail li[data-active] button { opacity: 1; color: var(--pli-ink); }
+    html.pli-js .story__rail i { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--accent); flex: none; }
+    html.pli-js .story__num { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.75rem; color: var(--pli-muted); }
+    html.pli-js .story__track { position: absolute; inset: auto 0 0 0; height: 2px; background: var(--pli-line-strong); overflow: hidden; border-radius: 2px; }
+    html.pli-js .story__track b { position: absolute; inset: 0; background: var(--accent); transform: translate3d(calc((var(--p, 0) - 1) * 100%), 0, 0); will-change: transform; }
+
+    html.pli-js .story__chapters { position: relative; display: block; padding: 0; }
+    html.pli-js .story__chapter {
+      position: absolute; inset: 0; display: grid; grid-template-columns: minmax(17rem, 24rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--pli-s7); align-items: center;
+      opacity: 0; visibility: hidden; transform: translate3d(0, -3%, 0) scale(0.985);
+      transition: opacity 0.32s var(--pli-ease), transform 0.7s var(--pli-ease), visibility 0s linear 0.32s;
+    }
+    html.pli-js .story__chapter[data-active] ~ .story__chapter { transform: translate3d(0, 3%, 0) scale(0.985); }
+    html.pli-js .story__chapter[data-active] { opacity: 1; visibility: visible; transform: none; transition: opacity 0.5s var(--pli-ease) 0.14s, transform 0.7s var(--pli-ease) 0.14s, visibility 0s; }
+    html.pli-js .story__panel { height: min(100%, 44rem); --live-h: 100%; align-self: center; }
+
+    /* Steps: the current one is full strength with its bar filling, earlier ones are done, later ones wait. */
+    html.pli-js .story__steps li { color: var(--pli-ink); opacity: 0.6; transition: opacity var(--pli-dur) var(--pli-ease); padding-bottom: 0.7rem; }
+    html.pli-js .story[data-step="0"] .story__steps li[data-step-for="0"],
+    html.pli-js .story[data-step="1"] .story__steps li[data-step-for="1"],
+    html.pli-js .story[data-step="2"] .story__steps li[data-step-for="2"] { opacity: 1; }
+    html.pli-js .story[data-step="1"] .story__steps li[data-step-for="0"],
+    html.pli-js .story[data-step="2"] .story__steps li[data-step-for="0"],
+    html.pli-js .story[data-step="2"] .story__steps li[data-step-for="1"] { opacity: 0.8; }
+    html.pli-js .story__bar { display: block; position: absolute; inset: auto 0 0 2.25rem; height: 2px; border-radius: 2px; background: var(--pli-line); overflow: hidden; }
+    html.pli-js .story__bar i { position: absolute; inset: 0; background: var(--accent); transform-origin: 0 50%;
+      transform: scaleX(clamp(0, calc(var(--cp, 0) * 3 - var(--si, 0)), 1)); }
+    html.pli-js .story__steps { gap: var(--pli-s2); margin-block: var(--pli-s4) var(--pli-s3); }
+  }
+  @media (min-width: 900px) and (prefers-reduced-motion: no-preference) and (max-height: 700px) {
+    html.pli-js .story__lede { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .story__glow, .story__chapter, .story__steps li { transition: none; }
+  }
+</style>

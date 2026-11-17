@@ -1,0 +1,7 @@
+TASK OR TITLE		
+MAKE A LIST		
+DATE	ITEM	NOTES
+Date	Item	Note
+Date	Item	Note
+Date	Item	Note
+Date	Item	Note

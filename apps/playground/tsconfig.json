@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@pli.dev/core": ["../../packages/core/src/index.ts"],
+      "@pli.dev/pdf": ["../../packages/pdf/src/index.ts"],
+      "@pli.dev/pdf-react": ["../../packages/pdf-react/src/index.ts"],
+      "@pli.dev/pdf-react/pdfjs": ["../../packages/pdf-react/src/pdfjs.ts"]
+    }
+  },
+  "include": ["src", "server", "test", "vite.config.ts"]
+}

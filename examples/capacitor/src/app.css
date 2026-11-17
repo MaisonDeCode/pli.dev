@@ -1,0 +1,11 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: #fff;
+  color: #1b1d22;
+  /* Keep the editor out from under the notch, the status bar and the home indicator. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+@media (prefers-color-scheme: dark) { body { background: #14161a; color: #e8eaee; } }
+#root { overflow: hidden; }

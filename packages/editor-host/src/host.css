@@ -1,0 +1,12 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: #fff;
+  color: #1b1d22;
+  /* The app places the web view; where a notch or the home indicator is, it is the app's to leave room for. */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (prefers-color-scheme: dark) { body { background: #14161a; color: #e8eaee; } }
+#root { overflow: hidden; }

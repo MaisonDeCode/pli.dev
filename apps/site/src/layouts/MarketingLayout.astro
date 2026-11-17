@@ -1,0 +1,77 @@
+---
+// The shell for custom (non-docs) pages: head and SEO, theme, skip link, sticky header, footer, motion script.
+import "../styles/tokens.css";
+import "../styles/components.css";
+import "../styles/motion.css";
+import "../styles/marketing.css";
+import Header from "../components/marketing/Header.astro";
+import Footer from "../components/marketing/Footer.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path of the page for the canonical address, when it isn't the one requested. */
+  canonicalPath?: string;
+}
+const { title, description, canonicalPath } = Astro.props;
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, Astro.site ?? "https://pli.dev").href;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)" data-scheme="light" />
+    <meta name="theme-color" content="#08080f" media="(prefers-color-scheme: dark)" data-scheme="dark" />
+    <meta name="color-scheme" content="light dark" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pli" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="en" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <!--
+      Runs before first paint. Shares Starlight's theme choice (same storage key and attribute) so there is no flash, and marks
+      the page as scripted at once so reveal start states don't flash either. If the page's script has not started within five
+      seconds (it failed to load), the mark is taken off again and the page falls back to its plain, finished layout.
+    -->
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        try {
+          var t = localStorage.getItem("starlight-theme");
+          if (t === "light" || t === "dark") d.dataset.theme = t;
+        } catch (e) {}
+        d.classList.add("pli-js");
+        setTimeout(function () {
+          if (!window.__pliReady) d.classList.remove("pli-js");
+        }, 5000);
+      })();
+    </script>
+    <style is:global>
+      main:focus { outline: none; }
+    </style>
+  </head>
+  <body class="pli-marketing">
+    <a class="pli-skip" href="#main">Skip to content</a>
+    <Header />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer />
+    <script>
+      import { initMotion } from "../scripts/motion";
+      import { initChrome } from "../scripts/chrome";
+      initMotion();
+      initChrome();
+      (window as unknown as { __pliReady?: boolean }).__pliReady = true;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,657 @@
+/*
+ * Styles for @pli.dev/pdf-react. Load @pli.dev/react/styles.css as well: the toolbar buttons, dropdown menus and dialogs are its own.
+ * The custom properties below (--pli-pdf-*) theme the viewer, light or dark: the system's setting, `data-theme="light" | "dark"`
+ * on <html>, or the `theme` prop of <PliPdf>. Pages are always drawn as the file draws them (white paper).
+ */
+
+.pli-pdf {
+  --pli-pdf-blue: #1a73e8;
+  --pli-pdf-blue-soft: #e8f0fe;
+  --pli-pdf-app: #f9fbfd;
+  --pli-pdf-workspace: #dfe2e6;
+  --pli-pdf-line: #dadce0;
+  --pli-pdf-text: #202124;
+  --pli-pdf-muted: #5f6368;
+  --pli-pdf-hover: #e8eaed;
+  --pli-pdf-paper: #ffffff;
+  --pli-pdf-selection: rgb(26 115 232 / 0.3);
+  --pli-pdf-hit: rgb(255 214 0 / 0.55);
+  --pli-pdf-hit-current: rgb(255 140 0 / 0.7);
+  --pli-pdf-shadow: 0 1px 3px rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
+  --pli-bg: #ffffff;
+  --pli-chrome: var(--pli-pdf-app);
+  --pli-canvas: var(--pli-pdf-workspace);
+  --pli-fg: var(--pli-pdf-text);
+  --pli-muted: var(--pli-pdf-muted);
+  --pli-border: var(--pli-pdf-line);
+  --pli-hover: var(--pli-pdf-hover);
+  --pli-accent: var(--pli-pdf-blue);
+  --pli-accent-soft: var(--pli-pdf-blue-soft);
+  --pli-shadow: var(--pli-pdf-shadow);
+  --pli-font: "Google Sans", Roboto, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --pli-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* Layout: widths of the side panels (the sidebar's is set by the viewer: it can be dragged). */
+  --pli-pdf-sidebar-w: 240px;
+  --pli-pdf-right-w: 300px;
+  /*
+   * The stacking ladder, lowest first: toolbar (no z-index: it is not a layer, and its menus are portalled out above all of
+   * this) < find bar < organise view < backdrop < sidebar drawer < properties sheet < popovers < dialogs < toasts. A modal
+   * <dialog> is in the browser's top layer, above all of these.
+   */
+  --pli-pdf-z-find: 20;
+  --pli-pdf-z-organise: 22;
+  --pli-pdf-z-scrim: 25;
+  --pli-pdf-z-drawer: 30;
+  --pli-pdf-z-sheet: 32;
+  --pli-pdf-z-popover: 60;
+  --pli-pdf-z-dialog: 65;
+  --pli-pdf-z-toast: 70;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pli-pdf:not([data-theme="light"]) {
+    --pli-pdf-blue: #8ab4f8;
+    --pli-pdf-blue-soft: #28354a;
+    --pli-pdf-app: #202124;
+    --pli-pdf-workspace: #171717;
+    --pli-pdf-line: #3c4043;
+    --pli-pdf-text: #e8eaed;
+    --pli-pdf-muted: #9aa0a6;
+    --pli-pdf-hover: #35363a;
+    --pli-pdf-selection: rgb(138 180 248 / 0.4);
+    --pli-pdf-shadow: 0 1px 3px rgb(0 0 0 / 0.6), 0 4px 8px 3px rgb(0 0 0 / 0.4);
+    --pli-bg: #2b2c2f;
+  }
+}
+
+:root[data-theme="dark"] .pli-pdf:not([data-theme="light"]),
+.pli-pdf[data-theme="dark"] {
+  --pli-pdf-blue: #8ab4f8;
+  --pli-pdf-blue-soft: #28354a;
+  --pli-pdf-app: #202124;
+  --pli-pdf-workspace: #171717;
+  --pli-pdf-line: #3c4043;
+  --pli-pdf-text: #e8eaed;
+  --pli-pdf-muted: #9aa0a6;
+  --pli-pdf-hover: #35363a;
+  --pli-pdf-selection: rgb(138 180 248 / 0.4);
+  --pli-pdf-shadow: 0 1px 3px rgb(0 0 0 / 0.6), 0 4px 8px 3px rgb(0 0 0 / 0.4);
+  --pli-bg: #2b2c2f;
+}
+
+.pli-pdf {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  /* Fills its host whether the host is a block or a row of flex items, and never makes the host wider. */
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  background: var(--pli-pdf-app);
+  color: var(--pli-pdf-text);
+  font-family: var(--pli-font);
+  font-size: 13px;
+  outline: none;
+}
+
+/* ---- toolbar ---- */
+
+/*
+ * The bars (top toolbar, tools row, text bar, page tools) are the shared .pli-toolbar of @pli.dev/react: a rounded pill that keeps
+ * one row and scrolls sideways when the editor is narrow (see --pli-chrome-radius and friends there). Only what is PDF's is here.
+ */
+.pli-pdf .pli-toolbar { flex: none; min-width: 0; }
+/* What comes after a bar that is not a bar itself (the banner, the pages) gets the bar's margin as space above. */
+.pli-pdf > .pli-toolbar + :not(.pli-toolbar) { margin-top: 0.3rem; }
+.pli-pdf .pli-toolbar .pli-group { flex-wrap: nowrap; }
+
+/* ---- title row and menu bar (shared with the other editors: .pli-chrome, .pli-titlebar, .pli-menubar) ---- */
+
+.pli-pdf .pli-pdf-chrome { flex: none; min-width: 0; padding-bottom: 0; border-bottom: 0; }
+.pli-pdf .pli-pdf-titlebar { flex-wrap: wrap; row-gap: 0.25rem; padding: 0.4rem 0.75rem 0; min-width: 0; }
+.pli-pdf .pli-pdf-titlebar .pli-pdf-title { flex: 0 1 24rem; min-width: 0; max-width: 24rem; margin-left: -0.3rem; }
+.pli-pdf .pli-pdf-titlebar .pli-actions { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; min-width: 0; max-width: 100%; }
+.pli-pdf-comments-button, .pli-pdf-share { display: inline-flex; align-items: center; gap: 0.35rem; }
+.pli-pdf-comments-button[aria-pressed="true"] { background: var(--pli-pdf-blue-soft); color: var(--pli-pdf-blue); }
+.pli-pdf .pli-pdf-menubar { flex-wrap: wrap; min-width: 0; padding-top: 0; }
+.pli-pdf .pli-pdf-menubar .pli-menubar-button { min-height: 1.75rem; }
+/* No overflow here: a submenu opens beside its entry, outside the panel, and the shared submenu code keeps it on the screen. */
+.pli-pdf .pli-pdf-menubar .pli-panel { z-index: var(--pli-pdf-z-popover); }
+.pli-pdf[data-fullscreen] { background: var(--pli-pdf-app); border: 0; border-radius: 0; }
+.pli-pdf-props-toggle { position: relative; }
+.pli-pdf-props-toggle[data-hint]::after { content: ""; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--pli-pdf-blue); box-shadow: 0 0 0 2px var(--pli-bg); }
+.pli-pdf .pli-tool { min-width: 2rem; height: 2rem; }
+.pli-pdf .pli-tool[aria-pressed="true"] { background: var(--pli-pdf-blue-soft); color: var(--pli-pdf-blue); }
+.pli-pdf .pli-tool:focus-visible, .pli-pdf-tab:focus-visible, .pli-pdf-scroller:focus-visible, .pli-pdf-thumbs:focus-visible, .pli-pdf-outline-item:focus-visible, .pli-pdf-find-input:focus-visible, .pli-pdf-page-input input:focus-visible {
+  outline: 2px solid var(--pli-pdf-blue);
+  outline-offset: 1px;
+}
+.pli-pdf-zoom-label { display: inline-flex; align-items: center; gap: 0.25rem; min-width: 3.6rem; justify-content: center; font-variant-numeric: tabular-nums; }
+.pli-pdf-zoom-label svg { width: 11px; height: 11px; opacity: 0.7; }
+.pli-pdf-page-input { display: inline-flex; align-items: center; gap: 0.3rem; margin: 0 0.2rem; }
+.pli-pdf-page-input input { box-sizing: content-box; min-width: 2ch; padding: 0.2rem 0.35rem; text-align: center; font: inherit; color: inherit; background: transparent; border: 1px solid var(--pli-pdf-line); border-radius: 6px; }
+.pli-pdf-page-total { color: var(--pli-pdf-muted); white-space: nowrap; }
+
+/* ---- layout ---- */
+
+/*
+ * The body is a row: [sidebar] [pages] [properties panel]. The pages take what the two panels leave (`min-width: 0`, so wide
+ * pages never push the panels over each other) and the panels have widths of their own and scroll inside. Where the viewer is
+ * narrow (`data-size` on .pli-pdf, set from its own width, not the window's) the panels stop taking room and become sheets
+ * over the pages: the properties panel from "narrow" (under 900px), the sidebar from "phone" (under 640px).
+ */
+.pli-pdf-body { position: relative; flex: 1; min-height: 0; min-width: 0; display: flex; }
+.pli-pdf-sidebar { position: relative; flex: 0 0 auto; display: flex; flex-direction: column; box-sizing: border-box; width: var(--pli-pdf-sidebar-w); max-width: 40%; min-width: 0; min-height: 0; background: var(--pli-pdf-app); border-right: 1px solid var(--pli-pdf-line); }
+.pli-pdf-scrim { display: block; position: absolute; z-index: var(--pli-pdf-z-scrim); inset: 0; padding: 0; border: 0; background: rgb(0 0 0 / 0.35); cursor: default; }
+.pli-pdf-tabs { flex: none; display: flex; min-width: 0; container-type: inline-size; container-name: pli-tabs; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; border-bottom: 1px solid var(--pli-pdf-line); }
+.pli-pdf-tab { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; min-width: 2.75rem; min-height: 2.5rem; padding: 0 0.6rem; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--pli-pdf-muted); font: inherit; white-space: nowrap; cursor: pointer; }
+.pli-pdf-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pli-pdf-tab:hover { background: var(--pli-pdf-hover); }
+.pli-pdf-tab[aria-selected="true"] { color: var(--pli-pdf-blue); border-bottom-color: var(--pli-pdf-blue); }
+/* A narrow sidebar shows the tabs as icons (the strip is the container, not the sidebar: a container would hold the fixed menus of the thumbnails inside it) (each has its name as a tooltip); too many for the width scroll. */
+@container pli-tabs (max-width: 359px) { .pli-pdf-tab span { display: none; } }
+.pli-pdf-sidebar-body { flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; }
+.pli-pdf-main { position: relative; flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.pli-pdf-right { flex: 0 0 auto; display: flex; flex-direction: column; box-sizing: border-box; width: var(--pli-pdf-right-w); max-width: 40%; min-width: 0; min-height: 0; overflow: hidden; background: var(--pli-pdf-app); border-left: 1px solid var(--pli-pdf-line); }
+.pli-pdf-right-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.15rem 0.35rem 0.15rem 0.75rem; border-bottom: 1px solid var(--pli-pdf-line); }
+.pli-pdf-right-title { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pli-pdf-muted); }
+.pli-pdf-right-body { flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+
+/* The edge of the sidebar you can drag. It sits on the border, half over the pages. */
+.pli-pdf-resize { position: absolute; z-index: 2; top: 0; bottom: 0; right: -4px; width: 8px; cursor: col-resize; touch-action: none; }
+.pli-pdf-resize::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background 0.12s; }
+.pli-pdf-resize:hover::after, .pli-pdf-resize[data-dragging]::after, .pli-pdf-resize:focus-visible::after { background: var(--pli-pdf-blue); }
+.pli-pdf-resize:focus-visible { outline: none; }
+.pli-pdf:has(.pli-pdf-resize[data-dragging]) { cursor: col-resize; user-select: none; -webkit-user-select: none; }
+
+/* Narrow viewer: the properties panel is a sheet over the right edge, with the backdrop behind it. */
+.pli-pdf-right[data-overlay] { position: absolute; z-index: var(--pli-pdf-z-sheet); top: 0; right: 0; bottom: 0; width: min(var(--pli-pdf-right-w), 92%); max-width: none; box-shadow: var(--pli-pdf-shadow); }
+/* Phone: the sheet comes up from the bottom edge, and the sidebar is a drawer from the left. */
+.pli-pdf-right[data-overlay="phone"] { left: 0; top: auto; width: auto; max-height: min(75%, 34rem); border-left: 0; border-top: 1px solid var(--pli-pdf-line); border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+.pli-pdf[data-size="phone"] .pli-pdf-sidebar { position: absolute; z-index: var(--pli-pdf-z-drawer); left: 0; top: 0; bottom: 0; width: min(300px, 88%); max-width: none; box-shadow: var(--pli-pdf-shadow); }
+.pli-pdf-empty { margin: 1rem; color: var(--pli-pdf-muted); }
+.pli-pdf-nopages { text-align: center; }
+.pli-pdf-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* The status bar: a slim pill floating at the bottom of the pages (page box, zoom). No z-index: it paints over the pages, under the find bar, the organise view and the panels. */
+.pli-pdf-statusbar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 0.1rem; max-width: calc(100% - 24px); padding: 0.15rem 0.45rem; background: var(--pli-bg); color: var(--pli-pdf-text); border: 1px solid var(--pli-pdf-line); border-radius: 999px; box-shadow: var(--pli-pdf-shadow); font-size: 13px; }
+.pli-pdf-statusbar .pli-pdf-page-input { margin: 0 0.15rem; }
+.pli-pdf-statusbar .pli-pdf-page-input input { border-color: transparent; }
+.pli-pdf-statusbar .pli-pdf-page-input input:hover { border-color: var(--pli-pdf-line); }
+.pli-pdf-statusbar-sep { align-self: stretch; width: 1px; margin: 0.3rem 0.25rem; background: var(--pli-pdf-line); }
+.pli-pdf[data-fullscreen] .pli-pdf-statusbar { opacity: 0.85; }
+
+/* ---- pages ---- */
+
+.pli-pdf-scroller { position: relative; flex: 1; min-height: 0; overflow: auto; touch-action: pan-x pan-y; background: var(--pli-pdf-workspace); overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.pli-pdf-content { position: relative; }
+.pli-pdf-page { position: absolute; box-sizing: border-box; background: var(--pli-pdf-paper); box-shadow: var(--pli-pdf-shadow); }
+.pli-pdf-canvas-holder { position: absolute; inset: 0; overflow: hidden; }
+.pli-pdf-canvas { display: block; width: 100%; height: 100%; }
+.pli-pdf-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: #b4b8bf; font-size: 2.5rem; font-weight: 300; pointer-events: none; user-select: none; }
+.pli-pdf-placeholder[role="alert"] { color: #c5221f; font-size: 0.95rem; text-align: center; padding: 1rem; }
+
+/* The text layer: transparent text laid over the picture, so it can be selected and copied. */
+.pli-pdf-layer { position: absolute; inset: 0; overflow: hidden; line-height: 1; }
+.pli-pdf-layer[data-select="off"] { pointer-events: none; user-select: none; }
+.pli-pdf-text-layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; color: transparent; user-select: text; -webkit-user-select: text; cursor: text; }
+.pli-pdf-text-layer > span { position: absolute; white-space: pre; line-height: 1; transform-origin: 0 0; color: transparent; }
+.pli-pdf-text-layer ::selection, .pli-pdf-text-layer::selection { background: var(--pli-pdf-selection); color: transparent; }
+.pli-pdf-text-layer br { user-select: none; }
+
+/* Page-space layers: children are placed in points; the layer is scaled and turned to fit the page. */
+.pli-pdf-overlay { position: absolute; left: 0; top: 0; overflow: visible; transform-origin: 0 0; pointer-events: none; }
+.pli-pdf-overlay [data-pointer], .pli-pdf-overlay .pli-pdf-pick { pointer-events: auto; }
+.pli-pdf-overlay-dom { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
+.pli-pdf-overlay-dom > * { pointer-events: auto; }
+.pli-pdf-interact { position: absolute; inset: 0; touch-action: none; }
+.pli-pdf-hit { fill: var(--pli-pdf-hit); mix-blend-mode: multiply; }
+.pli-pdf-hit-current { fill: var(--pli-pdf-hit-current); stroke: #e65100; stroke-width: 0.6; }
+@media (prefers-color-scheme: dark) { .pli-pdf-hit { mix-blend-mode: normal; fill: rgb(255 214 0 / 0.4); } .pli-pdf-hit-current { fill: rgb(255 140 0 / 0.55); } }
+
+/* ---- thumbnails ---- */
+
+.pli-pdf-thumbs { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; outline: none; }
+.pli-pdf-thumbs-inner { position: relative; }
+.pli-pdf-thumb { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0; box-sizing: border-box; cursor: pointer; user-select: none; touch-action: pan-y; min-height: 44px; }
+.pli-pdf-thumb-page { position: relative; flex: none; background: var(--pli-pdf-paper); border: 1px solid var(--pli-pdf-line); border-radius: 3px; overflow: hidden; box-sizing: content-box; }
+.pli-pdf-thumb:hover .pli-pdf-thumb-page { border-color: var(--pli-pdf-muted); }
+.pli-pdf-thumb[data-selected] .pli-pdf-thumb-page { border-color: var(--pli-pdf-blue); box-shadow: 0 0 0 1px var(--pli-pdf-blue); }
+.pli-pdf-thumb[data-current] .pli-pdf-thumb-page { border-color: var(--pli-pdf-blue); box-shadow: 0 0 0 3px var(--pli-pdf-blue); }
+.pli-pdf-thumb-label { font-size: 12px; color: var(--pli-pdf-muted); padding: 1px 8px; border-radius: 999px; }
+.pli-pdf-thumb[data-current] .pli-pdf-thumb-label { color: #fff; background: var(--pli-pdf-blue); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pli-pdf-thumb[data-current] .pli-pdf-thumb-label { color: #202124; } }
+:root[data-theme="dark"] .pli-pdf-thumb[data-current] .pli-pdf-thumb-label { color: #202124; }
+.pli-pdf-thumb-blank { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; color: var(--pli-pdf-muted); }
+
+/* ---- outline ---- */
+
+.pli-pdf-outline { flex: 1; min-height: 0; overflow: auto; padding: 0.4rem 0.25rem; }
+.pli-pdf-outline-row { display: flex; align-items: flex-start; min-height: 2.2rem; }
+.pli-pdf-outline-toggle { flex: none; display: inline-grid; place-items: center; width: 1.7rem; min-height: 2.2rem; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--pli-pdf-muted); cursor: pointer; }
+.pli-pdf-outline-toggle:disabled { cursor: default; }
+.pli-pdf-outline-toggle:hover:not(:disabled) { background: var(--pli-pdf-hover); }
+.pli-pdf-outline-item { flex: 1; min-width: 0; min-height: 2.2rem; padding: 0.3rem 0.4rem; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.pli-pdf-outline-item:hover { background: var(--pli-pdf-hover); }
+
+/* ---- find ---- */
+
+.pli-pdf-find { position: absolute; z-index: var(--pli-pdf-z-find); right: 16px; top: 8px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; max-width: calc(100% - 32px); padding: 4px 8px; background: var(--pli-bg); border: 1px solid var(--pli-pdf-line); border-radius: 10px; box-shadow: var(--pli-pdf-shadow); }
+.pli-pdf-find-input { width: 11rem; font: inherit; border: 1px solid var(--pli-pdf-line); border-radius: 6px; padding: 0.35rem 0.5rem; background: transparent; color: inherit; }
+.pli-pdf-find-count { min-width: 4.5rem; font-size: 12px; color: var(--pli-pdf-muted); white-space: nowrap; }
+.pli-pdf-find-toggle { font-size: 12px; }
+
+
+/* ---- touch and phones ---- */
+
+@media (pointer: coarse) {
+  .pli-pdf .pli-tool { min-width: 2.75rem; height: 2.75rem; }
+  .pli-pdf-tab, .pli-pdf-outline-item, .pli-pdf-outline-toggle { min-height: 2.75rem; }
+  .pli-pdf-thumb { min-height: 48px; }
+}
+
+/* Phone: judged by the width of the viewer itself (data-size), so it holds in a small host on a big screen too. */
+.pli-pdf[data-size="phone"] .pli-toolbar { margin: 0.2rem 0.3rem 0; }
+.pli-pdf[data-size="phone"] .pli-group + .pli-group::before { display: none; }
+/* On a phone the menus open full width under the bar, and their submenus unfold in place, so nothing runs off the screen. */
+.pli-pdf[data-size="phone"] .pli-pdf-menubar .pli-menubar-item { position: static; }
+.pli-pdf[data-size="phone"] .pli-pdf-menubar .pli-panel { left: 0.5rem; right: 0.5rem; min-width: 0; }
+.pli-pdf[data-size="phone"] .pli-pdf-menubar .pli-menu-list { min-width: 0; }
+.pli-pdf[data-size="phone"] .pli-pdf-menubar .pli-submenu { position: static; padding: 0 0 0 1rem; border: 0; box-shadow: none; }
+.pli-pdf[data-size="phone"] .pli-pdf-comments-button span, .pli-pdf[data-size="phone"] .pli-pdf-share span { display: none; }
+.pli-pdf[data-size="phone"] .pli-pdf-find { left: 8px; right: 8px; max-width: none; }
+.pli-pdf[data-size="phone"] .pli-pdf-find-input { flex: 1; width: auto; min-width: 6rem; }
+
+/* ---- annotation tools (ribbon, layers, panels) ---- */
+
+.pli-pdf-ribbon:has(> .pli-pdf-ribbon-empty) { display: none; }
+.pli-pdf-ribbon-inner { display: flex; flex: none; flex-wrap: nowrap; align-items: center; gap: 0.1rem 0.25rem; }
+.pli-pdf-ribbon .pli-tool[aria-pressed="true"], .pli-pdf .pli-tool.pli-pdf-pressed { background: var(--pli-pdf-blue-soft); color: var(--pli-pdf-blue); }
+.pli-pdf .pli-tool:disabled { opacity: 0.4; cursor: default; }
+.pli-pdf-hint { min-width: 0; margin: 0 0 0 0.75rem; max-width: 34rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pli-pdf-muted); font-size: 12px; }
+.pli-pdf-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pli-pdf-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgb(0 0 0 / 0.3); }
+.pli-pdf-badge { position: absolute; top: -2px; right: -2px; min-width: 14px; padding: 0 3px; border-radius: 7px; background: #d93025; color: #fff; font-size: 10px; line-height: 14px; text-align: center; }
+.pli-pdf-redact-menu { position: relative; display: inline-grid; place-items: center; }
+
+/* Layers on the page */
+.pli-pdf-blend-layer { mix-blend-mode: multiply; }
+.pli-pdf-annot[data-pointer] { cursor: pointer; }
+.pli-pdf-selbox { stroke: var(--pli-pdf-blue); fill: none; }
+.pli-pdf-selbox[data-locked] { stroke: var(--pli-pdf-muted); }
+.pli-pdf-handle { fill: #fff; stroke: var(--pli-pdf-blue); }
+.pli-pdf-marquee { fill: var(--pli-pdf-selection); stroke: var(--pli-pdf-blue); stroke-dasharray: 4 3; }
+.pli-pdf-annots[data-dragging] .pli-pdf-selection { opacity: 0.7; }
+.pli-pdf-interact[data-tool="select"] { touch-action: pan-x pan-y; }
+.pli-pdf[data-annot-selected] .pli-pdf-interact[data-tool="select"] { touch-action: none; }
+.pli-pdf-overlay-dom:has(.pli-pdf-text-editor) { z-index: 3; }
+.pli-pdf-text-editor { position: absolute; box-sizing: border-box; margin: 0; resize: none; overflow: hidden; border-radius: 0; outline: 1.5px solid var(--pli-pdf-blue); outline-offset: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Floating panels */
+.pli-pdf-popover { position: fixed; z-index: var(--pli-pdf-z-popover); box-sizing: border-box; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow-y: auto; padding: 0.5rem; background: var(--pli-bg); color: var(--pli-pdf-text); border: 1px solid var(--pli-pdf-line); border-radius: 10px; box-shadow: var(--pli-pdf-shadow); font-size: 13px; }
+.pli-pdf-comment-popover { width: min(21rem, calc(100vw - 16px)); max-height: min(30rem, calc(100vh - 16px)); overflow-y: auto; }
+.pli-pdf-link-popover { width: min(19rem, calc(100vw - 16px)); }
+.pli-pdf-selbar, .pli-pdf-compact { display: flex; align-items: center; gap: 0.2rem; padding: 0.25rem; }
+.pli-pdf-selbar .pli-swatch, .pli-pdf-compact .pli-swatch { width: 22px; height: 22px; aspect-ratio: auto; border-radius: 50%; }
+.pli-pdf-swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.pli-pdf-swatches .pli-swatch { width: 20px; height: 20px; aspect-ratio: auto; border-radius: 4px; }
+.pli-pdf-swatches .pli-swatch-none { background: linear-gradient(135deg, transparent 45%, #d93025 45%, #d93025 55%, transparent 55%), #fff; }
+.pli-pdf-colorinput { width: 26px; height: 22px; padding: 0; border: 1px solid var(--pli-pdf-line); border-radius: 4px; background: transparent; }
+.pli-pdf-form { display: grid; gap: 0.6rem; }
+.pli-pdf-form fieldset { margin: 0; padding: 0.4rem 0.6rem; border: 1px solid var(--pli-pdf-line); border-radius: 8px; display: grid; gap: 0.25rem; }
+.pli-pdf-form label { display: grid; gap: 0.2rem; }
+.pli-pdf-form input[type="text"], .pli-pdf-form select, .pli-pdf-field input[type="text"], .pli-pdf-field input[type="number"], .pli-pdf-field select { font: inherit; padding: 0.35rem 0.5rem; color: inherit; background: transparent; border: 1px solid var(--pli-pdf-line); border-radius: 6px; min-width: 0; }
+
+/* Properties */
+.pli-pdf-props { display: grid; gap: 0.7rem; padding: 0.75rem; }
+.pli-pdf-props-title { margin: 0; font-size: 14px; font-weight: 600; }
+.pli-pdf-field { display: grid; gap: 0.3rem; }
+.pli-pdf-field-inline { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.pli-pdf-field-inline .pli-pdf-field-label { flex: 0 0 5.5rem; }
+.pli-pdf-field-label { font-size: 12px; color: var(--pli-pdf-muted); }
+.pli-pdf-field input[type="number"] { width: 4.5rem; }
+.pli-pdf-field input[type="range"] { flex: 1; min-width: 6rem; }
+.pli-pdf-field .pli-font-button { max-width: 100%; }
+.pli-pdf-meta { display: flex; flex-direction: column; gap: 0.1rem; margin: 0; color: var(--pli-pdf-muted); font-size: 12px; }
+.pli-pdf-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.pli-pdf-actions .pli-button { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2rem; }
+.pli-pdf-check { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 13px; }
+
+/* Comments and annotation lists */
+.pli-pdf-comments, .pli-pdf-annotlist { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.6rem; }
+.pli-pdf-comments-head { display: flex; align-items: center; gap: 0.5rem; }
+.pli-pdf-kindfilter { margin-left: auto; max-width: 8rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--pli-pdf-line); border-radius: 6px; padding: 0.2rem; }
+.pli-pdf-filters { display: flex; gap: 4px; flex-wrap: wrap; }
+.pli-pdf-comments-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.4rem; }
+.pli-pdf-pagehead { margin: 0.4rem 0 0.2rem; font-size: 12px; font-weight: 600; color: var(--pli-pdf-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.pli-pdf-annotrows { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.pli-pdf-annotrow { display: flex; gap: 0.5rem; align-items: flex-start; width: 100%; min-height: 44px; padding: 0.35rem 0.4rem; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pli-pdf-annotrow:hover { background: var(--pli-pdf-hover); }
+.pli-pdf-annotrow[aria-pressed="true"] { background: var(--pli-pdf-blue-soft); }
+.pli-pdf-annoticon { flex: none; display: grid; place-items: center; width: 24px; height: 24px; color: var(--pli-pdf-muted); }
+.pli-pdf-annottext { display: grid; min-width: 0; }
+.pli-pdf-annottype { font-weight: 600; }
+.pli-pdf-annotlabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pli-pdf-muted); }
+.pli-pdf-annotmeta { font-size: 11px; color: var(--pli-pdf-muted); }
+.pli-pdf-comments .pli-thread, .pli-pdf-comments .pli-comment-item { font-size: 13px; }
+.pli-pdf :is(.pli-pdf-tab, .pli-pdf-annotrow, .pli-pdf-sigfont, .pli-swatch, .pli-thread-quote):focus-visible, .pli-pdf-popover :focus-visible, .pli-pdf-text-editor:focus-visible { outline: 2px solid var(--pli-pdf-blue); outline-offset: 1px; }
+
+/* Signature dialog */
+.pli-dialog:has(.pli-pdf-sig) { width: min(34rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow-y: auto; }
+.pli-pdf dialog.pli-dialog { z-index: var(--pli-pdf-z-dialog); }
+.pli-pdf-sig { display: grid; gap: 0.6rem; }
+.pli-pdf-sigtabs { display: flex; border-bottom: 1px solid var(--pli-border); }
+.pli-pdf-sigtabs .pli-pdf-tab { min-height: 2.5rem; padding: 0 1rem; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--pli-muted); font: inherit; cursor: pointer; }
+.pli-pdf-sigtabs .pli-pdf-tab[aria-selected="true"] { color: var(--pli-accent); border-bottom-color: var(--pli-accent); }
+.pli-pdf-sigpanel { display: grid; gap: 0.5rem; min-height: 11rem; }
+.pli-pdf-sigpad { width: 100%; height: auto; aspect-ratio: 440 / 160; background: #fff; border: 1px solid var(--pli-border); border-radius: 8px; touch-action: none; cursor: crosshair; }
+.pli-pdf-sigline { stroke: #c4c7cc; stroke-width: 1; stroke-dasharray: 4 3; }
+.pli-pdf-sigtools { display: flex; gap: 0.4rem; }
+.pli-pdf-sigfonts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; }
+.pli-pdf-sigfont { display: grid; gap: 0.1rem; padding: 0.4rem 0.6rem; text-align: left; border: 1px solid var(--pli-border); border-radius: 8px; background: #fff; color: #111; font: inherit; cursor: pointer; min-height: 3.2rem; }
+.pli-pdf-sigfont span { font-size: 1.5rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pli-pdf-sigfont small { color: #666; font-size: 11px; }
+.pli-pdf-sigfont[aria-checked="true"] { border-color: var(--pli-accent); box-shadow: 0 0 0 1px var(--pli-accent); }
+.pli-pdf-sigpreview { max-width: 100%; max-height: 8rem; object-fit: contain; background: repeating-conic-gradient(#e8e8e8 0% 25%, #fff 0% 50%) 0 0 / 12px 12px; border-radius: 6px; }
+
+@media (pointer: coarse) {
+  /* A finger is 44 pixels wide: the colour is the middle of the button. */
+  .pli-pdf-swatches .pli-swatch, .pli-pdf-selbar .pli-swatch, .pli-pdf-compact .pli-swatch { width: 44px; height: 44px; padding: 11px; background-clip: content-box; border-radius: 50%; }
+  .pli-pdf-colorinput { width: 44px; height: 32px; }
+  .pli-pdf-actions .pli-button, .pli-pdf-filters .pli-fonts-kind { min-height: 44px; }
+  .pli-pdf-field input[type="number"], .pli-pdf-field select { min-height: 44px; }
+}
+
+.pli-pdf[data-size="phone"] .pli-pdf-hint { display: none; }
+
+@media print {
+  .pli-pdf .pli-toolbar, .pli-pdf-sidebar, .pli-pdf-right, .pli-pdf-find, .pli-pdf-scrim { display: none; }
+}
+
+/* ==== page tools, file menu, organise view, outline editing (stage 3) ==== */
+
+.pli-pdf .pli-pdf-pagebar { --pli-bar-gap: 1px; margin: 0.35rem 0.4rem; padding: 0.15rem 0.25rem; }
+.pli-pdf-pagebar .pli-tool, .pli-pdf-pagebar .pli-dropdown > .pli-tool { min-width: 1.9rem; height: 1.9rem; }
+.pli-pdf-pagebar-count { margin: 0 0.3rem; font-size: 12px; color: var(--pli-pdf-muted); white-space: nowrap; }
+.pli-pdf-announce { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* thumbnails: dragging */
+.pli-pdf-thumb[data-dragging], .pli-pdf-cell[data-dragging] { opacity: 0.4; }
+.pli-pdf-thumb[draggable="true"] { cursor: grab; }
+.pli-pdf-drop-line { position: absolute; z-index: 3; left: 8px; right: 8px; height: 3px; border-radius: 2px; background: var(--pli-pdf-blue); pointer-events: none; }
+.pli-pdf-drop-line-v { right: auto; width: 3px; }
+
+/* the page menu */
+.pli-panel.pli-pdf-ctx { position: fixed; z-index: var(--pli-pdf-z-popover); min-width: 15rem; max-height: calc(100vh - 16px); overflow-y: auto; }
+
+/* the organise view */
+.pli-pdf-organise { position: absolute; inset: 0; z-index: var(--pli-pdf-z-organise); display: flex; flex-direction: column; background: var(--pli-pdf-workspace); }
+.pli-pdf-organise-head { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.35rem 0.75rem; background: var(--pli-pdf-app); border-bottom: 1px solid var(--pli-pdf-line); }
+.pli-pdf-organise-title { margin: 0 0.5rem 0 0; font-size: 1rem; font-weight: 600; }
+.pli-pdf-organise-head .pli-pdf-pagebar { margin: 0; }
+.pli-pdf-organise-select[aria-pressed="true"] { background: var(--pli-pdf-blue-soft); border-color: var(--pli-pdf-blue); color: var(--pli-pdf-blue); }
+.pli-pdf-organise-body[data-select-mode] .pli-pdf-cell[data-selected] .pli-pdf-thumb-page::after { content: "✓"; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--pli-pdf-blue); color: #fff; font-size: 13px; line-height: 20px; text-align: center; }
+.pli-pdf-organise-size { display: inline-flex; align-items: center; gap: 0.4rem; margin-left: auto; color: var(--pli-pdf-muted); }
+.pli-pdf-organise-size input { width: 8rem; }
+.pli-pdf-organise-body { position: relative; flex: 1; min-height: 0; overflow: auto; outline: none; }
+.pli-pdf-organise-inner { position: relative; }
+.pli-pdf-cell { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; padding: 8px; border-radius: 8px; user-select: none; }
+.pli-pdf-cell[draggable="true"] { cursor: grab; }
+.pli-pdf-cell:hover { background: var(--pli-pdf-hover); }
+.pli-pdf-cell-page { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.pli-pdf-cell-page:focus-visible { outline: 2px solid var(--pli-pdf-blue); outline-offset: 4px; border-radius: 4px; }
+.pli-pdf-cell[data-selected] .pli-pdf-thumb-page { border-color: var(--pli-pdf-blue); box-shadow: 0 0 0 2px var(--pli-pdf-blue); }
+.pli-pdf-cell[data-selected] .pli-pdf-thumb-label { color: var(--pli-pdf-blue); font-weight: 600; }
+.pli-pdf-cell-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 1px; padding: 2px; border-radius: 999px; background: var(--pli-bg); box-shadow: var(--pli-pdf-shadow); opacity: 0; transition: opacity 0.12s; }
+.pli-pdf-cell:hover .pli-pdf-cell-actions, .pli-pdf-cell:focus-within .pli-pdf-cell-actions { opacity: 1; }
+.pli-pdf-cell-actions .pli-tool { min-width: 1.8rem; height: 1.8rem; border-radius: 999px; }
+@media (hover: none) { .pli-pdf-cell[data-selected] .pli-pdf-cell-actions { opacity: 1; } }
+
+/* toasts */
+.pli-pdf-toasts { position: absolute; z-index: var(--pli-pdf-z-toast); left: 0; right: 0; bottom: 18px; display: flex; justify-content: center; padding: 0 12px; pointer-events: none; }
+.pli-pdf-toast { pointer-events: auto; display: flex; align-items: center; gap: 0.75rem; max-width: min(34rem, 100%); padding: 0.5rem 0.4rem 0.5rem 1rem; border-radius: 8px; background: var(--pli-pdf-text); color: var(--pli-pdf-app); box-shadow: var(--pli-pdf-shadow); }
+.pli-pdf-toast[data-kind="error"] { background: #b3261e; color: #fff; }
+.pli-pdf-toast-text { overflow-wrap: anywhere; }
+.pli-pdf-toast-action { flex: none; min-height: 2rem; padding: 0 0.6rem; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.pli-pdf-toast-close { flex: none; display: inline-grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
+.pli-pdf-toast-action:hover, .pli-pdf-toast-close:hover { background: rgb(128 128 128 / 0.3); }
+.pli-pdf-toast-action:focus-visible, .pli-pdf-toast-close:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+
+/* the document name */
+.pli-pdf-title { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; max-width: 14rem; margin: 0 0.3rem; }
+.pli-pdf-title-name { min-width: 0; max-width: 100%; padding: 0.25rem 0.5rem; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; cursor: text; }
+.pli-pdf-title-name:hover:not(:disabled) { background: var(--pli-pdf-hover); }
+.pli-pdf-title-name:disabled { cursor: default; }
+.pli-pdf-title-name:focus-visible, .pli-pdf-title-input:focus-visible { outline: 2px solid var(--pli-pdf-blue); outline-offset: 1px; }
+.pli-pdf-title-input { min-width: 8rem; padding: 0.2rem 0.4rem; border: 1px solid var(--pli-pdf-blue); border-radius: 6px; background: transparent; color: inherit; font: inherit; }
+.pli-pdf-dirty { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #f29900; }
+
+/* outline editing */
+.pli-pdf-outline-tools { flex: none; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--pli-pdf-line); }
+.pli-pdf-outline-add { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; padding: 0.35rem 0.5rem; }
+.pli-pdf-outline-row { position: relative; border-radius: 6px; }
+.pli-pdf-outline-actions { position: absolute; z-index: 2; right: 2px; top: 2px; display: none; gap: 1px; padding: 1px; border-radius: 8px; background: var(--pli-pdf-app); box-shadow: 0 0 0 1px var(--pli-pdf-line); }
+.pli-pdf-outline-row:hover .pli-pdf-outline-actions, .pli-pdf-outline-row[data-active] .pli-pdf-outline-actions, .pli-pdf-outline-row:focus-within .pli-pdf-outline-actions { display: flex; }
+.pli-pdf-outline-act { display: inline-grid; place-items: center; width: 1.9rem; height: 1.9rem; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--pli-pdf-muted); cursor: pointer; }
+.pli-pdf-outline-act:hover:not(:disabled) { background: var(--pli-pdf-hover); color: var(--pli-pdf-text); }
+.pli-pdf-outline-act:disabled { opacity: 0.35; cursor: default; }
+.pli-pdf-outline-act:focus-visible, .pli-pdf-outline-input:focus-visible, .pli-pdf-outline-add:focus-visible { outline: 2px solid var(--pli-pdf-blue); outline-offset: 1px; }
+.pli-pdf-outline-input { flex: 1; min-width: 0; padding: 0.3rem 0.4rem; border: 1px solid var(--pli-pdf-blue); border-radius: 6px; background: transparent; color: inherit; font: inherit; }
+.pli-pdf-outline-row[draggable="true"] { cursor: grab; }
+.pli-pdf-outline-row[data-dragging] { opacity: 0.4; }
+.pli-pdf-outline-row[data-drop="before"] { box-shadow: inset 0 2px 0 var(--pli-pdf-blue); }
+.pli-pdf-outline-row[data-drop="after"] { box-shadow: inset 0 -2px 0 var(--pli-pdf-blue); }
+.pli-pdf-outline-row[data-drop="into"] { background: var(--pli-pdf-blue-soft); box-shadow: inset 0 0 0 1px var(--pli-pdf-blue); }
+
+/* dialogs */
+.pli-pdf-choice { display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; }
+.pli-pdf-choice > span { display: grid; gap: 0.1rem; }
+.pli-pdf-warnings { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.25rem; }
+.pli-button.pli-pdf-danger { background: #b3261e; border-color: #b3261e; color: #fff; }
+
+@media (pointer: coarse) {
+  .pli-pdf-pagebar .pli-tool { min-width: 2.5rem; height: 2.5rem; }
+  .pli-pdf-outline-act { width: 2.5rem; height: 2.5rem; }
+  .pli-pdf-cell-actions .pli-tool { min-width: 2.5rem; height: 2.5rem; }
+}
+
+/* phones: menus become sheets from the bottom edge */
+@media (max-width: 640px) {
+  .pli-panel.pli-pdf-ctx,
+  .pli-pdf .pli-panel-fixed:has(> .pli-menu-list[aria-label="File"]),
+  .pli-pdf .pli-panel-fixed:has(> .pli-menu-list[aria-label="More page tools"]),
+  .pli-pdf .pli-panel-fixed:has(> .pli-menu-list[aria-label="Page layout"]) {
+    position: fixed; left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important; width: auto; max-height: 75vh; overflow-y: auto;
+    padding: 0.4rem 0.4rem calc(0.4rem + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0;
+  }
+  .pli-pdf .pli-panel-fixed .pli-menu-item, .pli-pdf-ctx .pli-menu-item { min-height: 2.9rem; }
+}
+/* In the toolbar (an editor with no menu bar) the name is too wide for a phone; in the title row there is room. */
+.pli-pdf[data-size="phone"] .pli-pdf-toolbar .pli-pdf-title-name { display: none; }
+.pli-pdf[data-size="phone"] .pli-pdf-organise-head { padding: 0.35rem 0.5rem; }
+.pli-pdf[data-size="phone"] .pli-pdf-organise-size { margin-left: 0; }
+.pli-pdf[data-size="phone"] .pli-pdf-organise-size input { width: 6rem; }
+.pli-pdf[data-size="phone"] .pli-pdf-toasts { bottom: 12px; }
+
+@media (prefers-reduced-motion: reduce) { .pli-pdf-cell-actions { transition: none; } }
+@media print { .pli-pdf-organise, .pli-pdf-toasts, .pli-pdf-pagebar { display: none; } }
+
+/* ---- forms: fields on the page, Prepare form, bars (stage 4) ---- */
+
+.pli-pdf {
+  --pli-form-wash: rgb(26 115 232 / 0.14);
+  --pli-form-required: #d93025;
+  --pli-form-invalid: #d93025;
+  --pli-form-focus: var(--pli-pdf-blue);
+  --pli-form-ok-bg: #e6f4ea;
+  --pli-form-ok: #137333;
+  --pli-form-error-bg: #fce8e6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pli-pdf:not([data-theme="light"]) { --pli-form-wash: rgb(138 180 248 / 0.2); --pli-form-required: #f28b82; --pli-form-invalid: #f28b82; --pli-form-ok-bg: #1e3a29; --pli-form-ok: #81c995; --pli-form-error-bg: #4a2723; }
+}
+:root[data-theme="dark"] .pli-pdf:not([data-theme="light"]),
+.pli-pdf[data-theme="dark"] { --pli-form-wash: rgb(138 180 248 / 0.2); --pli-form-required: #f28b82; --pli-form-invalid: #f28b82; --pli-form-ok-bg: #1e3a29; --pli-form-ok: #81c995; --pli-form-error-bg: #4a2723; }
+
+/* The layer only holds the controls: the page under it stays selectable. */
+.pli-pdf-overlay-dom > .pli-form-layer { position: absolute; left: 0; top: 0; pointer-events: none; }
+.pli-form-widget, .pli-form-design { position: absolute; box-sizing: border-box; pointer-events: auto; }
+.pli-form-widget { line-height: normal; }
+.pli-form-control { display: block; max-width: none; min-width: 0; border-radius: 0; outline: none; }
+.pli-form-text, .pli-form-dropdown, .pli-form-list { font-variant-numeric: normal; }
+.pli-form-comb { white-space: pre; }
+.pli-form-widget :is(input, textarea, select, button):not(.pli-form-hit):focus-visible,
+.pli-form-text:focus,
+.pli-form-widget:has(.pli-form-hit:focus-visible) .pli-form-box { outline: calc(var(--px, 1px) * 2) solid var(--pli-form-focus); outline-offset: calc(var(--px, 1px) * 1); }
+.pli-form-widget[data-invalid] { outline: calc(var(--px, 1px) * 1.5) solid var(--pli-form-invalid); outline-offset: calc(var(--px, 1px) * 1); }
+.pli-form-layer[data-highlight] .pli-form-widget:not([data-readonly])::after { content: ""; position: absolute; inset: 0; background: var(--pli-form-wash); pointer-events: none; }
+.pli-form-control:disabled { opacity: 1; -webkit-text-fill-color: currentColor; cursor: default; }
+.pli-form-widget[data-readonly] .pli-form-control { cursor: default; }
+.pli-form-list { overflow: auto; }
+.pli-form-button { cursor: pointer; }
+.pli-form-button:hover:not(:disabled) { filter: brightness(0.94); }
+.pli-form-button:active:not(:disabled) { filter: brightness(0.88); }
+
+/* Check box and radio button: an invisible native control over a drawn box and mark. */
+.pli-form-box { position: absolute; inset: 0; display: block; box-sizing: border-box; }
+.pli-form-hit { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+.pli-form-hit:disabled { cursor: default; }
+.pli-form-mark { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* Marker for a required field, message for a field with a problem. */
+.pli-form-req { position: absolute; top: 0; right: 0; width: calc(var(--px, 1px) * 9); height: calc(var(--px, 1px) * 9); background: linear-gradient(225deg, var(--pli-form-required) 50%, transparent 50%); pointer-events: none; z-index: 1; }
+.pli-form-msg { position: absolute; z-index: 6; left: 0; top: 100%; margin-top: calc(var(--px, 1px) * 5); width: max-content; max-width: calc(var(--px, 1px) * 280); box-sizing: border-box; padding: calc(var(--px, 1px) * 4) calc(var(--px, 1px) * 8); border: calc(var(--px, 1px) * 1) solid var(--pli-form-invalid); border-radius: calc(var(--px, 1px) * 6); background: var(--pli-bg); color: var(--pli-pdf-text); box-shadow: var(--pli-pdf-shadow); font: 500 calc(var(--px, 1px) * 12) / 1.3 var(--pli-font); white-space: normal; text-align: left; pointer-events: none; }
+.pli-form-msg[data-kind="hint"] { border-color: var(--pli-pdf-line); }
+
+/* Signature field. */
+.pli-form-sign { border: calc(var(--px, 1px) * 1.5) dashed var(--pli-pdf-muted); background: rgb(26 115 232 / 0.06); cursor: pointer; font-family: var(--pli-font); }
+.pli-form-sign:hover:not(:disabled) { background: rgb(26 115 232 / 0.14); }
+.pli-form-sign:disabled { cursor: default; }
+.pli-form-signed { display: grid; place-items: center; }
+.pli-form-covered { box-sizing: border-box; background: transparent; border: 0; }
+.pli-form-badge { padding: 0.15em 0.7em; border-radius: 999px; background: var(--pli-form-ok-bg); color: var(--pli-form-ok); font: 600 1em / 1.2 var(--pli-font); }
+
+/* Prepare form: a frame over each widget, with handles when it is selected. */
+.pli-form-design { cursor: move; touch-action: none; outline: calc(var(--px, 1px) * 1) dashed var(--pli-pdf-blue); outline-offset: 0; background: rgb(26 115 232 / 0.08); }
+.pli-form-design:hover { background: rgb(26 115 232 / 0.16); }
+.pli-form-design[data-selected] { z-index: 2; outline: calc(var(--px, 1px) * 2) solid var(--pli-pdf-blue); background: rgb(26 115 232 / 0.14); }
+.pli-form-design:focus-visible { outline: calc(var(--px, 1px) * 3) solid var(--pli-pdf-blue); outline-offset: calc(var(--px, 1px) * 1); }
+.pli-form-design[data-moving] { opacity: 0.8; }
+.pli-form-preview { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.pli-form-handle { position: absolute; box-sizing: border-box; z-index: 3; background: #fff; border: calc(var(--px, 1px) * 1.5) solid var(--pli-pdf-blue); border-radius: calc(var(--px, 1px) * 3); touch-action: none; }
+.pli-form-handle::before { content: ""; position: absolute; left: calc((var(--vis) - var(--hit)) / 2); top: calc((var(--vis) - var(--hit)) / 2); width: var(--hit); height: var(--hit); }
+.pli-form-handle[data-handle="nw"], .pli-form-handle[data-handle="se"] { cursor: nwse-resize; }
+.pli-form-handle[data-handle="ne"], .pli-form-handle[data-handle="sw"] { cursor: nesw-resize; }
+.pli-form-handle[data-handle="n"], .pli-form-handle[data-handle="s"] { cursor: ns-resize; }
+.pli-form-handle[data-handle="e"], .pli-form-handle[data-handle="w"] { cursor: ew-resize; }
+.pli-form-tag, .pli-form-order { position: absolute; z-index: 4; background: var(--pli-pdf-blue); color: #fff; pointer-events: none; font-family: var(--pli-font); font-weight: 600; white-space: nowrap; left: auto; }
+.pli-form-tag { left: 0; }
+.pli-form-order { text-align: center; border-radius: 999px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pli-form-tag, :root:not([data-theme="light"]) .pli-form-order { color: #202124; } }
+:root[data-theme="dark"] .pli-form-tag, :root[data-theme="dark"] .pli-form-order { color: #202124; }
+.pli-form-draft { fill: rgb(26 115 232 / 0.1); stroke: var(--pli-pdf-blue); }
+
+/* Bars under the toolbar. */
+.pli-pdf-banner { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem 0.75rem; margin: 0 0.6rem 0.25rem; padding: 0.3rem 0.75rem; border-radius: 12px; background: var(--pli-pdf-blue-soft); color: var(--pli-pdf-text); }
+.pli-pdf-banner-text { font-weight: 500; }
+.pli-pdf-banner-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+.pli-pdf-banner-close { margin-left: auto; }
+.pli-pdf-banner .pli-button[aria-pressed="true"] { background: var(--pli-pdf-blue); color: #fff; border-color: var(--pli-pdf-blue); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pli-pdf-banner .pli-button[aria-pressed="true"] { color: #202124; } }
+:root[data-theme="dark"] .pli-pdf-banner .pli-button[aria-pressed="true"] { color: #202124; }
+.pli-pdf-notice[data-kind="error"] { background: var(--pli-form-error-bg); }
+.pli-pdf-formtool { width: auto; padding: 0 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem; }
+.pli-pdf-formtool-label { font-size: 12px; }
+.pli-pdf-form-label { display: inline-flex; align-items: center; gap: 0.3rem; }
+.pli-pdf-designbar .pli-tool[aria-pressed="true"] { background: var(--pli-pdf-blue); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pli-pdf-designbar .pli-tool[aria-pressed="true"] { color: #202124; } }
+:root[data-theme="dark"] .pli-pdf-designbar .pli-tool[aria-pressed="true"] { color: #202124; }
+.pli-pdf:not([data-size="wide"]) .pli-pdf-formtool-label { display: none; }
+
+/* Properties panel of Prepare form. */
+.pli-form-props fieldset { margin: 0; padding: 0.4rem 0.6rem 0.6rem; border: 1px solid var(--pli-pdf-line); border-radius: 8px; display: grid; gap: 0.4rem; min-width: 0; }
+.pli-form-props legend { padding: 0 0.3rem; font-size: 12px; color: var(--pli-pdf-muted); }
+.pli-form-props textarea { font: inherit; padding: 0.35rem 0.5rem; color: inherit; background: transparent; border: 1px solid var(--pli-pdf-line); border-radius: 6px; resize: vertical; }
+.pli-form-props input[aria-invalid="true"] { border-color: var(--pli-form-invalid); }
+.pli-pdf-field-error { color: var(--pli-form-invalid); font-size: 12px; }
+.pli-pdf-position-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+.pli-pdf-position-grid input[type="number"], .pli-form-props input[type="number"] { width: 100%; box-sizing: border-box; }
+.pli-pdf-choice-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.3rem; }
+.pli-pdf-choice { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto; gap: 0.2rem; align-items: center; }
+.pli-pdf-choice input[type="text"] { font: inherit; padding: 0.3rem 0.4rem; min-width: 0; color: inherit; background: transparent; border: 1px solid var(--pli-pdf-line); border-radius: 6px; }
+.pli-pdf-radio-row { display: grid; gap: 0.2rem; }
+.pli-pdf-radio-selected { border-left: 3px solid var(--pli-pdf-blue); padding-left: 0.4rem; }
+
+@media (pointer: coarse) {
+  .pli-pdf-banner .pli-button, .pli-pdf-banner .pli-tool { min-height: 44px; min-width: 44px; }
+  .pli-pdf-choice .pli-tool { min-height: 44px; min-width: 44px; }
+  .pli-form-props input[type="text"], .pli-form-props input[type="number"], .pli-form-props select { min-height: 44px; }
+}
+@media (forced-colors: active) {
+  .pli-form-design[data-selected], .pli-form-handle { outline-color: Highlight; border-color: Highlight; }
+  .pli-form-req { background: Mark; }
+}
+@media print { .pli-pdf-banner, .pli-form-design { display: none; } }
+
+/* Who is here, before the file group at the end of the toolbar: it takes the free space, the file group follows it. */
+.pli-pdf-people { display: flex; align-items: center; gap: 0.5rem; }
+.pli-pdf-people + .pli-group-end { margin-left: 0; }
+.pli-pdf-placeholder[data-waiting] { font-size: 0.95rem; color: #6b7078; text-align: center; padding: 1rem; }
+
+/* ---- edit text and pictures ---- */
+
+.pli-edit-box { fill: transparent; stroke: var(--pli-pdf-blue); stroke-opacity: 0.35; stroke-dasharray: 3 2; pointer-events: none; }
+.pli-edit-box[data-locked] { stroke: var(--pli-pdf-muted); stroke-opacity: 0.5; }
+.pli-edit-box[data-hover] { fill: var(--pli-pdf-selection); stroke-opacity: 1; stroke-dasharray: none; }
+.pli-edit-box[data-selected] { stroke-opacity: 1; stroke-dasharray: none; }
+.pli-edit-image { stroke-dasharray: 6 3; }
+.pli-edit-new { pointer-events: none; }
+.pli-edit-preview { pointer-events: none; }
+.pli-pdf-overlay-dom:has(.pli-edit-editor) { z-index: 3; }
+.pli-edit-editor { position: absolute; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 0; resize: none; overflow: hidden; white-space: pre; background: #fff; outline: 1.5px solid var(--pli-pdf-blue); outline-offset: 1px; transform-origin: 0 0; }
+.pli-edit-tip { position: absolute; z-index: 4; box-sizing: border-box; background: #202124; color: #fff; border-radius: 4px; line-height: 1.3; pointer-events: none; }
+.pli-edit-props { display: grid; gap: 0.7rem; padding: 0.75rem; }
+.pli-edit-reason { margin: 0; color: var(--pli-pdf-muted); }
+.pli-edit-warnings { margin: 0; padding: 0.4rem 0.6rem 0.4rem 1.4rem; font-size: 12px; background: var(--pli-pdf-blue-soft); border-radius: 6px; }
+.pli-edit-fit { display: grid; gap: 0.3rem; }
+.pli-edit-list { flex: 1; min-height: 0; overflow: auto; }
+.pli-edit-items { list-style: none; margin: 0; padding: 0.4rem 0.25rem; display: grid; gap: 0.15rem; }
+.pli-edit-item { border-radius: 6px; }
+.pli-edit-row { display: flex; align-items: center; gap: 0.2rem; }
+.pli-edit-go { flex: 1; min-width: 0; display: grid; gap: 0.1rem; padding: 0.3rem 0.4rem; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pli-edit-go:hover { background: var(--pli-pdf-hover); }
+.pli-edit-page { font-size: 11px; color: var(--pli-pdf-muted); }
+.pli-edit-label { overflow-wrap: anywhere; }
+.pli-edit-foot { display: grid; gap: 0.5rem; padding: 0.5rem 0.75rem 0.75rem; }
+.pli-edit-item .pli-edit-warnings { margin: 0 0.4rem 0.3rem; }
+@media (forced-colors: active) { .pli-edit-box[data-hover], .pli-edit-box[data-selected] { stroke: Highlight; } }
+@media print { .pli-edit-boxes { display: none; } }
+
+/* ---- align and distribute ---- */
+
+.pli-pdf-arrange { display: grid; gap: 0.4rem; }
+.pli-arrange-row { display: inline-flex; gap: 0.15rem; flex-wrap: wrap; }
+.pli-edit-hits { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+.pli-edit-hit { position: absolute; box-sizing: border-box; background: transparent; outline: none; pointer-events: none; }
+.pli-edit-hit:focus-visible { outline: calc(var(--px, 1px) * 2) solid var(--pli-pdf-blue); outline-offset: calc(var(--px, 1px) * 1); }
+
+/* ---- find and replace ---- */
+
+.pli-pdf-replace { flex: 1 0 100%; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; padding-top: 4px; }
+.pli-pdf-replace .pli-button { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2rem; }
+.pli-pdf-replace-message { flex: 1 0 100%; margin: 0; font-size: 12px; color: var(--pli-pdf-muted); }
+.pli-pdf-find-toggle[aria-pressed="true"] { background: var(--pli-pdf-blue-soft); color: var(--pli-pdf-blue); }
+
+/* ---- the keyboard help and the dialogs of Document properties and Word count ---- */
+
+.pli-dialog:has(.pli-pdf-shortcuts), .pli-dialog:has(.pli-pdf-properties-dialog) { width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow-y: auto; }
+.pli-pdf-shortcuts { display: grid; gap: 0.9rem; }
+.pli-pdf-shortcut-group h3 { margin: 0 0 0.3rem; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pli-muted); }
+.pli-pdf-shortcut-group table { width: 100%; border-collapse: collapse; }
+.pli-pdf-shortcut-group th, .pli-pdf-shortcut-group td { padding: 0.2rem 0.4rem; border-top: 1px solid var(--pli-border); text-align: left; vertical-align: top; font-size: 13px; }
+.pli-pdf-shortcut-group th { width: 38%; font-weight: 600; font-family: var(--pli-mono); font-size: 12px; overflow-wrap: anywhere; }
+.pli-pdf-properties-dialog { display: grid; gap: 0.5rem; }
+.pli-pdf-facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; margin: 0.5rem 0 0; font-size: 13px; }
+.pli-pdf-facts dt { color: var(--pli-muted); }
+.pli-pdf-facts dd { margin: 0; overflow-wrap: anywhere; }

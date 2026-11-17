@@ -1,0 +1,33 @@
+/* The frame around a live editor and its poster. Both sit in one fixed-size box so swapping them moves nothing. */
+/* The live frame is the editor's frame: the editors inside keep their pills but not a second rounded border. (--pli-frame-* are the shared chrome variables of @pli.dev/react.) */
+.pli-live { --pli-frame-radius: 0; --pli-frame-border: 0; position: relative; display: block; width: 100%; height: var(--live-h, clamp(30rem, 62vh, 42rem)); border-radius: var(--pli-radius-lg);
+  background: var(--pli-surface); border: 1px solid var(--pli-line-strong); box-shadow: var(--pli-shadow-lg); overflow: hidden; isolation: isolate;
+  contain: layout paint; }
+.pli-live__bar { position: absolute; inset: 0 0 auto 0; z-index: 3; display: flex; align-items: center; gap: 0.4rem; height: 2.25rem; padding-inline: 0.9rem;
+  background: var(--pli-surface-2); border-bottom: 1px solid var(--pli-line); }
+.pli-live__bar i { width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--pli-line-strong); }
+.pli-live__bar b { margin-left: 0.6rem; font: 600 var(--pli-text-xs)/1 var(--pli-font); color: var(--pli-muted); letter-spacing: 0.02em; }
+.pli-live__bar .pli-live__badge { margin-left: auto; display: inline-flex; align-items: center; gap: 0.4rem; font: 600 var(--pli-text-xs)/1 var(--pli-font); color: var(--accent, var(--pli-brand)); }
+.pli-live__badge::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; opacity: 0.35; }
+.pli-live[data-live="ready"] .pli-live__badge::before { opacity: 1; }
+.pli-live__poster, .pli-live__stage { position: absolute; inset: 2.25rem 0 0 0; }
+.pli-live__poster { z-index: 1; transition: opacity 0.5s var(--pli-ease); }
+.pli-live__stage { z-index: 2; opacity: 0; transition: opacity 0.5s var(--pli-ease); text-align: left; }
+.pli-live[data-live="ready"] .pli-live__stage { opacity: 1; }
+.pli-live[data-live="ready"] .pli-live__poster { opacity: 0; pointer-events: none; }
+.pli-live__stage > * { height: 100%; }
+/* Not yet clicked: the editor is shown, not operated, so wheel and touch scroll the page. */
+.pli-live[data-interactive="false"] .pli-live__stage { pointer-events: none; user-select: none; }
+.pli-live__cta { position: absolute; z-index: 4; inset: 2.25rem 0 0 0; display: grid; place-items: end center; padding: 1rem; border: 0; background: transparent; cursor: pointer; font: inherit; }
+.pli-live__cta span { padding: 0.55rem 1.1rem; border-radius: 999px; background: var(--pli-ink); color: var(--pli-bg); font: 600 0.88rem/1 var(--pli-font);
+  box-shadow: var(--pli-shadow-md); opacity: 0; transform: translate3d(0, 8px, 0); transition: opacity 0.25s, transform 0.25s var(--pli-ease); }
+.pli-live__cta:hover span, .pli-live__cta:focus-visible span { opacity: 1; transform: none; }
+.pli-live__cta:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: -4px; }
+.pli-live[data-interactive="true"] .pli-live__cta { display: none; }
+.pli-live__done { position: absolute; z-index: 5; right: 0.6rem; top: 0.3rem; display: none; min-height: 1.65rem; padding: 0 0.8rem; border-radius: 999px; border: 1px solid var(--pli-line-strong);
+  background: var(--pli-surface); color: var(--pli-ink); font: 600 var(--pli-text-xs)/1 var(--pli-font); cursor: pointer; }
+.pli-live[data-interactive="true"][data-mode="story"] .pli-live__done { display: inline-flex; align-items: center; }
+/* Phones and data saver never start the editor, so the cue is not shown either. */
+.pli-live[data-live="poster"] .pli-live__cta, .pli-live[data-live="idle"] .pli-live__cta { display: none; }
+@media (max-width: 899px) { .pli-live { height: var(--live-h-small, 22rem); } }
+@media (prefers-reduced-motion: reduce) { .pli-live__poster, .pli-live__stage, .pli-live__cta span { transition: none; } }

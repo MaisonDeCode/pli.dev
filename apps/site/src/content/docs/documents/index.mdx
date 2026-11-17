@@ -1,0 +1,57 @@
+---
+title: Documents
+description: Rich-text documents, as a ready-made editor or a headless engine.
+tableOfContents: false
+---
+
+import ProductHero from "../../../components/marketing/ProductHero.astro";
+
+<ProductHero
+  product="docs"
+  title="A full document editor, in your app"
+  tagline="Real pages with headers, footers and page numbers, tables, a table of contents, images, comments and suggestions, and export to DOCX, Markdown and HTML. Use the ready-made editor or the headless engine under it."
+  status="In progress"
+  actions={[
+    { text: "Get started", href: "/documents/getting-started/", variant: "brand" },
+    { text: "Ready-made editor", href: "/documents/ready-made-ui/", variant: "ghost" },
+    { text: "Roadmap", href: "/documents/roadmap/", variant: "ghost" },
+  ]}
+  badges={["DOCX, Markdown, HTML, PDF", "React, Swift, Kotlin"]}
+/>
+
+Pli Documents is a document editor and the engine behind it. It has real pages with headers, footers and page numbers (or one continuous column), tables, a generated table of contents, images, fonts and sizes, colors, line spacing, nested lists, find and replace, and export to DOCX, Markdown and HTML.
+
+**Status:** in progress. The engine, the React editor, DOCX import and export, and the Swift and Kotlin packages (the full editor and native building blocks) work today. See the [roadmap](/roadmap/).
+
+## Ways to use it
+
+### Ready-made UI
+
+```tsx
+import { PliDocument, useDocumentSession } from "@pli.dev/react";
+import "@pli.dev/react/styles.css";
+
+export function Editor() {
+  const session = useDocumentSession();
+  return <PliDocument session={session} />;
+}
+```
+
+That gives you a menu bar, toolbar, pages with headers and footers, images, a table of contents, find and replace, an outline, a status bar and light and dark themes. See [Ready-made editor](/documents/ready-made-ui/).
+
+### Swift and Kotlin
+
+The same documents in iPhone, iPad, Mac and Android apps: the full editor in a web view with one line of code, or native text blocks, a toolbar and menus (UIKit, SwiftUI and Jetpack Compose) that you arrange yourself. See [Swift](/documents/swift/) and [Kotlin](/documents/kotlin/).
+
+### Build your own
+
+Use `@pli.dev/docs` on its own for the document model, commands, history and export, and wire it to any interface. Or keep `PliEditor`, the editing surface, and replace only the toolbar and menus. See [Build your own](/documents/build-your-own/).
+
+## Where to go next
+
+- [Get started](/documents/getting-started/): install it and edit a document.
+- [Swift](/documents/swift/) and [Kotlin](/documents/kotlin/): the package for iPhone, iPad, Mac and Android apps.
+- [Operations](/documents/concepts/operations/) and [Selection and commands](/documents/concepts/selection-and-commands/): how edits work.
+- Features: [Pages and layout](/documents/features/pages-and-layout/), [Headers and footers](/documents/features/headers-and-footers/), [Images](/documents/features/images/), [Tables](/documents/features/tables/), [Table of contents](/documents/features/table-of-contents/), [Fonts and formatting](/documents/features/formatting/), [Keyboard shortcuts](/documents/features/keyboard-shortcuts/).
+- [Exporting](/documents/guides/exporting/) and [Saving and loading](/documents/guides/saving-and-loading/).
+- [Use Pli with AI agents](/documents/guides/agent-skill/): a skill that lets an agent make documents and add the editor to an app.

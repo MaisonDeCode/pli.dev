@@ -1,0 +1,22 @@
+{
+  "name": "@pli.dev/native",
+  "version": "0.0.0",
+  "description": "Pli for Swift and Kotlin: the engines as scripts with a small JSON interface, and the code that wraps them.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "generate": "node scripts/generate.mjs"
+  },
+  "dependencies": {
+    "@pli.dev/core": "workspace:*",
+    "@pli.dev/decks": "workspace:*",
+    "@pli.dev/docs": "workspace:*",
+    "@pli.dev/pdf": "workspace:*",
+    "@pli.dev/sheets": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "@pli.dev/decks",
+  "version": "1.0.0",
+  "description": "Pli Decks: a headless slide-deck model with masters, layouts and themes, operations, history, and PPTX, template and PDF files.",
+  "keywords": [
+    "pli",
+    "slides",
+    "presentation",
+    "pptx",
+    "deck",
+    "headless"
+  ],
+  "license": "Apache-2.0",
+  "author": "Maison de Code (https://maisondecode.com)",
+  "homepage": "https://pli.dev",
+  "bugs": {
+    "url": "https://github.com/MaisonDeCode/pli.dev/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaisonDeCode/pli.dev.git",
+    "directory": "packages/decks"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "prepack": "node ../../scripts/prepack.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@pli.dev/core": "workspace:^",
+    "@pli.dev/docs": "workspace:^",
+    "fflate": "^0.8.2"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    }
+  }
+}

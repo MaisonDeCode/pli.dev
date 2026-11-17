@@ -1,0 +1,27 @@
+public.html
+Apple HTML pasteboard type
+public.utf16-plain-text
+CorePasteboardFlavorType 0x75747874
+public.utf8-plain-text
+NSStringPboardType
+com.adobe.pdf
+Apple PDF pasteboard type
+public.png
+Apple PNG pasteboard type
+public.tiff
+NeXT TIFF v4.0 pasteboard type
+public.rtf
+NeXT Rich Text Format v1.0 pasteboard type
+public.utf16-external-plain-text
+CorePasteboardFlavorType 0x75743136
+com.microsoft.Embed-Source
+com.microsoft.Object-Descriptor
+com.microsoft.Link-Source
+com.microsoft.Link-Source-Descriptor
+com.microsoft.Link
+com.microsoft.DSP-Text
+com.apple.webarchive
+Apple Web Archive pasteboard type
+com.microsoft.ole.source.68367.0x756f6b5fe0
+com.microsoft.DataObject
+com.microsoft.appbundleid

@@ -1,0 +1,72 @@
+/* Shared building blocks, all prefixed pli-. Used by the landing page, the product heroes in the docs, and the header and footer. */
+.pli-container { width: 100%; max-width: var(--pli-container); margin-inline: auto; padding-inline: var(--pli-gutter); }
+.pli-section { position: relative; padding-block: var(--pli-s9); }
+.pli-section--tight { padding-block: var(--pli-s8); }
+
+.pli-eyebrow {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font: 600 var(--pli-text-xs)/1 var(--pli-font); letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--pli-brand);
+}
+.pli-h1, .pli-h2, .pli-h3 { font-family: var(--pli-font); color: var(--pli-ink); letter-spacing: var(--pli-tracking-tight); text-wrap: balance; margin: 0; }
+.pli-h1 { font-size: var(--pli-text-hero); line-height: 1.02; font-weight: 750; }
+.pli-h2 { font-size: var(--pli-text-3xl); line-height: 1.05; font-weight: 720; }
+.pli-h3 { font-size: var(--pli-text-xl); line-height: 1.2; font-weight: 680; letter-spacing: -0.02em; }
+.pli-lede { font-size: var(--pli-text-lg); line-height: 1.55; color: var(--pli-muted); max-width: 40rem; text-wrap: pretty; margin: 0; }
+.pli-gradient-text {
+  background: linear-gradient(100deg, var(--pli-docs), var(--pli-brand-2) 40%, var(--pli-pdf) 80%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Buttons. */
+.pli-btn {
+  --btn-bg: var(--pli-surface); --btn-ink: var(--pli-ink); --btn-line: var(--pli-line-strong);
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 2.9rem; padding: 0 1.35rem; border-radius: 999px; border: 1px solid var(--btn-line);
+  background: var(--btn-bg); color: var(--btn-ink); font: 600 0.95rem/1 var(--pli-font); text-decoration: none; cursor: pointer;
+  transition: transform var(--pli-dur-fast) var(--pli-ease), box-shadow var(--pli-dur-fast) var(--pli-ease), background var(--pli-dur-fast);
+}
+.pli-btn:hover { transform: translateY(-1px); box-shadow: var(--pli-shadow-md); }
+.pli-btn:focus-visible, .pli-link:focus-visible, .pli-tab:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: 3px; }
+.pli-btn--primary { --btn-bg: var(--pli-ink); --btn-ink: var(--pli-bg); --btn-line: transparent; }
+.pli-btn--brand { --btn-bg: linear-gradient(135deg, var(--pli-brand), var(--pli-brand-2)); --btn-ink: #fff; --btn-line: transparent; box-shadow: 0 8px 24px -8px var(--pli-glow); }
+/* White text on the purple button in every state; page link colours must not win over it. */
+.pli-btn.pli-btn--brand, .pli-btn.pli-btn--brand:visited, .pli-btn.pli-btn--brand:hover, .pli-btn.pli-btn--brand:active { color: #fff; }
+.pli-btn--ghost { --btn-bg: transparent; }
+.pli-btn--sm { min-height: 2.25rem; padding: 0 1rem; font-size: 0.85rem; }
+.pli-link { color: var(--pli-ink); font-weight: 600; text-decoration: none; border-bottom: 1px solid var(--pli-line-strong); transition: border-color var(--pli-dur-fast); }
+.pli-link:hover { border-color: var(--pli-brand); }
+
+/* Cards. */
+.pli-card {
+  position: relative; border-radius: var(--pli-radius-lg); padding: var(--pli-s5);
+  background: var(--pli-surface); border: 1px solid var(--pli-line); box-shadow: var(--pli-shadow-sm);
+  transition: transform var(--pli-dur) var(--pli-ease), box-shadow var(--pli-dur) var(--pli-ease), border-color var(--pli-dur);
+}
+a.pli-card, .pli-card--hover { text-decoration: none; color: inherit; }
+a.pli-card:hover, .pli-card--hover:hover { transform: translateY(-4px); box-shadow: var(--pli-shadow-md); border-color: var(--pli-line-strong); }
+.pli-card h3 { margin: 0 0 0.4rem; font: 680 1.15rem/1.25 var(--pli-font); color: var(--pli-ink); letter-spacing: -0.01em; }
+.pli-card p { margin: 0; color: var(--pli-muted); line-height: 1.55; font-size: 0.97rem; }
+
+/* A chip with a coloured dot, for product names and status. */
+.pli-chip {
+  display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.75rem; border-radius: 999px;
+  font: 600 var(--pli-text-xs)/1.2 var(--pli-font); color: var(--pli-ink-2); background: var(--pli-surface); border: 1px solid var(--pli-line);
+}
+.pli-chip i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--dot, var(--pli-brand)); }
+[data-product="docs"] { --accent: var(--pli-docs); --accent-soft: var(--pli-docs-soft); }
+[data-product="sheets"] { --accent: var(--pli-sheets); --accent-soft: var(--pli-sheets-soft); }
+[data-product="decks"] { --accent: var(--pli-decks); --accent-soft: var(--pli-decks-soft); }
+[data-product="pdf"] { --accent: var(--pli-pdf); --accent-soft: var(--pli-pdf-soft); }
+
+/* A soft coloured glow behind a block. Decorative, so it never takes pointer events. Only opacity and transform are animated. */
+.pli-glow { position: absolute; inset: auto; width: 46rem; max-width: 120vw; aspect-ratio: 1; border-radius: 50%; pointer-events: none; z-index: -1;
+  background: radial-gradient(closest-side, var(--glow, var(--pli-glow)), transparent 70%); filter: blur(8px); opacity: 0.8; }
+
+/* The window frame around a live editor or its poster. */
+.pli-window { position: relative; border-radius: var(--pli-radius-lg); background: var(--pli-surface); border: 1px solid var(--pli-line-strong);
+  box-shadow: var(--pli-shadow-lg); overflow: hidden; isolation: isolate; }
+.pli-window__bar { display: flex; align-items: center; gap: 0.4rem; height: 2.25rem; padding-inline: 0.9rem; background: var(--pli-surface-2); border-bottom: 1px solid var(--pli-line); }
+.pli-window__bar i { width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--pli-line-strong); }
+.pli-window__bar b { margin-left: 0.6rem; font: 600 var(--pli-text-xs)/1 var(--pli-font); color: var(--pli-muted); letter-spacing: 0.02em; }
+.pli-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

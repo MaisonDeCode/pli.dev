@@ -1,0 +1,89 @@
+{
+  "name": "@pli.dev/pdf-react",
+  "version": "1.0.0",
+  "description": "React PDF editor for Pli: thumbnails, continuous and single-page views, text selection and search, outline, annotation tools, page tools and form filling, driven by the @pli.dev/pdf engine.",
+  "keywords": [
+    "pli",
+    "react",
+    "pdf",
+    "viewer",
+    "annotations",
+    "forms",
+    "pdfjs",
+    "editor"
+  ],
+  "license": "Apache-2.0",
+  "author": "Maison de Code (https://maisondecode.com)",
+  "homepage": "https://pli.dev",
+  "bugs": {
+    "url": "https://github.com/MaisonDeCode/pli.dev/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaisonDeCode/pli.dev.git",
+    "directory": "packages/pdf-react"
+  },
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepack": "node ../../scripts/prepack.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./pdfjs": "./src/pdfjs.ts",
+    "./testing": "./src/testing.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "dependencies": {
+    "@pli.dev/core": "workspace:^",
+    "@pli.dev/pdf": "workspace:^",
+    "@pli.dev/react": "workspace:^"
+  },
+  "peerDependencies": {
+    "pdfjs-dist": "^5.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "pdfjs-dist": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./pdfjs": {
+        "types": "./dist/pdfjs.d.ts",
+        "import": "./dist/pdfjs.js",
+        "default": "./dist/pdfjs.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "import": "./dist/testing.js",
+        "default": "./dist/testing.js"
+      },
+      "./styles.css": "./dist/styles.css",
+      "./package.json": "./package.json"
+    }
+  }
+}

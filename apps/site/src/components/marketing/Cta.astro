@@ -1,0 +1,31 @@
+---
+/** The last band of the front page: one headline, two buttons, one plain line about the licence and where to install it. */
+---
+<section class="cta pli-section" aria-labelledby="cta-title">
+  <div class="pli-container">
+    <div class="cta__band" data-reveal="scale">
+      <div class="pli-glow cta__glow cta__glow--a" aria-hidden="true"></div>
+      <div class="pli-glow cta__glow cta__glow--b" aria-hidden="true" style="--glow: color-mix(in srgb, var(--pli-pdf) 32%, transparent)"></div>
+      <h2 class="pli-h2 cta__title" id="cta-title">Add an editor to your app.</h2>
+      <p class="pli-lede cta__lede">Start with the introduction, or go straight to the Pli.Documents getting-started guide.</p>
+      <div class="cta__actions">
+        <a class="pli-btn pli-btn--brand" href="/introduction/">Get started</a>
+        <a class="pli-btn" href="/roadmap/">See the roadmap</a>
+      </div>
+      <p class="cta__note">Open source under the Apache License 2.0. Install the packages from npm, under the @pli.dev scope.</p>
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  .cta__band { position: relative; isolation: isolate; overflow: clip; text-align: center; display: flex; flex-direction: column; align-items: center;
+    padding: clamp(2.5rem, 2rem + 4vw, 5.5rem) var(--pli-gutter); border-radius: calc(var(--pli-radius-lg) * 1.4);
+    background: linear-gradient(160deg, var(--pli-surface), var(--pli-surface-2)); border: 1px solid var(--pli-line-strong); box-shadow: var(--pli-shadow-lg); }
+  .cta__glow { z-index: -1; }
+  .cta__glow--a { left: -10rem; top: -18rem; }
+  .cta__glow--b { right: -12rem; bottom: -22rem; width: 38rem; }
+  .cta__title { max-width: 15ch; }
+  .cta__lede { margin-top: var(--pli-s4); text-align: center; }
+  .cta__actions { margin-top: var(--pli-s6); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--pli-s3); }
+  .cta__note { margin: var(--pli-s5) 0 0; max-width: 34rem; color: var(--pli-muted); font-size: var(--pli-text-sm); line-height: 1.55; text-wrap: balance; }
+</style>

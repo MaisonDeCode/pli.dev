@@ -1,0 +1,379 @@
+---
+// Fonts, file formats and templates. Three small stories in one section:
+//  1. a band of family names set in their own style (system fallbacks only: this page downloads no fonts),
+//  2. the file formats the editors read and write, as tiles that light up one after another,
+//  3. the twelve built-in deck themes and the built-in document styles, drawn in CSS.
+// Theme colours and fonts are copied from BUILTIN_THEMES in packages/decks/src/themes.ts; test/sections.test.ts compares them.
+import { Code } from "astro:components";
+
+interface Face { name: string; stack: string; weight?: number; italic?: boolean; upper?: boolean; track?: string }
+const rowA: Face[] = [
+  { name: "Georgia", stack: 'Georgia, "Times New Roman", serif' },
+  { name: "Lora", stack: 'Lora, Georgia, serif' },
+  { name: "Playfair Display", stack: '"Playfair Display", Didot, "Bodoni 72", Georgia, serif', weight: 700 },
+  { name: "Times New Roman", stack: '"Times New Roman", Times, serif', italic: true },
+  { name: "Merriweather", stack: 'Merriweather, Georgia, serif', weight: 700 },
+  { name: "Cambria", stack: 'Cambria, Georgia, serif' },
+  { name: "DM Serif Display", stack: '"DM Serif Display", Didot, Georgia, serif' },
+];
+const rowB: Face[] = [
+  { name: "Inter", stack: 'Inter, ui-sans-serif, system-ui, sans-serif', weight: 600 },
+  { name: "Arial", stack: 'Arial, "Helvetica Neue", Helvetica, sans-serif' },
+  { name: "Montserrat", stack: 'Montserrat, "Avenir Next", "Segoe UI", sans-serif', weight: 700 },
+  { name: "Calibri", stack: 'Calibri, Carlito, Candara, "Segoe UI", sans-serif' },
+  { name: "Poppins", stack: 'Poppins, "Avenir Next", "Segoe UI", sans-serif', weight: 500 },
+  { name: "Verdana", stack: 'Verdana, Geneva, sans-serif' },
+  { name: "Trebuchet MS", stack: '"Trebuchet MS", "Lucida Grande", sans-serif', weight: 700 },
+  { name: "Roboto", stack: 'Roboto, "Segoe UI", system-ui, sans-serif', weight: 300 },
+];
+const rowC: Face[] = [
+  { name: "Courier New", stack: '"Courier New", Courier, monospace' },
+  { name: "Roboto Mono", stack: '"Roboto Mono", ui-monospace, Menlo, Consolas, monospace' },
+  { name: "Bebas Neue", stack: '"Bebas Neue", Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif', upper: true, track: "0.06em" },
+  { name: "Pacifico", stack: 'Pacifico, "Snell Roundhand", "Brush Script MT", cursive' },
+  { name: "JetBrains Mono", stack: '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace', weight: 700 },
+  { name: "Caveat", stack: 'Caveat, "Segoe Print", "Bradley Hand", cursive' },
+  { name: "Fira Code", stack: '"Fira Code", ui-monospace, Menlo, Consolas, monospace' },
+];
+const rows = [
+  { id: "a", faces: rowA, label: "Serif" },
+  { id: "b", faces: rowB, label: "Sans serif" },
+  { id: "c", faces: rowC, label: "Monospace and display" },
+];
+const faceStyle = (f: Face) =>
+  `font-family:${f.stack};font-weight:${f.weight ?? 400};` + (f.italic ? "font-style:italic;" : "") + (f.upper ? "text-transform:uppercase;" : "") + (f.track ? `letter-spacing:${f.track};` : "");
+
+const fontCode = `import { createFonts, setDefaultFonts } from "@pli.dev/core";
+
+// Once, at start-up. Every editor on the page now shares this list.
+setDefaultFonts(createFonts({ only: ["Calibri", "Arial", "Georgia", "Inter", "Lora", "Roboto Mono"] }));`;
+
+// What each editor reads and writes (docs: documents/guides/exporting, importing; sheets/files; decks/files; pdf/files).
+interface Format { ext: string; name: string; mode: string; by: string; key: "docs" | "sheets" | "decks" | "pdf" | "core" }
+const formats: Format[] = [
+  { ext: "DOCX", name: "Word", mode: "Read and write", by: "Documents", key: "docs" },
+  { ext: "XLSX", name: "Excel", mode: "Read and write", by: "Sheets", key: "sheets" },
+  { ext: "PPTX", name: "PowerPoint", mode: "Read and write", by: "Decks, with .potx templates", key: "decks" },
+  { ext: "PDF", name: "PDF", mode: "Open, edit, save", by: "PDF; Documents, Sheets and Decks also write it", key: "pdf" },
+  { ext: "CSV", name: "Comma separated", mode: "Read and write", by: "Sheets", key: "sheets" },
+  { ext: "MD", name: "Markdown", mode: "Read and write", by: "Documents", key: "docs" },
+  { ext: "HTML", name: "HTML", mode: "Write", by: "Documents", key: "docs" },
+  { ext: "JSON", name: "Plain JSON", mode: "Read and write", by: "Every editor", key: "core" },
+];
+const perEditor = [
+  { label: "Documents", href: "/documents/guides/exporting/" },
+  { label: "Sheets", href: "/sheets/files/" },
+  { label: "Decks", href: "/decks/files/" },
+  { label: "PDF", href: "/pdf/files/" },
+];
+
+const themes = [
+  { id: "simple-light", name: "Simple Light", bg: "#ffffff", ink: "#000000", ink2: "#434343", soft: "#efefef", a: ["#4285f4", "#ea4335", "#fbbc04"], major: "Arial", minor: "Arial" },
+  { id: "simple-dark", name: "Simple Dark", bg: "#1e1e1e", ink: "#f5f5f5", ink2: "#bdbdbd", soft: "#2c2c2c", a: ["#8ab4f8", "#f28b82", "#fdd663"], major: "Arial", minor: "Arial" },
+  { id: "paperwhite", name: "Paperwhite", bg: "#fbf8f1", ink: "#2b2b2b", ink2: "#5c5348", soft: "#efe9db", a: ["#b5523b", "#3d6b7d", "#a67c00"], major: "Georgia", minor: "Arial" },
+  { id: "midnight", name: "Midnight", bg: "#0b1d3a", ink: "#f2f5fa", ink2: "#b8c4d9", soft: "#14305c", a: ["#5ac8fa", "#ff8a65", "#ffd54f"], major: "Trebuchet MS", minor: "Trebuchet MS" },
+  { id: "coral", name: "Coral", bg: "#fff6f1", ink: "#2d2433", ink2: "#6b4f5e", soft: "#fde6dc", a: ["#d9482f", "#e08a1e", "#2a9d8f"], major: "Trebuchet MS", minor: "Arial" },
+  { id: "forest", name: "Forest", bg: "#f3f7f1", ink: "#1d2b22", ink2: "#4a5d50", soft: "#e1ebdd", a: ["#2f6b46", "#6f7f2a", "#a85f14"], major: "Georgia", minor: "Verdana" },
+  { id: "slate", name: "Slate", bg: "#f5f7fa", ink: "#1f2933", ink2: "#52606d", soft: "#e4e7eb", a: ["#486581", "#c53030", "#a96a11"], major: "Arial", minor: "Arial" },
+  { id: "sunrise", name: "Sunrise", bg: "#fffaf0", ink: "#3b2a2a", ink2: "#7a5148", soft: "#fdebd0", a: ["#c2410c", "#9f1239", "#b45309"], major: "Trebuchet MS", minor: "Verdana" },
+  { id: "mono", name: "Mono", bg: "#ffffff", ink: "#111111", ink2: "#555555", soft: "#f0f0f0", a: ["#111111", "#d62828", "#1d4ed8"], major: "Courier New", minor: "Arial" },
+  { id: "ocean", name: "Ocean", bg: "#f2f9fb", ink: "#0b2e3b", ink2: "#2f5666", soft: "#dcecf1", a: ["#0e7490", "#0369a1", "#0d9488"], major: "Verdana", minor: "Verdana" },
+  { id: "plum", name: "Plum", bg: "#faf5fb", ink: "#2a1a33", ink2: "#6b4d7a", soft: "#efe3f3", a: ["#6a2c8c", "#b8326d", "#a8680f"], major: "Georgia", minor: "Trebuchet MS" },
+  { id: "chalk", name: "Chalk", bg: "#24332e", ink: "#f4f1e8", ink2: "#c8d0c6", soft: "#33463f", a: ["#f2c14e", "#e8836a", "#81b29a"], major: "Times New Roman", minor: "Arial" },
+];
+const stackFor = (f: string) => (f === "Georgia" || f === "Times New Roman" ? `"${f}", Georgia, serif` : f === "Courier New" ? `"Courier New", Courier, monospace` : `"${f}", Arial, Helvetica, sans-serif`);
+---
+<section class="pli-section ff" id="fonts-and-formats" aria-labelledby="ff-h">
+  <div class="pli-container">
+    <header class="head" data-reveal>
+      <p class="pli-eyebrow">Fonts, files and starting points</p>
+      <h2 class="pli-h2" id="ff-h">Fonts and file formats</h2>
+      <p class="pli-lede">One font loader for every editor, Office files in and out, and themes to start a deck from.</p>
+    </header>
+
+    <!-- ===== Fonts ===== -->
+    <div class="part" id="fonts">
+      <div class="part-head" data-reveal>
+        <h3 class="pli-h3">One font loader, shared</h3>
+        <p>More than 2,000 families, the Office fonts and Google's, behind one picker. Nothing to set up, and a short list when you want one.</p>
+      </div>
+
+      <div class="band pli-window" data-reveal="fade" role="group" aria-label="Font families, each set in its own style">
+        {rows.map((r, ri) => (
+          <div class={`row row--${r.id}`}>
+            <ul class="track" aria-label={r.label}>
+              {r.faces.map((f) => <li style={faceStyle(f)}>{f.name}</li>)}
+            </ul>
+            <ul class="track track--copy" aria-hidden="true">
+              {r.faces.map((f) => <li style={faceStyle(f)}>{f.name}</li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p class="note">The names above use fonts already on your computer, or a similar one if it has none. In the editors, a family is fetched only when text uses it.</p>
+
+      <div class="facts">
+        <ul class="fact-list" data-reveal>
+          <li><b>About 2,100 families.</b> The catalogue is a 20 KB list, so searching needs no network.</li>
+          <li><b>No font files in the packages.</b> A family downloads when something draws text in it, in just the weights and scripts needed.</li>
+          <li><b>Office fonts stay on the computer.</b> Where one is missing, a look-alike with the same letter widths stands in (Calibri: Carlito, Cambria: Caladea, Arial: Arimo), so lines break in the same places.</li>
+          <li><b>Text never disappears.</b> It is drawn in a stand-in while a font loads, and measured again when it arrives.</li>
+          <li><a class="pli-link" href="/platform/fonts/">Fonts in the docs</a>: restrict the list, serve the files yourself, add your own, or work offline.</li>
+        </ul>
+        <div class="code" data-reveal="right">
+          <Code code={fontCode} lang="ts" theme="css-variables" wrap />
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Formats ===== -->
+    <div class="part" id="formats">
+      <div class="part-head" data-reveal>
+        <h3 class="pli-h3">Import and export</h3>
+        <p>Open the file someone sent you, and save one they can open.</p>
+      </div>
+
+      <div class="flow">
+        <ul class="files" aria-label="File formats" data-reveal="fade">
+          {formats.map((f, i) => (
+            <li class="fmt" style={`--i:${i};--acc:var(--pli-${f.key === "core" ? "brand" : f.key})`}>
+              <span class="file" aria-hidden="true"><i></i><b>{f.ext}</b></span>
+              <span class="meta">
+                <strong>{f.name}</strong>
+                <span class="mode">{f.mode}</span>
+                <span class="by">{f.by}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div class="lanes" aria-hidden="true">
+          <span class="lane lane--in"><i class="pk"></i><i class="pk pk--b"></i></span>
+          <span class="lane lane--out"><i class="pk"></i><i class="pk pk--b"></i></span>
+        </div>
+
+        <div class="hub pli-card">
+          <p class="hub-mark" aria-hidden="true">{`{ }`}</p>
+          <h4>One model underneath</h4>
+          <p>Every file becomes plain JSON and invertible operations, so undo, comments and live editing work the same whatever came in. The same on the web, iOS and Android.</p>
+          <ul class="hub-eds">
+            <li data-product="docs"><i></i>Documents</li>
+            <li data-product="sheets"><i></i>Sheets</li>
+            <li data-product="decks"><i></i>Decks</li>
+            <li data-product="pdf"><i></i>PDF</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">What each format keeps, per editor: {perEditor.map((p, i) => <><a class="pli-link" href={p.href}>{p.label}</a>{i < perEditor.length - 1 ? ", " : "."}</>)}</p>
+    </div>
+
+    <!-- ===== Templates ===== -->
+    <div class="part" id="templates">
+      <div class="part-head" data-reveal>
+        <h3 class="pli-h3">Start from a theme</h3>
+        <p>Pli.Decks ships twelve themes, each with its own colours, fonts and background, and a master with nine layouts. Change the theme and every slide follows.</p>
+      </div>
+
+      <ul class="themes" tabindex="0" aria-label="Built-in deck themes. Scroll sideways to see them all.">
+        {themes.map((t, i) => (
+          <li data-reveal style={`--i:${i % 6}`}>
+            <figure class={`th th--${t.id}`} style={`--bg:${t.bg};--ink:${t.ink};--ink2:${t.ink2};--soft:${t.soft};--a1:${t.a[0]};--a2:${t.a[1]};--a3:${t.a[2]};--major:${stackFor(t.major)}`}>
+              <div class="slide" aria-hidden="true">
+                <span class="spine"></span>
+                <span class="t">Q3 review</span>
+                <span class="s"></span><span class="s s2"></span>
+                <span class="sw"><i></i><i></i><i></i></span>
+              </div>
+              <figcaption><b>{t.name}</b><span>{t.major === t.minor ? t.major : `${t.major} and ${t.minor}`}</span></figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
+      <p class="note"><a class="pli-link" href="/decks/themes-and-layouts/">Themes and layouts</a> in the docs.</p>
+
+      <div class="extras">
+        <div class="pli-card extra" data-reveal style="--i:0">
+          <h3>Bring your own template</h3>
+          <p>Upload a <code>.potx</code> or <code>.pptx</code>, or a Google Slides deck downloaded as <code>.pptx</code>. Its masters, layouts, colours, fonts and backgrounds become Pli.Decks themes.</p>
+          <a class="pli-link" href="/decks/templates/">Templates in the docs</a>
+        </div>
+        <div class="pli-card extra extra--styles" data-reveal style="--i:1">
+          <div class="sty" aria-hidden="true">
+            <p class="sty-title">Title</p>
+            <p class="sty-h1">Heading 1</p>
+            <p class="sty-p">Normal text</p>
+            <p class="sty-q">Quote</p>
+            <p class="sty-code">Code block</p>
+            <p class="sty-note">Note <small>your own style</small></p>
+          </div>
+          <div>
+            <h3>Styles in Documents</h3>
+            <p>Built-in paragraph styles, and your own: make a style once, apply it to a dozen paragraphs, change it in one place. They export as real DOCX styles.</p>
+            <a class="pli-link" href="/documents/features/styles/">Styles in the docs</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .head { display: grid; gap: var(--pli-s4); max-width: 46rem; margin-bottom: var(--pli-s7); }
+  .part { margin-top: var(--pli-s8); }
+  .part:first-of-type { margin-top: 0; }
+  .part-head { display: grid; gap: 0.5rem; max-width: 42rem; margin-bottom: var(--pli-s5); }
+  .part-head p { margin: 0; color: var(--pli-muted); }
+  .note { margin: var(--pli-s3) 0 0; font-size: 0.85rem; color: var(--pli-muted); max-width: 46rem; }
+  .note a { font-weight: 600; }
+
+  /* ===== Fonts band ===== */
+  .band { display: grid; gap: 0.2rem; padding: var(--pli-s4) 0; background: var(--pli-surface); }
+  .row { position: relative; overflow: hidden; }
+  .track { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0.2rem 1.6rem; list-style: none; margin: 0; padding: 0.15rem var(--pli-s4); font-size: clamp(1.25rem, 1rem + 1.1vw, 1.9rem); line-height: 1.5; color: var(--pli-ink); }
+  .track li { white-space: nowrap; }
+  .track--copy { display: none; }
+  .row--b .track li:nth-child(3n + 1) { color: var(--pli-brand); }
+  .row--a .track li:nth-child(4n + 2) { color: var(--pli-ink-2); }
+  .row--c .track li:nth-child(3n) { color: var(--pli-sheets); }
+
+  .facts { display: grid; gap: var(--pli-s5); margin-top: var(--pli-s6); align-items: start; }
+  .fact-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; color: var(--pli-muted); font-size: 0.97rem; line-height: 1.5; }
+  .fact-list b { color: var(--pli-ink); }
+  .code { --astro-code-foreground: #e9e9f5; --astro-code-background: transparent; --astro-code-token-comment: #8387ad; --astro-code-token-keyword: #c9afff; --astro-code-token-string: #86e6bd; --astro-code-token-string-expression: #86e6bd; --astro-code-token-function: #84c8ff; --astro-code-token-constant: #ffbd78; --astro-code-token-parameter: #f2f2fc; --astro-code-token-punctuation: #a3a6c0; --astro-code-token-link: #84c8ff; }
+  .code :global(pre.astro-code) { margin: 0; padding: 1.1rem 1.2rem; border-radius: var(--pli-radius); background: var(--pli-code-bg) !important; border: 1px solid var(--pli-line-strong); font: 0.82rem/1.6 var(--pli-mono); overflow-x: auto; }
+  .code :global(pre.astro-code code) { font: inherit; }
+
+  @media (min-width: 900px) {
+    .facts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--pli-s7); }
+  }
+
+  /* ===== Formats ===== */
+  .flow { display: grid; gap: var(--pli-s4); grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+  .files { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--pli-s3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr)); }
+  .fmt { position: relative; display: flex; gap: 0.8rem; align-items: center; padding: 0.8rem 0.9rem; border-radius: var(--pli-radius); background: var(--pli-surface); border: 1px solid var(--pli-line); box-shadow: var(--pli-shadow-sm); transition: transform var(--pli-dur) var(--pli-ease), box-shadow var(--pli-dur) var(--pli-ease), border-color var(--pli-dur); }
+  .fmt::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; border: 1.5px solid var(--acc); box-shadow: 0 14px 28px -14px var(--acc); opacity: 0; pointer-events: none; }
+  .meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+  .meta strong { font-size: 0.95rem; color: var(--pli-ink); }
+  .mode { font-size: 0.8rem; font-weight: 600; color: var(--acc); }
+  .by { font-size: 0.78rem; color: var(--pli-muted); }
+  .file { position: relative; flex: none; width: 2.5rem; height: 3.1rem; border-radius: 0.3rem 0.85rem 0.3rem 0.3rem; background: var(--pli-surface); border: 1.5px solid var(--acc); box-shadow: 0 6px 14px -8px var(--acc); transition: background var(--pli-dur); }
+  .file::before { content: ""; position: absolute; top: -1.5px; right: -1.5px; width: 0.85rem; height: 0.85rem; border-radius: 0 0 0 0.4rem; background: linear-gradient(225deg, var(--pli-surface) 50%, var(--acc) 50%); }
+  .file i { position: absolute; left: 0.4rem; right: 0.4rem; top: 0.55rem; height: 0.35rem; border-top: 2px solid var(--pli-line-strong); border-bottom: 2px solid var(--pli-line-strong); opacity: 0.8; }
+  .file b { position: absolute; left: 0; right: 0; bottom: 0.3rem; text-align: center; font: 800 0.55rem/1 var(--pli-font); letter-spacing: 0.04em; color: var(--acc); }
+
+  .lanes { display: none; }
+  .hub { display: flex; flex-direction: column; gap: 0.6rem; align-self: center; background: linear-gradient(160deg, var(--pli-surface), var(--pli-surface-2)); }
+  .hub-mark { margin: 0; font: 760 2.4rem/1 var(--pli-mono); color: var(--pli-brand); }
+  .hub h4 { margin: 0; font: 700 1.15rem/1.2 var(--pli-font); color: var(--pli-ink); }
+  .hub p { font-size: 0.93rem; }
+  .hub-eds { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; list-style: none; margin: 0.2rem 0 0; padding: 0; font-size: 0.82rem; font-weight: 600; color: var(--pli-ink-2); }
+  .hub-eds li { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .hub-eds i { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--accent); }
+
+  @media (min-width: 900px) {
+    .flow { grid-template-columns: minmax(0, 1.9fr) 5rem minmax(15rem, 1fr); gap: 0; }
+    .lanes { display: grid; align-content: center; gap: 2.2rem; }
+    .lane { position: relative; display: block; height: 0.9rem; container-type: inline-size; }
+    .lane::before { content: ""; position: absolute; inset: calc(50% - 1px) 0 auto 0; height: 2px; border-radius: 2px; background: var(--pli-line-strong); }
+    .lane::after { content: ""; position: absolute; top: calc(50% - 5px); width: 8px; height: 8px; border-top: 2px solid var(--pli-line-strong); border-right: 2px solid var(--pli-line-strong); }
+    .lane--in::after { right: 1px; transform: rotate(45deg); }
+    .lane--out::after { left: 1px; transform: rotate(-135deg); }
+    .pk { position: absolute; top: calc(50% - 4px); left: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--pli-brand); opacity: 0; }
+    .lane--out .pk { background: var(--pli-sheets); }
+    .pk--b { background: var(--pli-brand-2); }
+  }
+
+  /* ===== Themes ===== */
+  .themes { list-style: none; margin: 0; padding: 0.4rem 0.2rem 1rem; display: grid; grid-auto-flow: column; grid-auto-columns: min(68%, 15rem); gap: var(--pli-s3); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+  .themes > li { scroll-snap-align: start; }
+  .themes:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: 2px; border-radius: var(--pli-radius); }
+  .th { margin: 0; display: grid; gap: 0.5rem; }
+  .th figcaption { display: grid; line-height: 1.25; }
+  .th figcaption b { font-size: 0.92rem; color: var(--pli-ink); }
+  .th figcaption span { font-size: 0.78rem; color: var(--pli-muted); }
+  .slide { position: relative; container-type: inline-size; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 0.7rem; background: var(--bg); border: 1px solid var(--pli-line-strong); box-shadow: var(--pli-shadow-sm); transition: transform var(--pli-dur) var(--pli-ease), box-shadow var(--pli-dur) var(--pli-ease); }
+  .th:hover .slide { transform: translateY(-4px); box-shadow: var(--pli-shadow-md); }
+  .spine { position: absolute; left: 0; top: 0; bottom: 0; width: 3.5cqw; background: var(--a1); }
+  .t { position: absolute; left: 9cqw; top: 22cqw; right: 8cqw; font: 700 10cqw/1.05 var(--major); color: var(--ink); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; }
+  .s { position: absolute; left: 9cqw; top: 38cqw; width: 52cqw; height: 2.2cqw; border-radius: 2cqw; background: var(--ink2); opacity: 0.7; }
+  .s2 { top: 43cqw; width: 36cqw; opacity: 0.45; }
+  .sw { position: absolute; right: 6cqw; bottom: 5cqw; display: flex; gap: 1.6cqw; }
+  .sw i { width: 4.4cqw; height: 4.4cqw; border-radius: 50%; background: var(--a1); }
+  .sw i:nth-child(2) { background: var(--a2); }
+  .sw i:nth-child(3) { background: var(--a3); }
+  .th--paperwhite .spine, .th--sunrise .spine, .th--coral .spine { width: 100%; height: 1.2cqw; top: auto; bottom: 0; }
+  .th--midnight .spine, .th--ocean .spine { width: 100%; height: 14cqw; bottom: auto; background: color-mix(in srgb, var(--a1) 22%, var(--bg)); }
+  .th--midnight .t, .th--ocean .t { top: 26cqw; }
+  .th--slate .spine, .th--mono .spine { width: 1cqw; left: 6cqw; }
+  .th--plum .spine { width: 3.2cqw; }
+  .th--plum .slide::after { content: ""; position: absolute; right: 6cqw; top: 6cqw; width: 4cqw; height: 4cqw; background: var(--a2); transform: rotate(45deg); }
+  .th--chalk .spine { display: none; }
+  .th--chalk .slide::after { content: ""; position: absolute; inset: 3cqw; border: 0.4cqw dashed color-mix(in srgb, var(--ink2) 55%, transparent); border-radius: 0.3cqw; }
+  .th--forest .spine { background: var(--a1); }
+
+  @media (min-width: 900px) {
+    .themes { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(6, minmax(0, 1fr)); overflow: visible; padding: 0.4rem 0 0; }
+  }
+
+  .extras { display: grid; gap: var(--pli-s4); margin-top: var(--pli-s6); grid-template-columns: minmax(0, 1fr); }
+  .extra { display: grid; gap: 0.7rem; align-content: start; }
+  .extra p { margin: 0; }
+  .extra code { font: 600 0.88em var(--pli-mono); color: var(--pli-ink); }
+  .extra a { justify-self: start; }
+  .extra--styles { grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr); gap: var(--pli-s4); align-items: center; }
+  .extra--styles h3 { margin-bottom: 0.4rem; }
+  .extra--styles a { margin-top: 0.6rem; display: inline-block; }
+  .sty { display: grid; gap: 0.3rem; padding: 0.75rem; border-radius: 0.6rem; background: var(--pli-surface-2); border: 1px solid var(--pli-line); }
+  .sty p { margin: 0; line-height: 1.2; color: var(--pli-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sty-title { font: 700 1.2rem/1.1 var(--pli-font); letter-spacing: -0.02em; }
+  .sty-h1 { font: 700 0.95rem/1.2 var(--pli-font); }
+  .sty-p { font: 400 0.8rem/1.3 var(--pli-font); color: var(--pli-ink-2); }
+  .sty-q { font: italic 400 0.8rem/1.3 Georgia, serif; border-left: 2px solid var(--pli-line-strong); padding-left: 0.5rem; color: var(--pli-muted); }
+  .sty-code { font: 400 0.74rem/1.3 var(--pli-mono); padding: 0.15rem 0.4rem; border-radius: 0.3rem; background: var(--pli-line); }
+  .sty-note { font: italic 600 0.8rem/1.3 var(--pli-font); color: var(--pli-docs); }
+  .sty-note small { font: 400 0.68rem var(--pli-font); font-style: normal; color: var(--pli-muted); }
+  @media (min-width: 760px) {
+    .extras { grid-template-columns: 1fr 1.25fr; }
+  }
+  @media (max-width: 420px) {
+    .extra--styles { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  /* ===== Motion. All of it sits inside no-preference, so reduced motion shows the finished, wrapped layout above. ===== */
+  @media (prefers-reduced-motion: no-preference) {
+    /* The band drifts slowly: two copies of each row, translated by half the track, so the loop has no seam. Hover pauses it. */
+    .band { padding-block: var(--pli-s5); }
+    .row { height: 3.4rem; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+    /* flex: none keeps each copy at its full width. Without it the row shrinks both copies to the window's width and their names pile onto each other. */
+    .track { flex: none; flex-wrap: nowrap; justify-content: space-around; width: max-content; min-width: 100%; gap: 0 2.2rem; padding: 0 1.1rem; animation: ff-left 90s linear infinite; will-change: transform; }
+    .row { display: flex; }
+    .track--copy { display: flex; }
+    .row--b .track { animation-name: ff-right; animation-duration: 110s; }
+    .row--c .track { animation-duration: 100s; }
+    .band:hover .track { animation-play-state: paused; }
+    :global(html.pli-js) .band:not(:global(.pli-in)) .track { animation-play-state: paused; }
+    @keyframes ff-left { to { transform: translate3d(-100%, 0, 0); } }
+    @keyframes ff-right { from { transform: translate3d(-100%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
+
+    /* File tiles light up one after another, 1.5s each, in a 12s loop: the tile lifts (transform) and a ring over it fades in (opacity). */
+    .fmt, .fmt::after { animation: ff-lit 12s ease-in-out infinite; animation-delay: calc(var(--i) * 1.5s); }
+    .fmt::after { animation-name: ff-ring; }
+    @keyframes ff-lit {
+      0%, 12.5%, 100% { transform: none; }
+      2.5%, 9% { transform: translate3d(0, -3px, 0); }
+    }
+    @keyframes ff-ring {
+      0%, 12.5%, 100% { opacity: 0; }
+      2.5%, 9% { opacity: 1; }
+    }
+    :global(html.pli-js) .files:not(:global(.pli-in)) .fmt, :global(html.pli-js) .files:not(:global(.pli-in)) .fmt::after, .flow:hover .fmt, .flow:hover .fmt::after { animation-play-state: paused; }
+
+    @media (min-width: 900px) {
+      .lane--in .pk { animation: ff-in 3.2s linear infinite; }
+      .lane--out .pk { animation: ff-out 3.2s linear infinite; }
+      .pk--b { animation-delay: -1.6s !important; }
+      @keyframes ff-in { 0% { opacity: 0; transform: translate3d(0, 0, 0); } 10%, 85% { opacity: 1; } 100% { opacity: 0; transform: translate3d(calc(100cqw - 10px), 0, 0); } }
+      @keyframes ff-out { 0% { opacity: 0; transform: translate3d(calc(100cqw - 10px), 0, 0); } 10%, 85% { opacity: 1; } 100% { opacity: 0; transform: translate3d(0, 0, 0); } }
+    }
+  }
+</style>

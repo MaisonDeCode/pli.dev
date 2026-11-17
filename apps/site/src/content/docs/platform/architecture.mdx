@@ -1,0 +1,82 @@
+---
+title: Architecture
+description: How the packages fit together and why the core is portable TypeScript.
+sidebar:
+  order: 1
+---
+
+import ProductHero from "../../../components/marketing/ProductHero.astro";
+
+<ProductHero
+  product="platform"
+  title="One portable core under every editor"
+  tagline="Each editor is a model and a reducer on one shared session, written as portable TypeScript that runs in browsers, JavaScriptCore on iOS and QuickJS on Android. People, comments and live editing are built once and shared."
+  status="Shared by every editor"
+  actions={[
+    { text: "Collaboration", href: "/platform/collaboration/", variant: "brand" },
+    { text: "Swift and Kotlin", href: "/platform/swift-and-kotlin/", variant: "ghost" },
+    { text: "Roadmap", href: "/roadmap/", variant: "ghost" },
+  ]}
+/>
+
+## Packages
+
+| Package | Role |
+|---------|------|
+| `@pli.dev/core` | Shared primitives: `Session` (state, transactions, undo/redo, events), ids and errors; and what every editor shares: users and permissions, comments, presence, live editing (`SyncClient`, `createAuthority`, `attachSync`, the text-edit transform), sharing, versions, activity, the `EditorSession` contract and `ScriptHost`, and `StorageClient`. Nothing in it is specific to one product. |
+| `@pli.dev/docs` | Documents: model, operation reducer, commands, selection, builders, exporters. |
+| `@pli.dev/sheets` | Sheets: workbook model, operation reducer, Excel-compatible formula engine with incremental recalculation, number formats, CSV and XLSX. |
+| `@pli.dev/sheets-react` | A React spreadsheet for Sheets: `PliSheet` (grid, formula bar, toolbar, tabs), `Grid`, and the layout and hooks they use. |
+| `@pli.dev/pdf` | PDF: the file format (read, repair, encrypt, write), a document model of pages, annotations, form fields and bookmarks as JSON, operation reducer, commands, text search and redaction, and the sync model for live editing. No DOM. |
+| `@pli.dev/pdf-react` | A React PDF editor: `PdfEditor` (the viewer with page tools, annotation tools, forms and a File menu), built from `PliPdf` (pages drawn by pdf.js, thumbnails, outline, search) and `AnnotatedPdf` (the annotation tools). |
+| `@pli.dev/react` | A React document editor for Documents: `PliDocument` (everything), `PliEditor` (editing surface), `PageCanvas`, `EditorToolbar`, menus, dialogs, panels, the pagination engine, hooks and styles. Its `@pli.dev/react/collab` entry is the interface every editor shares (people, comments, sharing, versions, sync status, toasts) and does not load the Documents editor. |
+
+Sheets is the second package built this way, supplying a model and a reducer to the same `Session`; decks, PDF and the rest each do the same. What an editor supplies for the shared features is small: an **anchor** (where a comment is attached), a **`SyncModel`** (how two people's operations merge), an **`AnchorResolver`** (how the anchor moves when the file changes), and a **`VersionSupport`** (how to restore a version). The rest, from the `Share` dialog to the Socket.io server, is [the same for every editor](/platform/collaboration/).
+
+## One contract for every editor's session
+
+Each editor has its own session with its own commands (`session.exec` in a document, `sheet.setCell`, `deck.addSlide`), and all of them sit on the same core `Session`. `EditorSession` is the view every one of them offers, so that code written once works with all of them: `transact`, `undo`, `redo`, `subscribe`, `serialize`, `hash`, `enableComments`, `attachSync` and `script`. `documentEditorSession(session)`, `pdfEditorSession(session)`, `sheetEditorSession(session)` and `deckEditorSession(session)` are adapters of a dozen lines; see [Scripting and the editor session](/platform/scripting/). A server registers each editor's model by name (`EditorRegistry`), and rooms are named `kind:id`, so [one server](/platform/live-editing/#one-server-any-editor) handles all of them.
+
+## Layers: ready-made UI, or build your own
+
+Each editor is built as layers, and every layer is public so you can use any of them:
+
+1. **Engine** (`@pli.dev/docs`): model, operations, commands, selection and history. No UI, runs anywhere.
+2. **Building blocks** (`@pli.dev/react`): `PliEditor`, `DocumentView`, and hooks such as `useSelectionState`. They handle the hard parts of an editing surface (input events, selection mapping, clipboard, IME) and leave the interface to you.
+3. **Ready-made UI** (`@pli.dev/react`): `PliDocument` and `EditorToolbar`, a finished editor assembled from the layers below.
+
+The ready-made UI uses only public APIs, so anything it does you can do yourself. The [Swift and Kotlin packages](/platform/swift-and-kotlin/) follow the same split: engine bindings, then the full editor and native building blocks built on them (see [Swift](/documents/swift/) and [Kotlin](/documents/kotlin/)).
+
+## Why portable TypeScript
+
+One engine has to run on web, iOS and Android, and user scripts are JavaScript anyway. Writing the engine in TypeScript means the same code is the editor's engine and the scripts' host, with no second runtime to embed.
+
+| Platform | Runtime |
+|----------|---------|
+| Browsers, Capacitor | The platform's own JS engine |
+| iOS (Swift) | JavaScriptCore, built into the OS |
+| Android (Kotlin) | QuickJS, bundled |
+
+To keep that possible, engine code follows three rules:
+
+1. **No platform APIs.** No DOM, no Node built-ins, no `crypto`. Dependencies must be pure JS.
+2. **Plain data.** The model is JSON. There are no classes in state, so it crosses the Swift/Kotlin boundary as a string.
+3. **State changes only through operations.** See [Operations](/documents/concepts/operations/).
+
+If a hot path later needs more speed, such as spreadsheet recalculation or PDF rendering, it can move to WebAssembly behind the same API. WebAssembly runs in all three runtimes.
+
+## The Session
+
+`Session<State, Op>` is generic. A product provides a `Reducer` that applies one op to an immutable state and returns the new state plus the inverse op:
+
+```ts
+interface Reducer<State, Op> {
+  apply(state: State, op: Op): { state: State; inverse: Op };
+}
+```
+
+`transact(ops)` applies a batch atomically. If any op throws, nothing changes and nothing enters history. Undo applies the recorded inverses in reverse order.
+
+## Working on the code
+
+The repository's layout, the commands, and the rules for adding to an editor are in [Contributing](/platform/contributing/).

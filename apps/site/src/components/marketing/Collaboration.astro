@@ -1,0 +1,214 @@
+---
+// Collaboration: a drawn scene (not the real editor) beside four short explanations, each linking to its platform page.
+// The scene is one 18 second loop. Its keyframes are generated below so every element shares one timeline; they only
+// move transform and opacity, and only inside prefers-reduced-motion: no-preference. Without that, the scene is its finished state.
+const LOOP = 18;
+
+type Pt = [t: number, x: number, y: number, ease?: "linear"];
+const n2 = (n: number) => +n.toFixed(2);
+
+/** A pop-in that stays until the loop resets. */
+const appear = (name: string, at: number, from: string) =>
+  `@keyframes ${name}{0%,${at}%{opacity:0;transform:${from}}${at + 2}%,93%{opacity:1;transform:none}96%,100%{opacity:0;transform:${from}}}`;
+
+/** A cursor: hidden until `join`, then follows the points (percent of the loop, then cqw x and y), then fades out. */
+function cursor(name: string, join: number, pts: Pt[]) {
+  const frames = pts
+    .map(([t, x, y, ease]) => {
+      const o = t >= join && t <= 94 ? 1 : 0;
+      return `${t}%{opacity:${o};transform:translate3d(${n2(x)}cqw,${n2(y)}cqw,0)${ease ? ";animation-timing-function:linear" : ""}}`;
+    })
+    .join("");
+  return `@keyframes ${name}{${frames}}`;
+}
+
+const maya: Pt[] = [[0, 12, 14], [2, 12, 14], [4, 12, 14], [14, 28, 17], [24, 33, 22.6], [36, 34, 22.6], [48, 52, 40], [58, 64, 50], [70, 40, 58], [82, 22, 34], [94, 14, 16], [97, 14, 16], [100, 12, 14]];
+const jonas: Pt[] = [[0, 64, 30], [10, 64, 30], [12, 64, 30], [26, 50, 40], [36, 36, 49.2], [44, 36, 49.2], [48, 14, 61, "linear"], [62, 50, 61], [72, 60, 66], [84, 60, 38], [94, 64, 30], [97, 64, 30], [100, 64, 30]];
+const priya: Pt[] = [[0, 22, 70], [18, 22, 70], [20, 22, 70], [34, 18, 36], [46, 30, 18], [56, 44, 36], [64, 46, 71], [74, 46, 71], [84, 28, 74], [94, 22, 70], [97, 22, 70], [100, 22, 70]];
+
+const motionCss = [
+  `@media (prefers-reduced-motion:no-preference){`,
+  // Paused until the scene scrolls into view (the motion script adds .pli-in); with no script it simply runs.
+  `.collab-scene *{animation-duration:${LOOP}s;animation-iteration-count:infinite;animation-timing-function:ease-in-out;animation-fill-mode:both}`,
+  `html.pli-js .collab-scene:not(.pli-in) *{animation-play-state:paused}`,
+  appear("collab-av1", 4, "scale(.4)"), appear("collab-av2", 12, "scale(.4)"), appear("collab-av3", 20, "scale(.4)"),
+  `.collab-scene .av1{animation-name:collab-av1}.collab-scene .av2{animation-name:collab-av2}.collab-scene .av3{animation-name:collab-av3}`,
+  // The presence label counts 0, 1, 2, 3 people by swapping three stacked labels.
+  `@keyframes collab-l0{0%,3%{opacity:1}4%,96%{opacity:0}100%{opacity:1}}`,
+  `@keyframes collab-l1{0%,3%{opacity:0}4%,11%{opacity:1}12%,100%{opacity:0}}`,
+  `@keyframes collab-l2{0%,11%{opacity:0}12%,19%{opacity:1}20%,100%{opacity:0}}`,
+  `@keyframes collab-l3{0%,19%{opacity:0}20%,94%{opacity:1}96%,100%{opacity:0}}`,
+  `.collab-scene .l0{animation-name:collab-l0}.collab-scene .l1{animation-name:collab-l1}.collab-scene .l2{animation-name:collab-l2}.collab-scene .l3{animation-name:collab-l3}`,
+  // Highlights sweep in from the left; comments pop in beside the text.
+  ...[["h1", 28], ["h2", 38], ["h3", 66]].map(([k, at]) => appear(`collab-${k}`, at as number, "scaleX(0)")),
+  ...[["b1", 30], ["b2", 40], ["b2r", 56], ["b3", 68]].map(([k, at]) => appear(`collab-${k}`, at as number, "translate3d(-1.2cqw,.8cqw,0) scale(.88)")),
+  `.collab-scene .h1{animation-name:collab-h1}.collab-scene .h2{animation-name:collab-h2}.collab-scene .h3{animation-name:collab-h3}`,
+  `.collab-scene .b1{animation-name:collab-b1}.collab-scene .b2{animation-name:collab-b2}.collab-scene .b2r{animation-name:collab-b2r}.collab-scene .b3{animation-name:collab-b3}`,
+  // Jonas types a line: the line grows and his caret rides its end, on the same linear stretch of the loop.
+  `@keyframes collab-type{0%,48%{transform:scaleX(.08)}62%,93%{transform:scaleX(1)}96%,100%{transform:scaleX(.08)}}`,
+  `@keyframes collab-caret{0%,47%{opacity:0;transform:translate3d(3.2cqw,0,0)}48%{opacity:1;transform:translate3d(3.2cqw,0,0);animation-timing-function:linear}62%{opacity:1;transform:translate3d(40cqw,0,0)}66%,100%{opacity:0;transform:translate3d(40cqw,0,0)}}`,
+  `.collab-scene .typed{animation-name:collab-type;animation-timing-function:linear;transform-origin:0 50%}.collab-scene .caret{animation-name:collab-caret}`,
+  cursor("collab-c1", 4, maya), cursor("collab-c2", 12, jonas), cursor("collab-c3", 20, priya),
+  `.collab-scene .c1{animation-name:collab-c1}.collab-scene .c2{animation-name:collab-c2}.collab-scene .c3{animation-name:collab-c3}`,
+  `}`,
+].join("\n");
+
+const lines: { y: number; w: number; cls?: string }[] = [
+  { y: 10, w: 30, cls: "title" },
+  { y: 18, w: 54 }, { y: 22, w: 52 }, { y: 26, w: 54 }, { y: 30, w: 34 },
+  { y: 38, w: 22, cls: "sub" },
+  { y: 44, w: 54 }, { y: 48, w: 50 }, { y: 52, w: 54 }, { y: 56, w: 52 },
+  { y: 70, w: 54 }, { y: 74, w: 40 },
+];
+
+const blocks = [
+  {
+    href: "/platform/comments/",
+    title: "Comments",
+    text: "Threads attached to a range of text, a cell, a slide object or a point on a PDF page. Replies, @mentions, resolve and reopen. Keep them inside the file, or save every change to your own database.",
+    icon: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
+  },
+  {
+    href: "/platform/users/",
+    title: "People and permissions",
+    text: "Pli has no accounts of its own. You say who is signed in and how to look people up. Viewers read, commenters comment, editors do the rest, and you can override any rule. Sharing is one client and one store.",
+    icon: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M17 14.2c2.4 0 4 1.7 4 4.3"/>',
+  },
+  {
+    href: "/platform/live-editing/",
+    title: "Live editing",
+    text: "Everyone sees changes as they happen and every copy ends up the same. A person who goes offline keeps working and is merged back in. You run a small sequencer on your server; you bring the socket.",
+    icon: '<path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z"/><path d="M14 7l3 3"/>',
+  },
+  {
+    href: "/platform/versions/",
+    title: "Versions",
+    text: "Name a version of a file, compare two, and restore one. A restore is an ordinary edit: one undo step, merged with what other people are typing. Available in Documents, Sheets and PDF.",
+    icon: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>',
+  },
+];
+---
+<section class="pli-section collab" id="collaboration" aria-labelledby="collab-h">
+  <div class="pli-container">
+    <header class="head" data-reveal>
+      <p class="pli-eyebrow">Collaboration</p>
+      <h2 class="pli-h2" id="collab-h">Comments, people and live editing come with every editor.</h2>
+      <p class="pli-lede">They live in <code>@pli.dev/core</code>, so Documents, Sheets, Decks and PDF share one implementation instead of four. Your app supplies the users, the database and the socket. <a class="pli-link" href="/platform/collaboration/">How it fits together</a></p>
+    </header>
+
+    <div class="layout">
+      <figure class="scene-wrap">
+        <div class="collab-scene scene pli-window" data-reveal="scale" role="img"
+          aria-label="A drawn document. Three people join one by one and their coloured cursors move through the text. Comments appear beside the text, one gets a reply that mentions someone, and one is resolved.">
+          <div class="pli-window__bar" aria-hidden="true">
+            <i></i><i></i><i></i><b>Q3 launch plan</b>
+            <span class="presence">
+              <span class="avs">
+                <span class="av av1" style="--c:var(--collab-1)">M</span>
+                <span class="av av2" style="--c:var(--collab-2)">J</span>
+                <span class="av av3" style="--c:var(--collab-3)">P</span>
+              </span>
+              <span class="plabel">
+                <span class="l0">Nobody yet</span><span class="l1">1 here</span><span class="l2">2 here</span><span class="l3">3 here</span>
+              </span>
+            </span>
+          </div>
+          <div class="stage" aria-hidden="true">
+            <div class="paper"></div>
+            {lines.map((l) => <span class={`ln ${l.cls ?? ""}`} style={`--y:${l.y};--w:${l.w}`}></span>)}
+            <span class="ln typed" style="--y:60;--w:40;--c:var(--collab-2)"></span>
+            <span class="caret" style="--y:59.2;--c:var(--collab-2)"></span>
+            <span class="hl h1" style="--c:var(--collab-1);--x:22;--y:21.4;--w:22"></span>
+            <span class="hl h2" style="--c:var(--collab-2);--x:14;--y:47.4;--w:22"></span>
+            <span class="hl h3" style="--c:var(--collab-3);--x:30;--y:69.4;--w:20"></span>
+
+            <div class="bub b1" style="--c:var(--collab-1);--y:20"><b>Maya</b>Ship Friday?</div>
+            <div class="bub b2" style="--c:var(--collab-2);--y:43.5"><b>Jonas</b>Source?</div>
+            <div class="bub b2r" style="--c:var(--collab-1);--y:55.5"><b>Maya</b><em>@Jonas</em> see notes</div>
+            <div class="bub b3 done" style="--c:var(--collab-3);--y:66"><b>Priya</b><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.4 4.8 9 10 3.2"/></svg>Resolved</div>
+
+            <span class="cur c1" style="--c:var(--collab-1)"><svg viewBox="0 0 12 17"><path d="M0 0v14l3.8-3.4L6.4 16.4 8.9 15.3 6.4 9.6H11.6z"/></svg><span>Maya</span></span>
+            <span class="cur c2" style="--c:var(--collab-2)"><svg viewBox="0 0 12 17"><path d="M0 0v14l3.8-3.4L6.4 16.4 8.9 15.3 6.4 9.6H11.6z"/></svg><span>Jonas</span></span>
+            <span class="cur c3" style="--c:var(--collab-3)"><svg viewBox="0 0 12 17"><path d="M0 0v14l3.8-3.4L6.4 16.4 8.9 15.3 6.4 9.6H11.6z"/></svg><span>Priya</span></span>
+          </div>
+        </div>
+      </figure>
+
+      <ul class="blocks">
+        {blocks.map((b, i) => (
+          <li data-reveal="right" style={`--i:${i}`}>
+            <a class="pli-card block" href={b.href}>
+              <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" set:html={b.icon} /></span>
+              <span class="txt">
+                <h3>{b.title}</h3>
+                <p>{b.text}</p>
+                <span class="go">Read the docs <span aria-hidden="true">→</span></span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+  <style is:inline set:html={motionCss}></style>
+</section>
+
+<style>
+  .collab {
+    --collab-1: #5b4bf0;
+    --collab-2: #0b7f58;
+    --collab-3: #c2410c;
+  }
+  .head { display: grid; gap: var(--pli-s4); max-width: 48rem; margin-bottom: var(--pli-s7); }
+  .head code { font: 600 0.88em var(--pli-mono); color: var(--pli-ink); }
+  .layout { display: grid; gap: var(--pli-s6); grid-template-columns: minmax(0, 1fr); align-items: start; }
+
+  /* ---- Scene. Everything inside .stage is measured in container-width units, so it scales as one picture. ---- */
+  .scene-wrap { margin: 0; }
+  .scene { background: var(--pli-surface); }
+  .presence { margin-left: auto; display: flex; align-items: center; gap: 0.55rem; }
+  .avs { display: flex; }
+  .av { display: grid; place-items: center; width: 1.45rem; height: 1.45rem; margin-left: -0.4rem; border-radius: 50%; background: var(--c); color: #fff; font: 700 0.68rem/1 var(--pli-font); box-shadow: 0 0 0 2px var(--pli-surface-2); }
+  .av:first-child { margin-left: 0; }
+  .plabel { display: grid; font: 600 var(--pli-text-xs)/1 var(--pli-font); color: var(--pli-muted); min-width: 4.4rem; }
+  .plabel span { grid-area: 1 / 1; opacity: 0; }
+  .plabel .l3 { opacity: 1; }   /* finished state: everyone is here */
+
+  .stage { position: relative; container-type: inline-size; aspect-ratio: 100 / 86; overflow: hidden; background: var(--pli-bg-2); }
+  .paper { position: absolute; left: 6cqw; top: 5cqw; width: 62cqw; height: 100cqw; border-radius: 1cqw; background: var(--pli-surface); border: 1px solid var(--pli-line); box-shadow: var(--pli-shadow-sm); }
+  .ln { position: absolute; left: 10cqw; top: calc(var(--y) * 1cqw); width: calc(var(--w) * 1cqw); height: 1.6cqw; border-radius: 1cqw; background: var(--pli-line-strong); }
+  .ln.title { height: 3.2cqw; background: var(--pli-ink-2); opacity: 0.85; }
+  .ln.sub { height: 2.4cqw; background: var(--pli-ink-2); opacity: 0.55; }
+  .ln.typed { background: color-mix(in srgb, var(--c) 55%, var(--pli-line-strong)); }
+  .caret { position: absolute; left: 10cqw; top: calc(var(--y) * 1cqw); width: 0.6cqw; min-width: 2px; height: 2.8cqw; border-radius: 1px; background: var(--c); opacity: 0; }
+  .hl { position: absolute; left: calc(var(--x) * 1cqw); top: calc(var(--y) * 1cqw); width: calc(var(--w) * 1cqw); height: 2.8cqw; border-radius: 0.5cqw; background: color-mix(in srgb, var(--c) 26%, transparent); box-shadow: inset 0 -2px 0 var(--c); transform-origin: 0 50%; }
+
+  .bub { position: absolute; left: 70cqw; top: calc(var(--y) * 1cqw); width: 27cqw; padding: 1.3cqw 1.6cqw; border-radius: 1.4cqw 1.4cqw 1.4cqw 0.3cqw; background: var(--pli-surface); border: 1px solid var(--pli-line-strong); border-left: 0.7cqw solid var(--c); box-shadow: var(--pli-shadow-md); font: 600 max(10.5px, 2.8cqw)/1.25 var(--pli-font); color: var(--pli-ink); }
+  .bub b { display: block; font-size: 0.86em; color: color-mix(in srgb, var(--c) 70%, var(--pli-ink)); letter-spacing: 0.01em; }
+  .bub em { font-style: normal; color: color-mix(in srgb, var(--collab-1) 70%, var(--pli-ink)); font-weight: 700; }
+  .bub svg { margin-right: 0.3em; vertical-align: -1px; }
+  .bub.done { color: var(--pli-muted); }
+
+  .cur { position: absolute; left: 0; top: 0; transform: translate3d(var(--rx, 60cqw), var(--ry, 50cqw), 0); }
+  .c1 { --rx: 64cqw; --ry: 50cqw; }
+  .c2 { --rx: 50cqw; --ry: 61cqw; }
+  .c3 { --rx: 46cqw; --ry: 71cqw; }
+  .cur svg { display: block; width: max(10px, 3cqw); height: auto; fill: var(--c); stroke: var(--pli-surface); stroke-width: 1.2; paint-order: stroke; filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.35)); overflow: visible; }
+  .cur span { position: absolute; left: 2.4cqw; top: 2.8cqw; padding: 0.55cqw 1.4cqw; border-radius: 999px; background: var(--c); color: #fff; font: 700 max(9.5px, 2.5cqw)/1 var(--pli-font); white-space: nowrap; }
+
+  /* ---- Copy blocks ---- */
+  .blocks { display: grid; gap: var(--pli-s3); list-style: none; margin: 0; padding: 0; }
+  .block { display: flex; gap: var(--pli-s4); align-items: flex-start; padding: var(--pli-s5); }
+  .block:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: 3px; }
+  .ico { flex: none; display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 0.8rem; color: var(--pli-brand); background: color-mix(in srgb, var(--pli-brand) 12%, transparent); }
+  .txt { display: block; min-width: 0; }
+  .block h3 { margin-bottom: 0.3rem; }
+  .go { display: inline-block; margin-top: 0.6rem; font-size: 0.9rem; font-weight: 600; color: var(--pli-brand); }
+  .go span { display: inline-block; transition: transform var(--pli-dur-fast) var(--pli-ease); }
+  .block:hover .go span { transform: translateX(4px); }
+
+  @media (min-width: 1000px) {
+    .layout { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: var(--pli-s7); }
+    .scene-wrap { position: sticky; top: calc(var(--pli-header-h) + 1.5rem); }
+  }
+</style>

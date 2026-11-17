@@ -1,0 +1,160 @@
+---
+/**
+ * The top of a product page in the docs: a chip with the product's dot and status, the page's one visible h1, a tagline, buttons,
+ * and, for the four editors, a live editor window (the poster until it loads). It is written for MDX pages, where it replaces
+ * Starlight's own title (see ../PageTitle.astro, which stays quiet on these pages), so it renders `h1#_top`.
+ *
+ *   import ProductHero from "../../components/marketing/ProductHero.astro";
+ *   <ProductHero product="sheets" title="..." tagline="..." status="In progress" actions={[{ text: "Get started", href: "/sheets/getting-started/", variant: "brand" }]} />
+ *
+ * `not-content` keeps Starlight's markdown styles off everything in here. The editor window is wider than the prose column
+ * where the page layout allows it (no table of contents, so the column is centred); on other pages and on phones it stays
+ * the column's width.
+ */
+import LiveEditor from "../../live/LiveEditor.tsx";
+import Poster from "./Poster.astro";
+
+export interface Action {
+  text: string;
+  href: string;
+  variant?: "primary" | "brand" | "ghost";
+}
+export interface Props {
+  product: "docs" | "sheets" | "decks" | "pdf" | "platform";
+  title: string;
+  tagline: string;
+  actions?: Action[];
+  /** A short status, e.g. "In progress". */
+  status?: string;
+  /** Small facts shown as chips under the buttons, e.g. "475 functions". */
+  badges?: string[];
+}
+const { product, title, tagline, actions = [], status, badges = [] } = Astro.props as Props;
+const NAMES = { docs: "Pli.Documents", sheets: "Pli.Sheets", decks: "Pli.Decks", pdf: "Pli.PDF", platform: "Platform" } as const;
+const editor = product !== "platform" ? product : undefined;
+---
+
+<section class="ph not-content" data-product={product} data-has-editor={editor ? "" : undefined}>
+  <span class="pli-glow ph-glow" aria-hidden="true"></span>
+  <div class="ph-copy">
+    <span class="pli-chip" data-reveal>
+      <i style="--dot: var(--accent)"></i>{NAMES[product]}{status && <span class="ph-status">{status}</span>}
+    </span>
+    <h1 id="_top" class="pli-h1 ph-title" data-page-title data-reveal style="--i: 1">{title}</h1>
+    <p class="pli-lede ph-tagline" data-reveal style="--i: 2">{tagline}</p>
+    {
+      actions.length > 0 && (
+        <div class="ph-actions" data-reveal style="--i: 3">
+          {actions.map((a) => (
+            <a class:list={["pli-btn", `pli-btn--${a.variant ?? "ghost"}`]} href={a.href}>
+              {a.text}
+            </a>
+          ))}
+        </div>
+      )
+    }
+    {
+      badges.length > 0 && (
+        <ul class="ph-badges" data-reveal style="--i: 4">
+          {badges.map((b) => (
+            <li class="pli-chip">{b}</li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+
+  {
+    editor ? (
+      <div class="ph-stage" data-reveal="scale" style="--i: 3">
+        <LiveEditor client:visible={{ rootMargin: "300px" }} kind={editor} mode="product">
+          <Poster kind={editor} />
+        </LiveEditor>
+      </div>
+    ) : (
+      <div class="ph-stage ph-arch" data-reveal="scale" style="--i: 3">
+        <svg viewBox="0 0 640 300" role="img" aria-label="Four editors, Documents, Sheets, Decks and PDF, all built on one shared package, @pli.dev/core, which runs in browsers, JavaScriptCore and QuickJS.">
+          <!-- Wires from each editor into the core, then from the core out to the runtimes. -->
+          <g class="wires" fill="none" stroke-width="2" stroke-linecap="round">
+            <path class="w" style="--c: var(--pli-docs)" d="M96 66V104Q96 128 120 128H300" />
+            <path class="w" style="--c: var(--pli-sheets)" d="M246 66V104Q246 128 262 128H300" />
+            <path class="w" style="--c: var(--pli-decks)" d="M394 66V104Q394 128 378 128H340" />
+            <path class="w" style="--c: var(--pli-pdf)" d="M544 66V104Q544 128 520 128H340" />
+            <path class="w" style="--c: var(--pli-brand)" d="M320 196V232" />
+          </g>
+          <g class="chips">
+            <rect class="chip" x="30" y="20" width="132" height="46" rx="12" style="--c: var(--pli-docs)" />
+            <rect class="chip" x="180" y="20" width="132" height="46" rx="12" style="--c: var(--pli-sheets)" />
+            <rect class="chip" x="328" y="20" width="132" height="46" rx="12" style="--c: var(--pli-decks)" />
+            <rect class="chip" x="478" y="20" width="132" height="46" rx="12" style="--c: var(--pli-pdf)" />
+            <text class="lab" x="96" y="48">Documents</text>
+            <text class="lab" x="246" y="48">Sheets</text>
+            <text class="lab" x="394" y="48">Decks</text>
+            <text class="lab" x="544" y="48">PDF</text>
+          </g>
+          <rect class="core" x="150" y="104" width="340" height="92" rx="16" />
+          <text class="core-t" x="320" y="146">@pli.dev/core</text>
+          <text class="core-s" x="320" y="170">sessions · operations · comments · people · live editing</text>
+          <g class="runtimes">
+            <rect class="rt" x="130" y="232" width="116" height="38" rx="10" />
+            <rect class="rt" x="262" y="232" width="116" height="38" rx="10" />
+            <rect class="rt" x="394" y="232" width="116" height="38" rx="10" />
+            <text class="rt-t" x="188" y="256">Browser</text>
+            <text class="rt-t" x="320" y="256">JavaScriptCore</text>
+            <text class="rt-t" x="452" y="256">QuickJS</text>
+          </g>
+        </svg>
+      </div>
+    )
+  }
+</section>
+
+<style is:global>
+  .ph { position: relative; isolation: isolate; margin: 0 0 var(--pli-s7); padding-top: var(--pli-s2); }
+  .ph[data-product="platform"] { --accent: var(--pli-brand); --accent-soft: color-mix(in srgb, var(--pli-brand) 16%, transparent); }
+  /* Inside the column (no negative offsets), so it can never make the page scroll sideways. */
+  .ph-glow { --glow: var(--accent-soft); top: -12rem; right: 0; width: min(30rem, 100%); opacity: 0.9; }
+  .ph-copy { display: grid; gap: var(--pli-s4); justify-items: start; }
+  .ph .pli-chip { color: var(--pli-ink-2); }
+  .ph-status { margin-left: 0.2rem; padding-left: 0.55rem; border-left: 1px solid var(--pli-line-strong); color: var(--pli-muted); font-weight: 500; }
+  .ph-title { font-size: clamp(2.1rem, 1.5rem + 3vw, 3.5rem); line-height: 1.05; max-width: 20ch; margin: 0; padding: 0; border: 0; }
+  .ph-tagline { font-size: var(--pli-text-lg); max-width: 38rem; margin: 0; }
+  .ph-actions { display: flex; flex-wrap: wrap; gap: var(--pli-s3); margin-top: var(--pli-s2); }
+  .ph-actions .pli-btn { color: var(--btn-ink); text-decoration: none; }
+  .ph-badges { display: flex; flex-wrap: wrap; gap: var(--pli-s2); list-style: none; margin: 0; padding: 0; }
+  .ph-badges .pli-chip { margin: 0; }
+  .ph-stage { margin-top: var(--pli-s6); position: relative; }
+
+  /* The editor window breaks out of the prose column, symmetrically, as far as the page has room (max 12rem a side). With a
+     table of contents the column is not centred, so it stays the column's width. */
+  .ph[data-has-editor] .ph-stage {
+    --bleed: clamp(0px, calc((100vw - 1rem - var(--sl-content-inline-start, 0px) - var(--sl-content-width)) / 2), 12rem);
+    margin-inline: calc(-1 * var(--bleed));
+  }
+  html[data-has-toc] .ph[data-has-editor] .ph-stage { margin-inline: 0; }
+  .ph-stage .pli-live { --live-h: clamp(26rem, 60vh, 40rem); }
+
+  /* The architecture picture. */
+  .ph-arch { display: grid; place-items: center; padding: var(--pli-s5) var(--pli-s3); border-radius: var(--pli-radius-lg); background: var(--pli-surface); border: 1px solid var(--pli-line); box-shadow: var(--pli-shadow-md); }
+  .ph-arch svg { width: 100%; max-width: 40rem; height: auto; font-family: var(--pli-font); }
+  .ph-arch .chip { fill: color-mix(in srgb, var(--c) 14%, var(--pli-surface)); stroke: var(--c); stroke-width: 1.5; }
+  .ph-arch .lab { fill: var(--pli-ink); font-size: 15px; font-weight: 650; text-anchor: middle; }
+  .ph-arch .core { fill: var(--pli-surface-2); stroke: var(--pli-brand); stroke-width: 2; }
+  .ph-arch .core-t { fill: var(--pli-ink); font: 700 22px var(--pli-mono); text-anchor: middle; }
+  .ph-arch .core-s { fill: var(--pli-muted); font-size: 12.5px; text-anchor: middle; }
+  .ph-arch .rt { fill: var(--pli-surface); stroke: var(--pli-line-strong); stroke-width: 1.2; }
+  .ph-arch .rt-t { fill: var(--pli-ink-2); font-size: 13px; font-weight: 600; text-anchor: middle; }
+  .ph-arch .w { stroke: var(--c); opacity: 0.85; stroke-dasharray: 4 7; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ph-arch .w { animation: ph-flow 1.6s linear infinite; }
+    .ph-arch .core { animation: ph-core 3.2s ease-in-out infinite; }
+  }
+  @keyframes ph-flow { to { stroke-dashoffset: -22; } }
+  @keyframes ph-core { 50% { stroke-width: 3.5; } }
+</style>
+
+<script>
+  // The reveal engine the landing page uses; Starlight pages don't start it, and without it the hero is simply shown.
+  import { initMotion } from "../../scripts/motion";
+  initMotion();
+</script>

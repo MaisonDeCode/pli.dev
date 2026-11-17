@@ -1,0 +1,14 @@
+---
+import Default from "@astrojs/starlight/components/PageTitle.astro";
+import { HERO_PAGES } from "../products";
+
+/**
+ * Starlight's page title, except on the product landing pages (see HERO_PAGES in products.ts): there the page starts with a
+ * ProductHero, which renders the one visible h1 (id `_top`). Leaving the default title in would show two. The page's title in the
+ * browser tab, the search index and the sidebar still come from the front matter.
+ */
+const id = Astro.locals.starlightRoute.id.replace(/\/index$/, "");
+const hero = HERO_PAGES.includes(id);
+---
+
+{hero ? null : <Default><slot /></Default>}

@@ -1,0 +1,58 @@
+Pli test document for Word
+Open this in Microsoft Word, make the changes at the end, and save it as word-interop.docx
+Contents
+Text and styles	1
+A second-level heading	1
+Lists	1
+A table	2
+A picture	2
+A footnote	2
+After a page break	3
+Instructions for the person testing in Word	4
+
+Text and styles
+Plain text with bold, italic, a link and coloured text.
+A short quotation.
+A second-level heading
+Some text under the second-level heading
+Lists
+Bullets, with a nested level:
+•	First bullet
+o	Nested bullet
+•	Second bullet
+A numbered list, nested:
+1.	One
+2.	Two
+a.	Nested a
+b.	Nested b
+3.	Three
+A paragraph in between, then a list that carries on:
+4.	Four (carries on)
+5.	Five
+A list that starts at 7, in capital letters:
+G.	Seventh letter
+H.	Eighth letter
+A restart in roman numerals:
+i.	First
+ii.	Second
+i.	Restarted
+ii.	Next
+A table
+Item	Quantity	Note
+Apples	3	red
+Pears	12	green
+
+A picture
+ 
+A footnote
+This sentence has a footnote. 
+
+ After a page break
+This is on a new page.
+ 
+Instructions for the person testing in Word
+1. In Word, right-click the contents above and choose Update Field, then Update entire table.
+2. Add a comment on any word, and reply to it.
+3. Turn on Track Changes, change a word in the paragraph above, and turn it off again.
+4. Add a numbered list of your own, then use Restart at 1 and Set Numbering Value on one item.
+5. Save As: word-interop.docx (Word Document format).

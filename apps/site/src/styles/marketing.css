@@ -1,0 +1,16 @@
+/* Page-level rules for the custom landing layout. Starlight pages do not load this file. */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body.pli-marketing {
+  margin: 0; background: var(--pli-bg); color: var(--pli-ink); font-family: var(--pli-font); font-size: var(--pli-text-base);
+  line-height: var(--pli-leading); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: clip;
+}
+.pli-marketing img, .pli-marketing svg { max-width: 100%; }
+.pli-marketing :target { scroll-margin-top: calc(var(--pli-header-h) + 1rem); }
+.pli-marketing a { color: inherit; }
+.pli-marketing ::selection { background: var(--pli-glow); }
+.pli-skip { position: fixed; left: 1rem; top: -4rem; z-index: 100; background: var(--pli-ink); color: var(--pli-bg); padding: 0.6rem 1rem; border-radius: 0.5rem; transition: top 0.15s; }
+.pli-skip:focus { top: 1rem; }

@@ -1,0 +1,56 @@
+{
+  "name": "@pli.dev/core",
+  "version": "1.0.0",
+  "description": "Shared engine primitives for every Pli product: operation sessions, history, ids and errors.",
+  "keywords": [
+    "pli",
+    "editor",
+    "sdk",
+    "operations",
+    "history",
+    "collaboration"
+  ],
+  "license": "Apache-2.0",
+  "author": "Maison de Code (https://maisondecode.com)",
+  "homepage": "https://pli.dev",
+  "bugs": {
+    "url": "https://github.com/MaisonDeCode/pli.dev/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaisonDeCode/pli.dev.git",
+    "directory": "packages/core"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "prepack": "node ../../scripts/prepack.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    }
+  }
+}

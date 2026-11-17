@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": [
+    "packages/core/src",
+    "packages/core/test",
+    "packages/docs/src",
+    "packages/docs/test",
+    "packages/sheets/src",
+    "packages/sheets/test",
+    "packages/decks/src",
+    "packages/decks/test",
+    "packages/pdf/src",
+    "packages/pdf/test",
+    "packages/core/helpers",
+    "packages/native/src",
+    "packages/native/test"
+  ]
+}

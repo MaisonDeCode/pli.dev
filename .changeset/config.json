@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@pli.dev/core",
+      "@pli.dev/docs",
+      "@pli.dev/react",
+      "@pli.dev/sheets",
+      "@pli.dev/sheets-react",
+      "@pli.dev/decks",
+      "@pli.dev/decks-react",
+      "@pli.dev/pdf",
+      "@pli.dev/pdf-react"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["@pli.dev/site", "@pli.dev/playground", "@pli.dev/capacitor-example", "@pli.dev/native", "@pli.dev/editor-host", "@pli.dev/skill"]
+}

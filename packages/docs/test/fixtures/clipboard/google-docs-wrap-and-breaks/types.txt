@@ -1,0 +1,5 @@
+public.html
+Apple HTML pasteboard type
+public.utf8-plain-text
+NSStringPboardType
+com.apple.WebKit.custom-pasteboard-data

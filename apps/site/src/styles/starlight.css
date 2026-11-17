@@ -1,0 +1,137 @@
+/*
+ * Maps the Pli tokens onto Starlight, so the docs share the landing page's colour, type and shape. Starlight keeps its rules in
+ * cascade layers and this file is not in one, so a rule here wins without !important. Starlight's dark theme is its default and
+ * the light theme is `:root[data-theme="light"]`; ThemeProvider always sets data-theme, so both blocks below always apply.
+ *
+ * Contrast (computed with WCAG's formula, text on the page background / on the sidebar / on inline code):
+ *   light: body #3b3e55 10.1 / 9.6 / 8.9, muted #565a70 6.6 / 6.3 / 5.8, links #4a2fd6 7.6 / 7.2 / 6.7
+ *   dark:  body #c6c8da 12.1 / 11.8 / 10.1, muted #9a9db4 7.5 / 7.3 / 6.3, links #b5acff 9.8 / 9.6 / 8.2
+ */
+:root,
+:root[data-theme="dark"] {
+  --sl-font: var(--pli-font);
+  --sl-font-mono: var(--pli-mono);
+  --sl-content-width: 46rem;
+  --sl-sidebar-width: 17.5rem;
+
+  --sl-color-white: #f3f3fa;
+  --sl-color-gray-1: #e6e7f2;
+  --sl-color-gray-2: #c6c8da;
+  --sl-color-gray-3: #9a9db4;
+  --sl-color-gray-4: #6e7189;
+  --sl-color-gray-5: #262738;
+  --sl-color-gray-6: #14141f;
+  --sl-color-gray-7: #0d0d17;
+  --sl-color-black: #08080f;
+
+  --sl-color-accent: #8b7bff;
+  --sl-color-accent-high: #b5acff;
+  --sl-color-accent-low: #1e1760;
+  --sl-color-text-accent: #b5acff;
+
+  --sl-color-bg: #08080f;
+  --sl-color-bg-nav: rgb(8 8 15 / 0.72);
+  --sl-color-bg-sidebar: #0b0b14;
+  --sl-color-bg-inline-code: #1c1c2b;
+  --sl-color-hairline: rgb(255 255 255 / 0.09);
+  --sl-color-hairline-light: rgb(255 255 255 / 0.14);
+  --sl-color-hairline-shade: rgb(0 0 0 / 0.4);
+  --sl-color-backdrop-overlay: rgb(8 8 15 / 0.7);
+  --pli-active-bg: rgb(139 123 255 / 0.16);
+}
+:root[data-theme="light"] {
+  --sl-color-white: #0f1020;
+  --sl-color-gray-1: #1c1e33;
+  --sl-color-gray-2: #3b3e55;
+  --sl-color-gray-3: #565a70;
+  --sl-color-gray-4: #6b6e86;
+  --sl-color-gray-5: #dcdce8;
+  --sl-color-gray-6: #ececf4;
+  --sl-color-gray-7: #f3f3f8;
+  --sl-color-black: #ffffff;
+
+  --sl-color-accent: #5b3df5;
+  --sl-color-accent-high: #4326c9;
+  --sl-color-accent-low: #e9e5ff;
+  --sl-color-text-accent: #4a2fd6;
+
+  --sl-color-bg: #fbfbfd;
+  --sl-color-bg-nav: rgb(251 251 253 / 0.78);
+  --sl-color-bg-sidebar: #f5f5fa;
+  --sl-color-bg-inline-code: #ececf4;
+  --sl-color-hairline: rgb(15 16 32 / 0.1);
+  --sl-color-hairline-light: rgb(15 16 32 / 0.07);
+  --sl-color-hairline-shade: rgb(15 16 32 / 0.08);
+  --sl-color-backdrop-overlay: rgb(15 16 32 / 0.45);
+  --pli-active-bg: rgb(91 61 245 / 0.1);
+}
+
+/* Page. A faint brand wash at the top, like the landing page's. */
+body {
+  background: radial-gradient(70rem 26rem at 78% -12rem, color-mix(in srgb, var(--pli-brand) 9%, transparent), transparent 70%) no-repeat var(--sl-color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--pli-glow); }
+:focus-visible { outline-color: var(--pli-brand); }
+
+/* Header: translucent with a blur, a hairline underneath. */
+header.header {
+  -webkit-backdrop-filter: saturate(1.5) blur(14px);
+  backdrop-filter: saturate(1.5) blur(14px);
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+site-search button[data-open-modal] {
+  border-radius: 999px;
+  background: var(--pli-surface);
+  border-color: var(--pli-line-strong);
+}
+starlight-theme-select select { border-radius: var(--pli-radius-sm); }
+
+/* Sidebar: a soft pill and a bar in the brand colour for the page you are on, instead of a solid block. */
+.sidebar-content a { border-radius: 0.5rem; transition: background-color var(--pli-dur-fast), color var(--pli-dur-fast); }
+.sidebar-content a:hover { background: color-mix(in srgb, var(--sl-color-white) 6%, transparent); }
+.sidebar-content a[aria-current="page"],
+.sidebar-content a[aria-current="page"]:hover,
+.sidebar-content a[aria-current="page"]:focus {
+  background: var(--pli-active-bg);
+  color: var(--sl-color-text-accent);
+  font-weight: 650;
+  box-shadow: inset 3px 0 0 var(--sl-color-accent);
+}
+.sidebar-content summary { border-radius: 0.5rem; }
+.sidebar-content .large { letter-spacing: -0.01em; }
+.right-sidebar-panel a[aria-current="true"] { color: var(--sl-color-text-accent); }
+
+/* Prose. */
+.sl-markdown-content :is(h1, h2, h3, h4) { letter-spacing: -0.025em; font-weight: 700; }
+.sl-markdown-content h2 { letter-spacing: -0.03em; }
+.sl-markdown-content :is(h2, h3) a { text-decoration: none; }
+.sl-markdown-content :not(:where(.not-content *)):is(p, li, td, dd) a:not(.sl-anchor-link, [class*="btn"]) {
+  color: var(--sl-color-text-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in srgb, var(--sl-color-text-accent) 45%, transparent);
+  transition: text-decoration-color var(--pli-dur-fast);
+}
+.sl-markdown-content :not(:where(.not-content *)):is(p, li, td, dd) a:not(.sl-anchor-link, [class*="btn"]):hover { text-decoration-color: currentColor; }
+.sl-markdown-content :not(pre) > code {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 0.4rem;
+  padding: 0.1em 0.35em;
+  color: var(--sl-color-white);
+}
+.sl-markdown-content table { border-radius: var(--pli-radius-sm); }
+.sl-markdown-content th { color: var(--sl-color-white); }
+.sl-markdown-content .starlight-aside { border-radius: var(--pli-radius-sm); }
+.sl-markdown-content hr { border-color: var(--sl-color-hairline); }
+
+/* Code blocks (Expressive Code draws them): a hairline, the site's radius, no heavy shadow. */
+.sl-markdown-content pre,
+.expressive-code .frame,
+.expressive-code .frame pre { border-radius: var(--pli-radius-sm); }
+.expressive-code .frame { box-shadow: var(--pli-shadow-sm); }
+
+/* Previous and next links at the foot of a page. */
+.pagination-links a { border-radius: var(--pli-radius-sm); border-color: var(--pli-line-strong); }
+.pagination-links a:hover { border-color: var(--pli-brand); }

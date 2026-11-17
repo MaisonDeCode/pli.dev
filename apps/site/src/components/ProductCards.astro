@@ -1,0 +1,178 @@
+---
+import { PRODUCTS as products } from "../products";
+---
+
+<ul class="products not-content">
+  {
+    products.map((p) => (
+      <li>
+        <a class="product" href={p.href} style={`--from:${p.from};--to:${p.to}`} data-status={p.status}>
+          <span class="top">
+            <span class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" set:html={p.icon} />
+            </span>
+            <span class="status">{p.status}</span>
+          </span>
+          <span class="name">{p.name}</span>
+          <span class="blurb">{p.blurb}</span>
+        </a>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  /* One horizontally scrolling row. The block padding leaves room for the hover lift and shadow, which overflow-x would clip. */
+  .products {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0.75rem 0.25rem 1.25rem;
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pli-line-strong) transparent;
+  }
+
+  .products li {
+    flex: 0 0 min(17rem, 80%);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    scroll-snap-align: start;
+  }
+
+  /* The same card as the landing page: surface, hairline, a tile in the product's colours. */
+  .product {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    min-height: 12rem;
+    padding: 1.25rem;
+    border-radius: var(--pli-radius-lg);
+    color: var(--pli-ink);
+    text-decoration: none;
+    background: var(--pli-surface);
+    border: 1px solid var(--pli-line);
+    box-shadow: var(--pli-shadow-sm);
+    overflow: hidden;
+    transition:
+      transform var(--pli-dur) var(--pli-ease),
+      box-shadow var(--pli-dur) var(--pli-ease),
+      border-color var(--pli-dur);
+  }
+
+  /* A wash of the product's colour from the top left corner, stronger on hover. */
+  .product::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(90% 70% at 0% 0%, color-mix(in srgb, var(--from) 16%, transparent), transparent 70%);
+    opacity: 0.7;
+    transition: opacity var(--pli-dur) var(--pli-ease);
+  }
+
+  .product:hover,
+  .product:focus-visible {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--from) 45%, var(--pli-line-strong));
+    box-shadow: var(--pli-shadow-md);
+  }
+
+  .product:hover::before,
+  .product:focus-visible::before {
+    opacity: 1;
+  }
+
+  .product:focus-visible {
+    outline: 2px solid var(--pli-brand);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .product,
+    .product::before {
+      transition: none;
+    }
+    .product:hover,
+    .product:focus-visible {
+      transform: none;
+    }
+  }
+
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: auto;
+    padding-bottom: 1.5rem;
+  }
+
+  .tile {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.7rem;
+    color: #fff;
+    background:
+      radial-gradient(120% 90% at 0% 0%, rgb(255 255 255 / 0.3), transparent 60%),
+      linear-gradient(135deg, var(--from), var(--to));
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18), 0 6px 14px -6px var(--from);
+  }
+
+  .tile svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  /* The letters on the PDF icon are cut out of its label, in the tile's own colour. */
+  .tile :global(.pdf-letters) {
+    stroke: var(--to);
+  }
+
+  /* A dot for the state: green-ish when built, the product's colour while in progress, grey when only planned. */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font: 600 var(--pli-text-xs) / 1.2 var(--pli-font);
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    color: var(--pli-ink-2);
+    background: var(--pli-surface-2);
+    border: 1px solid var(--pli-line);
+  }
+
+  .status::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--from);
+  }
+
+  .product[data-status="Planned"] .status::before {
+    background: var(--pli-muted);
+    opacity: 0.6;
+  }
+
+  .name {
+    font-size: var(--pli-text-xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .blurb {
+    font-size: var(--pli-text-sm);
+    line-height: 1.5;
+    color: var(--pli-muted);
+  }
+</style>

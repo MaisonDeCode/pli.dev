@@ -1,0 +1,210 @@
+---
+import LiveEditor from "../../live/LiveEditor";
+import Poster from "./Poster.astro";
+
+/**
+ * The top of the front page: headline, the install command, then a live document editor in a tilted frame that
+ * straightens as the page scrolls (data-scroll gives it --p; everything moves by transform only), and a strip of counters.
+ *
+ * The strip's numbers are floors of things that were counted in the repository (Proof, further down, carries the other
+ * counts, so none repeat here):
+ *   2,000+  font families in the default registry every editor shares (defaultFonts().list() gives 2,132)
+ *   90+     documentation pages (93 Markdown files under src/content/docs)
+ *   4       things every editor shares: comments, people, live editing, fonts (the four pages under /platform/)
+ */
+const headline = [
+  { w: "Real", k: -1 },
+  { w: "editors,", k: -1 },
+  { w: "built", k: 0 },
+  { w: "into", k: 1 },
+  { w: "your", k: 2 },
+  { w: "app.", k: 3 },
+];
+const stats = [
+  { n: 2000, suffix: "+", text: "2,000+", label: "font families in the picker, the same list in every editor" },
+  { n: 90, suffix: "+", text: "90+", label: "pages of documentation" },
+  { n: 4, suffix: "", text: "4", label: "things every editor shares: comments, people, live editing and fonts" },
+];
+const install = "npm install @pli.dev/docs @pli.dev/react";
+---
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__glows" aria-hidden="true">
+    <div class="pli-glow hero__glow hero__glow--a" data-parallax="0.12"></div>
+    <div class="pli-glow hero__glow hero__glow--b" data-parallax="-0.1" style="--glow: color-mix(in srgb, var(--pli-pdf) 30%, transparent)"></div>
+    <div class="pli-glow hero__glow hero__glow--c" data-parallax="0.08" style="--glow: color-mix(in srgb, var(--pli-sheets) 28%, transparent)"></div>
+  </div>
+
+  <div class="pli-container hero__top">
+    <p class="pli-eyebrow" data-reveal="fade">Open-source editor SDK</p>
+    <h1 class="pli-h1 hero__title" id="hero-title">
+      {headline.map((h, i) => (
+        <>
+          <span class:list={["hero__word", { "pli-gradient-text": h.k >= 0 }]} data-reveal style={`--i:${i + 1};--k:${Math.max(0, h.k)}`}>{h.w}</span>{" "}
+        </>
+      ))}
+    </h1>
+    <p class="pli-lede hero__lede" data-reveal style="--i:7">
+      Documents, sheets, decks and PDFs for JavaScript and React, Swift and Kotlin. Every editor shares comments, people, live
+      editing and fonts, so you set them up once.
+    </p>
+
+    <div class="hero__actions" data-reveal style="--i:8">
+      <a class="pli-btn pli-btn--brand" href="/introduction/">Get started</a>
+      <a class="pli-btn" href="/documents/">Explore Pli.Documents</a>
+    </div>
+
+    <div class="install" data-reveal style="--i:9">
+      <div class="install__head">
+        <span class="install__title">Install from npm</span>
+        <button type="button" class="install__copy" data-copy={install} aria-label="Copy the install command">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg>
+          <span data-copy-label>Copy</span>
+        </button>
+      </div>
+      <pre class="install__code" tabindex="0" aria-label="Install command"><code><span class="p">$</span> npm install @pli.dev/docs @pli.dev/react</code></pre>
+      <p class="install__note">
+        React 18 or 19. Sheets, Decks and PDF have their own packages, and pnpm, Yarn and Bun work too. <a class="pli-link" href="/documents/getting-started/">The getting-started guide</a> has the first editor.
+      </p>
+      <span class="pli-sr-only" role="status" aria-live="polite" data-copy-status></span>
+    </div>
+  </div>
+
+  <div class="hero__stage" data-scroll style="--p:0.2">
+    <div class="pli-container hero__stage-inner">
+      <div class="hero__chip hero__chip--a" data-parallax="0.35" aria-hidden="true">
+        <span class="pli-chip pli-float" style="--dot: var(--pli-docs)"><i></i>Comments</span>
+      </div>
+      <div class="hero__chip hero__chip--b" data-parallax="-0.25" aria-hidden="true">
+        <span class="pli-chip pli-float" style="--dot: var(--pli-sheets); animation-delay: -2s"><i></i>Live cursors</span>
+      </div>
+      <div class="hero__chip hero__chip--c" data-parallax="0.2" aria-hidden="true">
+        <span class="pli-chip pli-float" style="--dot: var(--pli-pdf); animation-delay: -4s"><i></i>DOCX export</span>
+      </div>
+
+      <div class="hero__frame" data-product="docs">
+        <LiveEditor client:visible kind="docs" mode="hero" title="Pli.Documents">
+          <Poster kind="docs" />
+        </LiveEditor>
+      </div>
+    </div>
+  </div>
+
+  <div class="pli-container">
+    <ul class="stats" aria-label="Pli in numbers">
+      {stats.map((s) => (
+        <li>
+          <strong data-count-to={s.n} data-count-suffix={s.suffix || undefined}>{s.text}</strong>
+          <span>{s.label}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<script>
+  // The copy button. Clipboard API first; if the page isn't allowed to use it (insecure origin, permissions, old browser) the
+  // text is selected so Ctrl/Cmd+C finishes the job, and the button says so rather than claiming success.
+  document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((button) => {
+    const label = button.querySelector<HTMLElement>("[data-copy-label]");
+    const status = button.closest(".install")?.querySelector<HTMLElement>("[data-copy-status]");
+    const say = (short: string, long: string) => {
+      if (label) label.textContent = short;
+      if (status) status.textContent = long;
+      setTimeout(() => {
+        if (label) label.textContent = "Copy";
+        if (status) status.textContent = "";
+      }, 2200);
+    };
+    const select = () => {
+      const code = button.closest(".install")?.querySelector("code");
+      const sel = window.getSelection();
+      if (!code || !sel) return;
+      const range = document.createRange();
+      range.selectNodeContents(code);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    };
+    button.addEventListener("click", async () => {
+      const text = button.dataset.copy ?? "";
+      try {
+        await navigator.clipboard.writeText(text);
+        say("Copied", "Install command copied to the clipboard");
+      } catch {
+        select();
+        say("Press Ctrl+C", "Copying was blocked. The command is selected: press Ctrl or Command and C.");
+      }
+    });
+  });
+</script>
+
+<style is:global>
+  .hero { position: relative; isolation: isolate; overflow: clip; padding-top: var(--pli-s8); padding-bottom: var(--pli-s7); }
+  .hero__glows { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+  .hero__glow { z-index: auto; }
+  .hero__glow--a { left: 50%; top: -14rem; margin-left: -34rem; --glow: var(--pli-glow); }
+  .hero__glow--b { right: -16rem; top: 22rem; width: 40rem; }
+  .hero__glow--c { left: -14rem; top: 44rem; width: 36rem; }
+
+  .hero__top { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .hero__title { margin-top: var(--pli-s4); max-width: 17ch; }
+  .hero__word { display: inline-block; }
+  .hero__word.pli-gradient-text { background-size: 320% 100%; background-position: calc(var(--k, 0) * 32%) 50%; padding-bottom: 0.08em; padding-inline-end: 0.12em; margin-inline-end: -0.12em; }
+  /* The tight letter spacing makes the last letter overhang the word's box; the gradient has to cover that overhang or the repeat shows its first colour there. */
+  .hero__lede { margin-top: var(--pli-s5); text-align: center; max-width: 38rem; }
+  .hero__actions { margin-top: var(--pli-s6); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--pli-s3); }
+
+  .install { margin-top: var(--pli-s7); width: 100%; max-width: 34rem; text-align: left; }
+  .install__head { display: flex; align-items: center; justify-content: space-between; gap: var(--pli-s3); padding: 0.55rem 0.6rem 0.55rem 1rem;
+    background: var(--pli-code-bg); border-radius: var(--pli-radius) var(--pli-radius) 0 0; border: 1px solid rgb(255 255 255 / 0.1); border-bottom: 0; }
+  .install__title { font: 600 var(--pli-text-xs)/1 var(--pli-font); letter-spacing: 0.04em; color: #a9acc4; }
+  .install__copy { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2rem; padding: 0 0.7rem; border-radius: 999px; border: 1px solid rgb(255 255 255 / 0.18);
+    background: rgb(255 255 255 / 0.06); color: #e9e9f5; font: 600 0.78rem/1 var(--pli-font); cursor: pointer; transition: background var(--pli-dur-fast); }
+  .install__copy:hover { background: rgb(255 255 255 / 0.14); }
+  .install__copy:focus-visible, .install__code:focus-visible { outline: 2px solid #b4a8ff; outline-offset: 2px; }
+  html:not(.pli-js) .install__copy { display: none; }
+  .install__code { margin: 0; padding: 1rem 1.1rem 1.15rem; background: var(--pli-code-bg); color: var(--pli-code-ink); border: 1px solid rgb(255 255 255 / 0.1); border-top: 0;
+    border-radius: 0 0 var(--pli-radius) var(--pli-radius); font: 500 0.88rem/1.75 var(--pli-mono); overflow-x: auto; white-space: pre; box-shadow: var(--pli-shadow-md); }
+  .install__code .p { color: #8f86ff; user-select: none; }
+  .install__code .c { color: #8c8fa8; }
+  .install__note { margin: var(--pli-s3) 0 0; font-size: var(--pli-text-sm); color: var(--pli-muted); text-align: center; text-wrap: balance; }
+
+  /* The big editor. It starts tipped back and a little small, and is flat and full size by the time its top is near the middle of the screen. */
+  .hero__stage { position: relative; margin-top: var(--pli-s8); }
+  .hero__stage-inner { position: relative; }
+  .hero__frame {
+    --t: clamp(0, calc((var(--p, 0.5) - 0.12) / 0.28), 1);
+    --live-h: clamp(30rem, 66vh, 44rem);
+    transform-origin: 50% 100%;
+    transform: perspective(1500px) rotateX(calc((1 - var(--t)) * 16deg)) translate3d(0, calc((1 - var(--t)) * 28px), 0) scale(calc(0.92 + var(--t) * 0.08));
+    will-change: transform;
+  }
+  html:not(.pli-js) .hero__frame { transform: none; will-change: auto; }
+  .hero__frame .pli-live { box-shadow: var(--pli-shadow-lg), 0 0 0 1px var(--pli-line); }
+
+  .hero__chip { position: absolute; z-index: 5; pointer-events: none; }
+  .hero__chip .pli-chip { padding: 0.5rem 0.95rem; font-size: 0.85rem; box-shadow: var(--pli-shadow-md); background: var(--pli-surface); }
+  .hero__chip--a { left: -1rem; top: 18%; }
+  .hero__chip--b { right: -0.5rem; top: 8%; }
+  .hero__chip--c { right: 2rem; bottom: 12%; }
+  @media (max-width: 899px) {
+    .hero__chip { display: none; }
+    .hero__frame { --live-h-small: 24rem; }
+    .hero__title { max-width: 12ch; }
+  }
+
+  .stats { list-style: none; margin: var(--pli-s8) 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--pli-s6) var(--pli-s5);
+    border-top: 1px solid var(--pli-line); padding-top: var(--pli-s6); }
+  .stats li { display: grid; gap: 0.35rem; align-content: start; }
+  .stats strong { font: 740 var(--pli-text-3xl)/1 var(--pli-font); letter-spacing: var(--pli-tracking-tight); color: var(--pli-ink); font-variant-numeric: tabular-nums; }
+  .stats span { font-size: var(--pli-text-sm); color: var(--pli-muted); line-height: 1.45; max-width: 16rem; }
+  /* A counter fades in as it starts to count, so the true number never flashes before the count from zero. */
+  @media (prefers-reduced-motion: no-preference) {
+    html.pli-js .stats strong:not(.pli-in) { opacity: 0; }
+    html.pli-js .stats strong { transition: opacity var(--pli-dur) var(--pli-ease); }
+  }
+  @media (min-width: 700px) { .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__frame { transform: none; will-change: auto; }
+  }
+</style>

@@ -1,0 +1,18 @@
+export { PliDeck, type PliDeckDownload, type PliDeckProps } from "./PliDeck";
+export { SlideView, TextBlock, isPicturePlaceholder, type SlideViewProps, type TextBlockProps, type TextHighlight } from "./SlideView";
+export { Filmstrip, FILMSTRIP_THUMB_WIDTH, type FilmstripProps } from "./Filmstrip";
+export { SlideCanvas, editable, cellAt, type CellRange, type EditTarget, type SlideCanvasProps, type Tool } from "./SlideCanvas";
+export { DeckToolbar, LayoutGrid, ZOOMS, type DeckToolbarProps, type Zoom } from "./DeckToolbar";
+export { NotesPane, type NotesPaneProps } from "./NotesPane";
+export { PresentMode, nextShown, prevShown, type PresentModeProps } from "./PresentMode";
+export { TextEditor, type TextEditApi, type TextEditState, type TextEditorProps } from "./TextEditor";
+export { FindBar, replaceHit, type FindBarProps } from "./FindBar";
+export { FormatPanel, SidePanel, ThemePanel, TransitionPanel, TRANSITIONS, masterScene } from "./panels";
+export { snap, type SnapGuide, type SnapOptions, type SnapResult } from "./snap";
+export { hitTest, resizeFrame, cropByHandle, type Frame, type Handle } from "./geometry";
+export { setSelection, useDeckRevision, useDeckSession } from "./hooks";
+export { DeckIcons } from "./icons";
+export { ChartView } from "./ChartView";
+export { MotionPanel, reshape as reshapeAnimation, type MotionPanelProps } from "./MotionPanel";
+export { AnimationOverlay, type AnimationOverlayProps } from "./AnimationOverlay";
+export { StepPlayer, elementLabel, describeAnimation, framesOf, posesFor, prefersReducedMotion, useMotionPreview, useStepPlayer, type MotionPreview, type StepPlayerOptions } from "./motion";

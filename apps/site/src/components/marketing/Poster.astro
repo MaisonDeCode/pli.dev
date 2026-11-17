@@ -1,0 +1,405 @@
+---
+/**
+ * A still picture of each Pli editor, drawn in inline SVG and CSS: menu bar, toolbar and canvas, in the product's accent colour,
+ * light and dark. It is what people see before the live editor loads, on phones, with data saver, with no script, and if the
+ * editor fails (LiveEditor shows its children first). No images, no script; the one animation is CSS and is off with reduced motion.
+ *
+ *   <Poster kind="docs" />            the finished state
+ *   <Poster kind="sheets" step={0} /> 0 = just started, 1 = filled in, 2 = finished (default)
+ *
+ * It fills its parent (position absolute, inset 0), so put it in a box that has a size and `position: relative`. The shapes are
+ * built in the frontmatter (a few helpers draw rows of "text" and toolbar buttons) and written once, with no per-element
+ * scoping attributes, so each poster is a few KB of HTML. Styles are global but all start with `.pp`.
+ */
+export interface Props {
+  kind: "docs" | "sheets" | "decks" | "pdf";
+  step?: 0 | 1 | 2;
+}
+const { kind, step = 2 } = Astro.props as Props;
+
+/* ---- helpers ---------------------------------------------------------------------------------------------------- */
+/** A stack of grey "text lines": x, first y, widths, gap, height. */
+const lines = (x: number, y: number, ws: number[], gap = 15, h = 7, cls = "b") =>
+  ws.map((w, i) => `<rect class="${cls}" x="${x}" y="${y + i * gap}" width="${w}" height="${h}" rx="${h / 2}"/>`).join("");
+/** Staggers the entry animation of a group. */
+const d = (s: number) => `style="--d:${s}s"`;
+
+/** 16 by 16 icons, drawn with a 1.4 stroke. */
+const IC: Record<string, string> = {
+  undo: "M4 6h6a3 3 0 0 1 0 6H6M6 3.5 3.5 6 6 8.5",
+  redo: "M12 6H6a3 3 0 0 0 0 6h4M10 3.5 12.5 6 10 8.5",
+  print: "M4 6V2h8v4M4 11H2V6h12v5h-2M4 9h8v5H4z",
+  left: "M2 3h12M2 6.5h8M2 10h12M2 13.5h8",
+  center: "M2 3h12M4 6.5h8M2 10h12M4 13.5h8",
+  bullets: "M6 4h8M6 8h8M6 12h8M2.5 4h.01M2.5 8h.01M2.5 12h.01",
+  numbers: "M6 4h8M6 8h8M6 12h8M2 3.5l1-.5v3M2 9.5h2l-2 2h2",
+  link: "M7 9a3 3 0 0 0 4 0l2-2a3 3 0 0 0-4-4l-1 1M9 7a3 3 0 0 0-4 0L3 9a3 3 0 0 0 4 4l1-1",
+  image: "M2 3h12v10H2zM2 11l4-4 3 3 2-2 3 3",
+  comment: "M2 3h12v8H7l-3 3v-3H2z",
+  table: "M2 2h12v12H2zM2 6h12M2 10h12M6 2v12M10 2v12",
+  chart: "M3 13V8M7 13V3M11 13V6M2 14h12",
+  filter: "M2 3h12l-5 6v5l-2-1V9z",
+  sum: "M12 3H4l4 5-4 5h8",
+  pen: "M2 14l1-4 8-8 3 3-8 8z",
+  mark: "M3 13l1-3 7-7 3 3-7 7zM2 15h12",
+  under: "M4 3v5a4 4 0 0 0 8 0V3M3 14h10",
+  strike: "M2 8h12M5.5 5a2.5 2.5 0 0 1 5 0M5.5 11a2.5 2.5 0 0 0 5 0",
+  shape: "M2.5 2.5h6v6h-6zM11 11m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
+  text: "M3 3h10M8 3v10M6 13h4",
+  note: "M3 2h10v8l-3 4H3zM10 14v-4h3",
+  sign: "M2 12c2-6 4-6 5-2s2 3 3 0 2-1 4 0",
+  stamp: "M5 9h6v3H5zM6 9V5a2 2 0 1 1 4 0v4M3 14h10",
+  zoom: "M7 7m-4.5 0a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0 -9 0M10.5 10.5 14 14",
+  slide: "M2 3h12v9H2zM6 15h4",
+  play: "M5 3l8 5-8 5z",
+  plus: "M8 3v10M3 8h10",
+  select: "M3 2l9 5-4 1-1 4z",
+  paint: "M3 3h8v4H3zM11 5h2v5H8v3",
+  rotate: "M13 8a5 5 0 1 1-1.6-3.7M13 2v3h-3",
+};
+type Item = { i: string; on?: boolean } | { p: string; w: number } | { t: string; st?: "b" | "i" | "u"; c?: boolean } | { s: 1 };
+/** A toolbar as SVG: icon buttons, dropdown pills, text buttons and separators, left to right. Returns the shapes and the width. */
+function bar(items: Item[]) {
+  let x = 12;
+  let o = "";
+  for (const it of items) {
+    if ("i" in it) {
+      if (it.on) o += `<rect class="on" x="${x - 6}" y="6" width="28" height="28" rx="6"/>`;
+      o += `<path class="ic" transform="translate(${x} 12)" d="${IC[it.i]}"/>`;
+      x += 28;
+    } else if ("p" in it) {
+      o += `<rect class="pl" x="${x}" y="8" width="${it.w}" height="24" rx="6"/><text class="tx" x="${x + 9}" y="24">${it.p}</text><path class="ic chev" d="M${x + it.w - 17} 18l3.5 3.5 3.5-3.5"/>`;
+      x += it.w + 10;
+    } else if ("t" in it) {
+      o += `<text class="tx tb ${it.st ?? ""}" x="${x + 6}" y="25">${it.t}</text>`;
+      if (it.c) o += `<rect class="acc" x="${x + 4}" y="29" width="12" height="3" rx="1.5"/>`;
+      x += 28;
+    } else {
+      o += `<path class="sep" d="M${x + 2} 10v20"/>`;
+      x += 12;
+    }
+  }
+  return { o, w: x + 12 };
+}
+const toolbar = (items: Item[]) => {
+  const b = bar(items);
+  return `<svg class="pp-tb" viewBox="0 0 ${b.w} 40" preserveAspectRatio="xMinYMid meet" aria-hidden="true" focusable="false">${b.o}</svg>`;
+};
+
+/* ---- one poster per kind: menu labels, toolbar, body ------------------------------------------------------------------ */
+let menus: string[] = [];
+let tools = "";
+let formula = "";
+let body = "";
+let foot = "";
+let label = "";
+
+if (kind === "docs") {
+  label = "A preview of the Pli.Documents editor: a launch plan page with a table and a comment from a collaborator.";
+  menus = ["File", "Edit", "View", "Insert", "Format", "Tools", "Help"];
+  tools = toolbar([
+    { i: "undo" }, { i: "redo" }, { i: "print" }, { s: 1 },
+    { p: "Normal text", w: 100 }, { p: "Arial", w: 70 }, { p: "11", w: 48 }, { s: 1 },
+    { t: "B", st: "b" }, { t: "I", st: "i" }, { t: "U", st: "u" }, { t: "A", c: true }, { s: 1 },
+    { i: "left", on: true }, { i: "center" }, { i: "bullets" }, { i: "numbers" }, { s: 1 },
+    { i: "link" }, { i: "image" }, { i: "table" }, { i: "comment" },
+  ]);
+  const x = 174;
+  const table = (() => {
+    const cols = [x, x + 144, x + 288];
+    const rows = [["Task", "Owner", "Due"], ["Ship the editor", "Maya", "Oct 14"], ["Write the docs", "Sam", "Oct 21"], ["Press kit", "Jo", "Nov 2"]];
+    let o = `<rect class="soft" x="${x}" y="262" width="432" height="26"/><rect class="grid" x="${x}" y="262" width="432" height="104"/>`;
+    o += `<path class="grid" d="M${x} 288h432M${x} 314h432M${x} 340h432M${cols[1]} 262v104M${cols[2]} 262v104"/>`;
+    rows.forEach((r, ri) =>
+      r.forEach((c, ci) => (o += `<text class="${ri ? "t5" : "t5 b6"}" x="${cols[ci]! + 10}" y="${280 + ri * 26}">${c}</text>`)),
+    );
+    return o;
+  })();
+  body = `<div class="pp-cv"><svg viewBox="0 0 800 520" preserveAspectRatio="xMidYMin meet" aria-hidden="true" focusable="false">
+<rect class="paper" x="110" y="16" width="560" height="520" rx="2"/>
+<g class="a" ${d(0.05)}><text class="t1" x="${x}" y="86">Launch plan</text><text class="t3" x="${x}" y="108">Q3 roadmap · Draft · Edited just now</text>
+<text class="t2" x="${x}" y="148">Overview</text>
+${step >= 2 ? `<rect class="soft" x="${x + 92}" y="177" width="176" height="12" rx="2"/>` : ""}${lines(x, 164, [432, 426, 432, 418, 262])}</g>
+${step >= 1 ? `<g class="a" ${d(0.25)}>${table}${lines(x, 386, [432, 430, 418, 300])}${lines(x, 462, [432, 424, 410])}</g>` : ""}
+${step >= 2 ? `<g class="a" ${d(0.55)}><rect class="acc" x="${x + 262}" y="212" width="2" height="13"/><rect class="acc" x="${x + 262}" y="198" width="34" height="14" rx="3"/><text class="t6" x="${x + 268}" y="208">Maya</text>
+<path class="link" d="M630 140Q530 140 438 183"/>
+<g class="card"><rect class="cardbg" x="630" y="110" width="160" height="86" rx="10"/><circle class="acc" cx="650" cy="132" r="9"/><text class="t4" x="666" y="136">Maya</text><text class="t5 m" x="644" y="160">Can we land this</text><text class="t5 m" x="644" y="175">before the 14th?</text><text class="t6 ac" x="644" y="190">Reply</text></g></g>` : ""}
+</svg></div>`;
+  foot = `<span>Page 1 of 3</span><span>412 words</span>`;
+} else if (kind === "sheets") {
+  label = "A preview of the Pli.Sheets editor: a regional revenue table with totals and a column chart.";
+  menus = ["File", "Edit", "View", "Insert", "Format", "Data", "Tools", "Help"];
+  tools = toolbar([
+    { i: "undo" }, { i: "redo" }, { i: "print" }, { i: "paint" }, { s: 1 },
+    { p: "100%", w: 64 }, { p: "Arial", w: 70 }, { p: "10", w: 48 }, { s: 1 },
+    { t: "B", st: "b" }, { t: "I", st: "i" }, { t: "S", st: "u" }, { t: "A", c: true }, { s: 1 },
+    { i: "left" }, { i: "center" }, { t: "%" }, { t: "123" }, { s: 1 },
+    { i: "table" }, { i: "chart", on: step >= 2 }, { i: "filter" }, { i: "sum" },
+  ]);
+  const sel = step >= 2;
+  formula = `<div class="pp-fx"><span class="nb">${sel ? "E8" : "B2"}</span><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path class="ic" d="${IC.sum}"/></svg><span class="f">${sel ? "=SUM(E2:E7)" : "42100"}</span></div>`;
+  const colX = [40, 180, 276, 372, 468, 564, 660, 756, 852, 948];
+  const hdrH = 22;
+  const rowH = 26;
+  const rowsN = 14;
+  const letters = "ABCDEFGHI";
+  let g = `<rect class="rh" x="0" y="0" width="948" height="${hdrH}"/><rect class="rh" x="0" y="0" width="40" height="${hdrH + rowH * rowsN}"/>`;
+  let path = "";
+  for (let r = 0; r <= rowsN; r++) path += `M0 ${hdrH + r * rowH}H948`;
+  colX.forEach((cx) => (path += `M${cx} 0V${hdrH + rowH * rowsN}`));
+  g += `<path class="gl" d="${path}"/>`;
+  letters.split("").forEach((l, i) => (g += `<text class="t7 c" x="${(colX[i + 1]! + colX[i]!) / 2 + (i === 0 ? 20 : 0)}" y="15">${l}</text>`));
+  for (let r = 1; r <= rowsN; r++) g += `<text class="t7 c" x="20" y="${hdrH + (r - 1) * rowH + 17}">${r}</text>`;
+  const data: [string, number, number, number][] = [
+    ["North", 42100, 48300, 51900], ["South", 31500, 35200, 38800], ["East", 28900, 30100, 33400],
+    ["West", 36700, 41000, 44200], ["Central", 19300, 22800, 24100], ["Remote", 12400, 15900, 18300],
+  ];
+  const n = (v: number) => v.toLocaleString("en-US");
+  const shown = step === 0 ? 2 : data.length;
+  const cellY = (r: number) => hdrH + r * rowH + 17;
+  g += `<rect class="soft" x="40" y="${hdrH}" width="524" height="${rowH}"/>`;
+  ["Region", "Q1", "Q2", "Q3", "Total"].forEach((h, i) => (g += `<text class="t5 b6${i ? " r" : ""}" x="${i ? colX[i + 1]! - 8 : 50}" y="${cellY(0)}">${h}</text>`));
+  if (step >= 1) {
+    data.slice(0, shown).forEach((row, ri) => {
+      const total = row[1] + row[2] + row[3];
+      g += `<rect class="bar" x="470" y="${hdrH + (ri + 1) * rowH + 3}" width="${Math.round((total / 142300) * 88)}" height="${rowH - 6}" rx="2"/>`;
+      g += `<text class="t5" x="50" y="${cellY(ri + 1)}">${row[0]}</text>`;
+      [row[1], row[2], row[3], total].forEach((v, i) => (g += `<text class="t5 r" x="${colX[i + 2]! - 8}" y="${cellY(ri + 1)}">${n(v)}</text>`));
+    });
+  } else {
+    data.slice(0, 2).forEach((row, ri) => {
+      g += `<text class="t5" x="50" y="${cellY(ri + 1)}">${row[0]}</text><text class="t5 r" x="${colX[2]! - 8}" y="${cellY(ri + 1)}">${n(row[1])}</text>`;
+    });
+  }
+  if (step >= 2) {
+    g += `<path class="gl2" d="M40 ${hdrH + 7 * rowH}H564"/><rect class="soft" x="40" y="${hdrH + 7 * rowH}" width="524" height="${rowH}" opacity=".5"/>`;
+    g += `<text class="t5 b6" x="50" y="${cellY(7)}">Total</text>`;
+    [170900, 193300, 210700, 574900].forEach((v, i) => (g += `<text class="t5 b6 r" x="${colX[i + 2]! - 8}" y="${cellY(7)}">${n(v)}</text>`));
+    g += `<rect class="sel" x="468" y="${hdrH + 7 * rowH}" width="96" height="${rowH}"/><rect class="hnd" x="560" y="${hdrH + 8 * rowH - 4}" width="7" height="7"/>`;
+    // The chart: two columns for each region (Q1 faint, Q3 solid), on a card over the sheet.
+    const base = 226;
+    const top = 88;
+    const scale = (base - top) / 52000;
+    let c = `<g class="card"><rect class="cardbg" x="584" y="40" width="296" height="214" rx="8"/><text class="t4" x="600" y="64">Revenue by region</text>`;
+    c += `<rect class="bar2" x="700" y="55" width="8" height="8" rx="2"/><text class="t6 m" x="712" y="63">Q1</text><rect class="acc" x="740" y="55" width="8" height="8" rx="2"/><text class="t6 m" x="752" y="63">Q3</text>`;
+    c += `<path class="gl" d="M604 ${base}H864M604 ${base - 46}H864M604 ${base - 92}H864"/>`;
+    data.forEach((row, i) => {
+      const gx = 612 + i * 42;
+      const h1 = Math.round(row[1] * scale);
+      const h3 = Math.round(row[3] * scale);
+      c += `<rect class="bar2 grow" ${d(0.35 + i * 0.07)} x="${gx}" y="${base - h1}" width="14" height="${h1}" rx="2"/><rect class="acc grow" ${d(0.42 + i * 0.07)} x="${gx + 16}" y="${base - h3}" width="14" height="${h3}" rx="2"/>`;
+      c += `<text class="t7 c" x="${gx + 15}" y="${base + 13}">${row[0]}</text>`;
+    });
+    g += c + "</g>";
+  }
+  body = `<div class="pp-cv sh"><svg viewBox="0 0 900 400" preserveAspectRatio="xMinYMin meet" aria-hidden="true" focusable="false">${g}</svg></div>`;
+  foot = `<span class="tab on">Sheet1</span><span class="tab">Forecast</span><span class="tab">+</span><span class="push">${step >= 2 ? "Sum: 574,900" : ""}</span>`;
+} else if (kind === "decks") {
+  label = "A preview of the Pli.Decks editor: a filmstrip of slides beside a title slide with shapes and a chart.";
+  menus = ["File", "Edit", "View", "Insert", "Slide", "Format", "Arrange", "Tools"];
+  tools = toolbar([
+    { i: "plus" }, { i: "undo" }, { i: "redo" }, { i: "print" }, { s: 1 },
+    { i: "select", on: true }, { i: "text" }, { i: "image" }, { i: "shape" }, { i: "chart" }, { s: 1 },
+    { p: "Fit", w: 62 }, { p: "Arial", w: 70 }, { p: "36", w: 48 }, { s: 1 },
+    { t: "B", st: "b" }, { t: "I", st: "i" }, { t: "A", c: true }, { s: 1 },
+    { i: "left" }, { i: "bullets" }, { s: 1 }, { i: "slide" }, { i: "play" },
+  ]);
+  const O = "#f08a1c";
+  const D = "#c2410c";
+  const thumb = (i: number, inner: string) =>
+    `<text class="t7" x="12" y="${40 + i * 78}">${i + 1}</text><rect class="thumb${i === 0 ? " cur" : ""}" x="26" y="${14 + i * 78}" width="110" height="62" rx="4"/>${inner}`;
+  const ty = (i: number) => 14 + i * 78;
+  const film =
+    thumb(0, `<rect class="sl" x="28" y="${ty(0) + 2}" width="106" height="58" rx="3"/><circle fill="${O}" cx="124" cy="${ty(0) + 14}" r="22"/><rect fill="${O}" x="36" y="${ty(0) + 22}" width="20" height="3"/><rect class="ink" x="36" y="${ty(0) + 30}" width="60" height="7" rx="2"/><rect class="ink2" x="36" y="${ty(0) + 42}" width="40" height="4" rx="2"/>`) +
+    thumb(1, `<rect class="sl" x="28" y="${ty(1) + 2}" width="106" height="58" rx="3"/><rect class="ink" x="36" y="${ty(1) + 10}" width="50" height="6" rx="2"/>${lines(36, ty(1) + 24, [78, 70, 60], 8, 3, "ink2")}`) +
+    thumb(2, `<rect class="sl" x="28" y="${ty(2) + 2}" width="106" height="58" rx="3"/><rect class="ink" x="36" y="${ty(2) + 10}" width="44" height="6" rx="2"/><rect fill="${O}" x="40" y="${ty(2) + 38}" width="12" height="16"/><rect fill="${D}" x="58" y="${ty(2) + 30}" width="12" height="24"/><rect fill="${O}" x="76" y="${ty(2) + 34}" width="12" height="20"/><rect fill="${D}" x="94" y="${ty(2) + 24}" width="12" height="30"/>`) +
+    thumb(3, `<rect class="sl" x="28" y="${ty(3) + 2}" width="106" height="58" rx="3"/><rect fill="${D}" x="36" y="${ty(3) + 10}" width="40" height="42" rx="3" opacity=".85"/>${lines(84, ty(3) + 14, [44, 40, 44, 30], 8, 3, "ink2")}`) +
+    thumb(4, `<rect fill="${D}" x="28" y="${ty(4) + 2}" width="106" height="58" rx="3"/><rect x="48" y="${ty(4) + 26}" width="66" height="7" rx="2" fill="#fff"/>`);
+  const slide = `<svg class="pp-slide" viewBox="0 0 960 540" aria-hidden="true" focusable="false">
+<rect class="sl" width="960" height="540"/>
+<g class="a" ${d(0.05)}><rect fill="${O}" x="72" y="170" width="96" height="9" rx="4"/>
+<text x="72" y="262" font-size="78" font-weight="750" fill="#1f1b16" letter-spacing="-2">Quarterly</text><text x="72" y="342" font-size="78" font-weight="750" fill="#1f1b16" letter-spacing="-2">review</text>
+<text x="74" y="400" font-size="28" fill="#6b5f52">Pli.Decks · Q3 results</text></g>
+${step >= 1 ? `<g class="a" ${d(0.3)}><circle fill="${O}" cx="860" cy="70" r="190"/><circle fill="${D}" cx="900" cy="500" r="120" opacity=".9"/><rect fill="#fde3bf" x="610" y="64" width="110" height="110" rx="26" transform="rotate(14 665 119)"/><circle fill="none" stroke="${D}" stroke-width="6" cx="580" cy="470" r="30"/></g>` : ""}
+${step >= 2 ? `<g class="a" ${d(0.55)}><rect fill="#fff" x="560" y="250" width="290" height="190" rx="14" stroke="#ecdcc6" stroke-width="2"/><rect fill="${O}" x="592" y="352" width="34" height="62" rx="4"/><rect fill="${D}" x="644" y="320" width="34" height="94" rx="4"/><rect fill="${O}" x="696" y="336" width="34" height="78" rx="4"/><rect fill="${D}" x="748" y="288" width="34" height="126" rx="4"/><rect fill="#e8d5bd" x="800" y="372" width="18" height="42" rx="4"/>
+<g class="selbox"><rect x="560" y="250" width="290" height="190" fill="none" stroke-width="3"/>${[[560, 250], [705, 250], [850, 250], [560, 345], [850, 345], [560, 440], [705, 440], [850, 440]].map(([x, y]) => `<rect class="hnd" x="${x! - 7}" y="${y! - 7}" width="14" height="14" rx="3"/>`).join("")}</g>
+<rect fill="${D}" x="858" y="226" width="62" height="22" rx="5"/><text x="868" y="242" font-size="14" font-weight="600" fill="#fff">Sam</text></g>` : ""}
+</svg>`;
+  body = `<div class="pp-split"><div class="pp-film"><svg viewBox="0 0 148 400" preserveAspectRatio="xMidYMin meet" aria-hidden="true" focusable="false">${film}</svg></div><div class="pp-main"><div class="pp-cv dk">${slide}</div><div class="pp-notes">Click to add speaker notes</div></div></div>`;
+} else {
+  label = "A preview of the Pli.PDF editor: page thumbnails beside a contract page with a highlight, a sticky note and an approved stamp.";
+  menus = ["File", "Edit", "View", "Insert", "Format", "Tools", "Help"];
+  tools = toolbar([
+    { i: "undo" }, { i: "redo" }, { i: "select" }, { s: 1 },
+    { i: "mark", on: true }, { i: "under" }, { i: "strike" }, { i: "pen" }, { i: "shape" }, { i: "text" }, { i: "note" }, { i: "sign" }, { i: "stamp" }, { s: 1 },
+    { p: "1 / 12", w: 78 }, { i: "zoom" }, { p: "100%", w: 72 }, { s: 1 }, { i: "rotate" }, { i: "print" },
+  ]);
+  const P = "#c4c8d0";
+  const tn = (i: number, inner: string) =>
+    `<rect class="thumb${i === 0 ? " cur" : ""}" x="24" y="${14 + i * 152}" width="100" height="130" rx="3"/>${inner}<text class="t7 c" x="74" y="${158 + i * 152}">${i + 1}</text>`;
+  const thumbs =
+    tn(0, `<rect fill="#fff" x="26" y="16" width="96" height="126" rx="2"/><rect fill="#2d3340" x="36" y="28" width="44" height="5" rx="2"/>${lines(36, 42, [76, 72, 76, 66, 76, 52], 8, 3, "pg")}<rect fill="#ffd600" opacity=".6" x="36" y="57" width="46" height="5"/>${lines(36, 92, [76, 70, 74], 8, 3, "pg")}`) +
+    tn(1, `<rect fill="#fff" x="26" y="168" width="96" height="126" rx="2"/>${lines(36, 182, [76, 70, 76, 62, 76, 70, 48], 8, 3, "pg")}`) +
+    tn(2, `<rect fill="#fff" x="26" y="320" width="96" height="126" rx="2"/><rect fill="${P}" x="36" y="334" width="76" height="40" rx="2"/>${lines(36, 386, [76, 70, 56], 8, 3, "pg")}`);
+  const page = `<svg viewBox="0 0 600 780" preserveAspectRatio="xMidYMin meet" aria-hidden="true" focusable="false">
+<rect class="pdfp" x="0" y="0" width="600" height="780" rx="2"/>
+<g class="a" ${d(0.05)}><text x="64" y="72" font-size="11" font-weight="700" letter-spacing="2.4" fill="#8a909c">MASTER SERVICES AGREEMENT</text>
+<text x="64" y="118" font-size="32" font-weight="750" fill="#1b1d22" letter-spacing="-.5">Service Agreement</text>
+${lines(64, 146, [472, 460, 472, 380], 15, 7, "pg")}
+<text x="64" y="236" font-size="15" font-weight="700" fill="#1b1d22">1. Term</text>
+${step >= 1 ? `<rect fill="#ffd600" opacity=".55" x="64" y="251" width="236" height="12" rx="2"/>` : ""}${lines(64, 253, [472, 466, 472, 440, 300], 15, 7, "pg")}</g>
+<g class="a" ${d(0.25)}><text x="64" y="352" font-size="15" font-weight="700" fill="#1b1d22">2. Payment</text>${lines(64, 369, [472, 458, 472, 420], 15, 7, "pg")}
+${step >= 2 ? `<rect fill="#1b1d22" x="64" y="${369 + 45}" width="190" height="9" rx="1"/>` : ""}${lines(64, 444, [472, 430, 360], 15, 7, "pg")}</g>
+<g class="a" ${d(0.3)}><text x="64" y="520" font-size="15" font-weight="700" fill="#1b1d22">3. Signatures</text>${lines(64, 537, [472, 400], 15, 7, "pg")}
+<path d="M64 640c10-24 20-24 26-6s10 14 16-4 12-12 20 2 14 4 22-8" fill="none" stroke="#1a56db" stroke-width="2.4" stroke-linecap="round"/><path class="pgline" d="M64 654h200M330 654h200"/></g>
+${step >= 2 ? `<g class="a" ${d(0.55)}><g transform="rotate(-11 450 600)"><rect x="372" y="568" width="160" height="50" rx="6" fill="none" stroke="#d92d20" stroke-width="3.5"/><text x="452" y="603" text-anchor="middle" font-size="26" font-weight="800" letter-spacing="3" fill="#d92d20">APPROVED</text></g></g>
+<g class="a" ${d(0.8)}><rect x="548" y="248" width="26" height="26" rx="4" fill="#ffd600" stroke="#c9a400"/><path d="M556 256h10M556 262h7" stroke="#6b5600" stroke-width="2" stroke-linecap="round"/>
+<g class="card"><rect x="400" y="282" width="190" height="78" rx="8" fill="#fff8d6" stroke="#e6c94a"/><circle cx="420" cy="304" r="9" fill="#e5484d"/><text x="436" y="308" font-size="13" font-weight="700" fill="#4a3d00">Jo</text><text x="414" y="334" font-size="13" fill="#5b4b00">Check the dates here</text><text x="414" y="350" font-size="13" fill="#5b4b00">before we send it.</text></g></g>` : ""}
+</svg>`;
+  body = `<div class="pp-split"><div class="pp-film"><svg viewBox="0 0 148 470" preserveAspectRatio="xMidYMin meet" aria-hidden="true" focusable="false">${thumbs}</svg></div><div class="pp-main"><div class="pp-cv dk pdf">${page}</div></div></div>`;
+  foot = `<span>Page 1 of 12</span><span>100%</span>`;
+}
+---
+
+<div class="pp" data-product={kind} data-poster={kind} role="img" aria-label={label}>
+  <div class="pp-menu" aria-hidden="true">
+    <b class="pp-mark"></b>
+    {menus.map((m) => <span>{m}</span>)}
+    <i class="pp-av"></i><i class="pp-av pp-av2"></i><em class="pp-share">Share</em>
+  </div>
+  <div class="pp-tools" aria-hidden="true" set:html={tools} />
+  {formula && <div class="pp-tools2" aria-hidden="true" set:html={formula} />}
+  <div class="pp-body" aria-hidden="true" set:html={body} />
+  {foot && <div class="pp-foot" aria-hidden="true" set:html={foot} />}
+</div>
+
+<style is:global>
+  .pp {
+    --p-chrome: var(--pli-surface-2);
+    --p-canvas: color-mix(in srgb, var(--pli-ink) 7%, var(--pli-bg));
+    --p-paper: var(--pli-surface);
+    --p-ink: var(--pli-ink);
+    --p-mut: var(--pli-muted);
+    --p-line: var(--pli-line-strong);
+    --p-hair: var(--pli-line);
+    --p-bar: color-mix(in srgb, var(--pli-ink) 17%, transparent);
+    --p-bar2: color-mix(in srgb, var(--pli-ink) 9%, transparent);
+    --p-acc: var(--accent, var(--pli-brand));
+    --p-soft: var(--accent-soft, var(--pli-docs-soft));
+    --p-sel: #1a73e8;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--p-chrome);
+    color: var(--p-ink);
+    font-family: var(--pli-font);
+    container-type: inline-size;
+    user-select: none;
+  }
+  :root[data-theme="dark"] .pp { --p-sel: #8ab4f8; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pp { --p-sel: #8ab4f8; } }
+
+  .pp-menu { flex: none; display: flex; align-items: center; gap: 0.9rem; height: 2rem; padding: 0 0.9rem; font-size: 0.74rem; color: var(--p-mut); white-space: nowrap; border-bottom: 1px solid var(--p-hair); }
+  .pp-mark { width: 1rem; height: 1rem; border-radius: 0.3rem; background: var(--p-acc); margin-right: 0.2rem; }
+  .pp-av { width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--p-acc); margin-left: auto; border: 2px solid var(--p-chrome); }
+  .pp-av2 { margin-left: -0.55rem; background: #f59e0b; }
+  .pp-av + .pp-av2 + .pp-share { margin-left: 0.2rem; }
+  .pp-share { font-style: normal; font-weight: 600; padding: 0.22rem 0.7rem; border-radius: 999px; background: var(--p-acc); color: var(--pli-on-brand); }
+  .pp-tools { flex: none; border-bottom: 1px solid var(--p-hair); }
+  .pp-tb { display: block; width: 100%; height: 40px; }
+  .pp-tb .ic, .pp-tools2 .ic { fill: none; stroke: var(--p-mut); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  .pp-tb .pl { fill: var(--p-bar2); }
+  .pp-tb .on { fill: var(--p-soft); }
+  .pp-tb .sep { stroke: var(--p-line); stroke-width: 1; }
+  .pp-tb .tx { font-size: 12px; fill: var(--p-ink); font-family: var(--pli-font); }
+  .pp-tb .tb { font-size: 14px; font-weight: 600; }
+  .pp-tb .b { font-weight: 800; }
+  .pp-tb .i { font-style: italic; font-family: Georgia, serif; }
+  .pp-tb .u { text-decoration: underline; }
+  .pp-tb .acc { fill: var(--p-acc); }
+  .pp-tools2 { flex: none; display: flex; align-items: center; gap: 0.6rem; height: 1.75rem; padding: 0 0.9rem; border-bottom: 1px solid var(--p-hair); font-size: 0.74rem; }
+  .pp-fx .nb, .pp-fx .f { font-family: var(--pli-mono); font-size: 0.72rem; }
+  .pp-tools2 .pp-fx, .pp-fx { display: contents; }
+  .pp-fx .nb { width: 3.4rem; padding: 0.12rem 0.5rem; border-radius: 0.3rem; background: var(--p-bar2); }
+  .pp-fx .f { color: var(--p-ink); }
+
+  .pp-body { position: relative; flex: 1; min-height: 0; display: flex; }
+  .pp-cv { flex: 1; min-width: 0; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; background: var(--p-canvas); }
+  .pp-cv > svg { display: block; width: 100%; max-width: 900px; height: auto; }
+  .pp-cv.sh { background: var(--p-paper); justify-content: flex-start; }
+  .pp-cv.sh > svg { max-width: 1000px; }
+  .pp-cv.dk { align-items: center; padding: 1rem; }
+  .pp-cv.pdf { align-items: flex-start; padding: 1.1rem 1rem 0; background: color-mix(in srgb, var(--pli-ink) 14%, var(--pli-bg)); }
+  .pp-cv.pdf > svg { max-width: 31rem; }
+  .pp-split { flex: 1; min-width: 0; display: flex; min-height: 0; }
+  .pp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .pp-main .pp-cv { flex: 1; min-height: 0; }
+  .pp-film { flex: none; width: 9.25rem; background: var(--p-chrome); border-right: 1px solid var(--p-hair); overflow: hidden; }
+  .pp-film svg { display: block; width: 100%; height: auto; }
+  .pp .pp-slide { width: 100%; max-width: 780px; height: auto; border-radius: 4px; box-shadow: 0 2px 4px rgb(0 0 0 / 0.14), 0 8px 24px rgb(0 0 0 / 0.16); }
+  .pp-notes { flex: none; height: 2.75rem; display: flex; align-items: center; padding: 0 1rem; font-size: 0.74rem; color: var(--p-mut); background: var(--p-chrome); border-top: 1px solid var(--p-hair); }
+  .pp-foot { flex: none; display: flex; align-items: center; gap: 1rem; height: 1.75rem; padding: 0 0.9rem; font-size: 0.7rem; color: var(--p-mut); background: var(--p-chrome); border-top: 1px solid var(--p-hair); }
+  .pp-foot .tab { padding: 0.18rem 0.8rem; border-radius: 0.3rem; }
+  .pp-foot .tab.on { background: var(--p-soft); color: var(--p-ink); font-weight: 600; }
+  .pp-foot .push { margin-left: auto; }
+
+  /* Shapes inside the drawings. */
+  .pp svg .paper, .pp svg .cardbg { fill: var(--p-paper); stroke: var(--p-hair); }
+  .pp svg .paper { filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.12)); }
+  .pp svg .cardbg { stroke: var(--p-line); filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.14)); }
+  .pp svg .b { fill: var(--p-bar); }
+  .pp svg .pg { fill: #c9ccd3; }
+  .pp svg .pgline { stroke: #9aa1ad; stroke-width: 1.5; }
+  .pp svg .pdfp { fill: #fff; filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.25)); }
+  .pp svg .sl { fill: #fffaf3; }
+  .pp svg .ink { fill: #1f1b16; }
+  .pp svg .ink2 { fill: #b8aa98; }
+  .pp svg .thumb { fill: none; stroke: var(--p-line); stroke-width: 1; }
+  .pp svg .thumb.cur { stroke: var(--p-sel); stroke-width: 2.5; }
+  .pp svg .soft { fill: var(--p-soft); }
+  .pp svg .acc { fill: var(--p-acc); }
+  .pp svg .bar { fill: var(--p-soft); }
+  .pp svg .bar2 { fill: var(--p-acc); opacity: 0.4; }
+  .pp svg .grid { fill: none; stroke: var(--p-line); stroke-width: 1; }
+  .pp svg .gl { fill: none; stroke: var(--p-hair); stroke-width: 1; }
+  .pp svg .gl2 { stroke: var(--p-ink); stroke-width: 1.5; opacity: 0.5; }
+  .pp svg .rh { fill: var(--p-chrome); }
+  .pp svg .sel { fill: none; stroke: var(--p-sel); stroke-width: 2.5; }
+  .pp svg .hnd { fill: #fff; stroke: var(--p-sel); stroke-width: 2; }
+  .pp svg .sel + .hnd { fill: var(--p-sel); }
+  .pp svg .selbox rect { stroke: var(--p-sel); }
+  .pp svg .link { fill: none; stroke: var(--p-acc); stroke-width: 1.5; opacity: 0.55; }
+  .pp svg text { font-family: var(--pli-font); }
+  .pp svg .t1 { font-size: 30px; font-weight: 750; fill: var(--p-ink); letter-spacing: -0.5px; }
+  .pp svg .t2 { font-size: 17px; font-weight: 700; fill: var(--p-ink); }
+  .pp svg .t3 { font-size: 12px; fill: var(--p-mut); }
+  .pp svg .t4 { font-size: 12px; font-weight: 700; fill: var(--p-ink); }
+  .pp svg .t5 { font-size: 12px; fill: var(--p-ink); }
+  .pp svg .t5.m, .pp svg .t6.m { fill: var(--p-mut); }
+  .pp svg .t6 { font-size: 10px; fill: var(--pli-on-brand); font-weight: 600; }
+  .pp svg .t6.ac { fill: var(--p-acc); }
+  .pp svg .t6.m { fill: var(--p-mut); font-weight: 500; }
+  .pp svg .t7 { font-size: 11px; fill: var(--p-mut); }
+  .pp svg .b6 { font-weight: 700; }
+  .pp svg .r { text-anchor: end; }
+  .pp svg .c { text-anchor: middle; }
+
+  @container (max-width: 560px) {
+    .pp-film { width: 5.4rem; }
+    .pp-menu span:nth-of-type(n + 5), .pp-share, .pp-av { display: none; }
+    .pp-tools2 { display: none; }
+  }
+  @container (max-width: 360px) { .pp-film { display: none; } }
+
+  /* One quiet entrance: shapes fade up, chart columns grow. Off with reduced motion, and with no script it still plays (it is CSS). */
+  @media (prefers-reduced-motion: no-preference) {
+    .pp svg .a { animation: pp-in 0.8s var(--pli-ease, ease) both; animation-delay: var(--d, 0s); }
+    .pp svg .grow { transform-box: fill-box; transform-origin: bottom; animation: pp-grow 0.9s var(--pli-ease, ease) both; animation-delay: var(--d, 0s); }
+    .pp svg .card { transform-box: fill-box; transform-origin: top left; animation: pp-pop 0.5s var(--pli-ease, ease) both; animation-delay: 0.9s; }
+  }
+  @keyframes pp-in { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes pp-grow { from { transform: scaleY(0); } }
+  @keyframes pp-pop { from { opacity: 0; transform: scale(0.92); } }
+</style>

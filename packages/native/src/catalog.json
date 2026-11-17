@@ -1,0 +1,734 @@
+{
+  "_": "Everything the Swift and Kotlin packages can do to a document. The bridge runs these, and scripts/generate.mjs writes the typed Swift and Kotlin methods from them, so the three stay in step. Types: string, int, double, bool, with ? for optional.",
+  "commands": [
+    {
+      "name": "typeText",
+      "params": [
+        {
+          "name": "text",
+          "type": "string"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Types at the caret, replacing any selected text."
+    },
+    {
+      "name": "pasteText",
+      "params": [
+        {
+          "name": "text",
+          "type": "string"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Pastes plain text; line breaks become new paragraphs."
+    },
+    {
+      "name": "paste",
+      "params": [
+        {
+          "name": "html",
+          "type": "string?"
+        },
+        {
+          "name": "rtf",
+          "type": "string?"
+        },
+        {
+          "name": "text",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Pastes what a clipboard offered, keeping formatting: HTML (a web page, Word, Google Docs), else RTF (Pages, TextEdit), else tab-separated text as a table, else the text."
+    },
+    {
+      "name": "splitBlock",
+      "params": [],
+      "returns": "bool",
+      "doc": "Enter: splits the paragraph at the caret."
+    },
+    {
+      "name": "backspace",
+      "params": [],
+      "returns": "bool",
+      "doc": "Backspace."
+    },
+    {
+      "name": "deleteForward",
+      "params": [],
+      "returns": "bool",
+      "doc": "Delete."
+    },
+    {
+      "name": "deleteSelection",
+      "params": [],
+      "returns": "bool",
+      "doc": "Deletes the selected text."
+    },
+    {
+      "name": "undo",
+      "params": [],
+      "returns": "bool",
+      "doc": "Undoes the last change."
+    },
+    {
+      "name": "redo",
+      "params": [],
+      "returns": "bool",
+      "doc": "Redoes the last undone change."
+    },
+    {
+      "name": "toggleBold",
+      "params": [],
+      "returns": "bool",
+      "doc": "Turns bold on or off for the selection, or for the next typed text at a caret."
+    },
+    {
+      "name": "toggleItalic",
+      "params": [],
+      "returns": "bool",
+      "doc": "Turns italic on or off."
+    },
+    {
+      "name": "toggleUnderline",
+      "params": [],
+      "returns": "bool",
+      "doc": "Turns underline on or off."
+    },
+    {
+      "name": "toggleStrikethrough",
+      "params": [],
+      "returns": "bool",
+      "doc": "Turns strikethrough on or off."
+    },
+    {
+      "name": "toggleCode",
+      "params": [],
+      "returns": "bool",
+      "doc": "Turns the code style on or off."
+    },
+    {
+      "name": "toggleSuperscript",
+      "params": [],
+      "returns": "bool",
+      "doc": "Turns superscript on or off."
+    },
+    {
+      "name": "toggleSubscript",
+      "params": [],
+      "returns": "bool",
+      "doc": "Turns subscript on or off."
+    },
+    {
+      "name": "setTextColor",
+      "params": [
+        {
+          "name": "color",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the text color, such as \"#b91c1c\". Null removes it."
+    },
+    {
+      "name": "setHighlight",
+      "params": [
+        {
+          "name": "color",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the highlight color. Null removes it."
+    },
+    {
+      "name": "setFontFamily",
+      "params": [
+        {
+          "name": "family",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the font, such as \"Georgia\". Null goes back to the document's."
+    },
+    {
+      "name": "setFontSize",
+      "params": [
+        {
+          "name": "points",
+          "type": "double?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the font size in points. Null goes back to the document's."
+    },
+    {
+      "name": "setLink",
+      "params": [
+        {
+          "name": "url",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Links the selected text to an address. Null removes the link."
+    },
+    {
+      "name": "clearFormatting",
+      "params": [],
+      "returns": "bool",
+      "doc": "Removes formatting and styles from the selection."
+    },
+    {
+      "name": "setParagraph",
+      "params": [],
+      "returns": "bool",
+      "doc": "Makes the selected blocks ordinary paragraphs."
+    },
+    {
+      "name": "setTitle",
+      "params": [],
+      "returns": "bool",
+      "doc": "Makes the selected blocks the document title style."
+    },
+    {
+      "name": "setSubtitle",
+      "params": [],
+      "returns": "bool",
+      "doc": "Makes the selected blocks the subtitle style."
+    },
+    {
+      "name": "setHeading",
+      "params": [
+        {
+          "name": "level",
+          "type": "int"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Makes the selected blocks headings of level 1 to 6."
+    },
+    {
+      "name": "setQuote",
+      "params": [],
+      "returns": "bool",
+      "doc": "Makes the selected blocks quotes."
+    },
+    {
+      "name": "setCodeBlock",
+      "params": [],
+      "returns": "bool",
+      "doc": "Makes the selected blocks code blocks."
+    },
+    {
+      "name": "toggleBulletedList",
+      "params": [],
+      "returns": "bool",
+      "doc": "Makes the selected blocks a bulleted list, or ordinary paragraphs if they already are."
+    },
+    {
+      "name": "toggleNumberedList",
+      "params": [],
+      "returns": "bool",
+      "doc": "Makes the selected blocks a numbered list, or ordinary paragraphs if they already are."
+    },
+    {
+      "name": "setAlignment",
+      "params": [
+        {
+          "name": "alignment",
+          "type": "string",
+          "oneOf": [
+            "left",
+            "center",
+            "right",
+            "justify"
+          ],
+          "enum": "Alignment"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Aligns the selected blocks: left, center, right or justify."
+    },
+    {
+      "name": "indent",
+      "params": [],
+      "returns": "bool",
+      "doc": "Moves the selected blocks in."
+    },
+    {
+      "name": "outdent",
+      "params": [],
+      "returns": "bool",
+      "doc": "Moves the selected blocks out."
+    },
+    {
+      "name": "setListMarker",
+      "params": [
+        {
+          "name": "marker",
+          "type": "string?",
+          "oneOf": [
+            "decimal",
+            "lower-alpha",
+            "upper-alpha",
+            "lower-roman",
+            "upper-roman",
+            "disc",
+            "circle",
+            "square"
+          ],
+          "enum": "ListMarker"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets how the selected lists are marked: numbers, letters or roman numerals for a numbered list, a symbol for a bulleted one. Null goes back to the default for the depth."
+    },
+    {
+      "name": "setListStart",
+      "params": [
+        {
+          "name": "start",
+          "type": "int"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Numbers the first selected item of a numbered list with `start` and carries on from it: restarts a list at 1, or starts it at any number."
+    },
+    {
+      "name": "continueNumbering",
+      "params": [],
+      "returns": "bool",
+      "doc": "Takes the selected numbered items back into the numbering of the list above them, undoing a restart."
+    },
+    {
+      "name": "setLineSpacing",
+      "params": [
+        {
+          "name": "multiple",
+          "type": "double?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets line spacing as a multiple of the font size, such as 1.5. Null removes it."
+    },
+    {
+      "name": "setSpaceBefore",
+      "params": [
+        {
+          "name": "points",
+          "type": "double?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the space above the selected paragraphs, in points."
+    },
+    {
+      "name": "setSpaceAfter",
+      "params": [
+        {
+          "name": "points",
+          "type": "double?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the space below the selected paragraphs, in points."
+    },
+    {
+      "name": "insertTable",
+      "params": [
+        {
+          "name": "rows",
+          "type": "int"
+        },
+        {
+          "name": "columns",
+          "type": "int"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Inserts a table at the caret."
+    },
+    {
+      "name": "addRowAbove",
+      "params": [],
+      "returns": "bool",
+      "doc": "Adds a table row above the one the caret is in."
+    },
+    {
+      "name": "addRowBelow",
+      "params": [],
+      "returns": "bool",
+      "doc": "Adds a table row below the one the caret is in."
+    },
+    {
+      "name": "addColumnLeft",
+      "params": [],
+      "returns": "bool",
+      "doc": "Adds a table column left of the one the caret is in."
+    },
+    {
+      "name": "addColumnRight",
+      "params": [],
+      "returns": "bool",
+      "doc": "Adds a table column right of the one the caret is in."
+    },
+    {
+      "name": "deleteRow",
+      "params": [],
+      "returns": "bool",
+      "doc": "Deletes the selected table rows (the table, if that is every row)."
+    },
+    {
+      "name": "deleteColumn",
+      "params": [],
+      "returns": "bool",
+      "doc": "Deletes the selected table columns (the table, if that is every column)."
+    },
+    {
+      "name": "deleteTable",
+      "params": [],
+      "returns": "bool",
+      "doc": "Deletes the table the caret is in."
+    },
+    {
+      "name": "mergeCells",
+      "params": [],
+      "returns": "bool",
+      "doc": "Merges the selected cells (a selection from one cell to another) into one."
+    },
+    {
+      "name": "splitCells",
+      "params": [],
+      "returns": "bool",
+      "doc": "Splits merged cells in the selection back into single cells."
+    },
+    {
+      "name": "setHeaderRow",
+      "params": [
+        {
+          "name": "on",
+          "type": "bool"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Turns a table's first row into a header row, or back."
+    },
+    {
+      "name": "setCellShade",
+      "params": [
+        {
+          "name": "color",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Shades the selected cells, such as \"#fef08a\". Null clears it."
+    },
+    {
+      "name": "setColumnEdge",
+      "params": [
+        {
+          "name": "table",
+          "type": "string"
+        },
+        {
+          "name": "column",
+          "type": "int"
+        },
+        {
+          "name": "position",
+          "type": "double"
+        },
+        {
+          "name": "merge",
+          "type": "bool"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Moves the edge between a table's column and the next one, to `position` (0 to 1, from the table's left edge). The neighbouring columns trade width; the others keep theirs. With `merge` true the change joins the previous undo step, so a drag is one step to undo."
+    },
+    {
+      "name": "setRowHeight",
+      "params": [
+        {
+          "name": "table",
+          "type": "string"
+        },
+        {
+          "name": "row",
+          "type": "int"
+        },
+        {
+          "name": "points",
+          "type": "double?"
+        },
+        {
+          "name": "merge",
+          "type": "bool"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the least height of a table's row, in points. Null lets it fit its content. With `merge` true the change joins the previous undo step, so a drag is one step to undo."
+    },
+    {
+      "name": "insertPageBreak",
+      "params": [],
+      "returns": "bool",
+      "doc": "Inserts a page break at the caret."
+    },
+    {
+      "name": "insertDivider",
+      "params": [],
+      "returns": "bool",
+      "doc": "Inserts a horizontal rule at the caret."
+    },
+    {
+      "name": "insertImage",
+      "params": [
+        {
+          "name": "source",
+          "type": "string"
+        },
+        {
+          "name": "width",
+          "type": "int"
+        },
+        {
+          "name": "height",
+          "type": "int"
+        },
+        {
+          "name": "description",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Inserts a picture at the caret from a data: URI or an address, shown at width by height in points of 1/96 inch."
+    },
+    {
+      "name": "setImageSize",
+      "params": [
+        {
+          "name": "image",
+          "type": "string"
+        },
+        {
+          "name": "width",
+          "type": "int"
+        },
+        {
+          "name": "height",
+          "type": "int"
+        },
+        {
+          "name": "merge",
+          "type": "bool"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the size a picture is shown at, in pixels. With `merge` true the change joins the previous undo step, so a drag is one step to undo."
+    },
+    {
+      "name": "setImageCrop",
+      "params": [
+        {
+          "name": "image",
+          "type": "string"
+        },
+        {
+          "name": "top",
+          "type": "double"
+        },
+        {
+          "name": "right",
+          "type": "double"
+        },
+        {
+          "name": "bottom",
+          "type": "double"
+        },
+        {
+          "name": "left",
+          "type": "double"
+        },
+        {
+          "name": "merge",
+          "type": "bool"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Crops a picture: how much to cut away from each edge, as a share of the whole picture (0 to 0.9). All zeros shows all of it again. The picture's scale stays the same, so cutting an edge makes it smaller on the page, as it does in Word. With `merge` true the change joins the previous undo step, so a drag is one step to undo."
+    },
+    {
+      "name": "setImageWrap",
+      "params": [
+        {
+          "name": "image",
+          "type": "string"
+        },
+        {
+          "name": "wrap",
+          "type": "string?",
+          "oneOf": [
+            "left",
+            "right"
+          ]
+        }
+      ],
+      "returns": "bool",
+      "doc": "Makes text wrap around a picture, which sits at the left or right edge, or puts it back on a line of its own with null. A picture in a table cell stays on its own line."
+    },
+    {
+      "name": "deleteImage",
+      "params": [
+        {
+          "name": "image",
+          "type": "string"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Deletes a picture."
+    },
+    {
+      "name": "setDocumentTitle",
+      "params": [
+        {
+          "name": "title",
+          "type": "string"
+        }
+      ],
+      "returns": "void",
+      "doc": "Renames the document."
+    },
+    {
+      "name": "applyParagraphStyle",
+      "params": [
+        {
+          "name": "id",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the named paragraph style of the selected paragraphs. Null takes it off."
+    },
+    {
+      "name": "applyCharacterStyle",
+      "params": [
+        {
+          "name": "id",
+          "type": "string?"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Sets the named character style of the selected text. Null takes it off."
+    },
+    {
+      "name": "createStyle",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "oneOf": [
+            "paragraph",
+            "character"
+          ],
+          "enum": "StyleKind"
+        }
+      ],
+      "returns": "string?",
+      "doc": "Makes a named style from the selection and applies it. Returns its id."
+    },
+    {
+      "name": "deleteStyle",
+      "params": [
+        {
+          "name": "id",
+          "type": "string"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Removes a style and takes it off the text that used it."
+    },
+    {
+      "name": "select",
+      "params": [
+        {
+          "name": "anchorBlock",
+          "type": "string"
+        },
+        {
+          "name": "anchorOffset",
+          "type": "int"
+        },
+        {
+          "name": "focusBlock",
+          "type": "string"
+        },
+        {
+          "name": "focusOffset",
+          "type": "int"
+        }
+      ],
+      "returns": "void",
+      "doc": "Selects text. Offsets are UTF-16 units into a block's text."
+    },
+    {
+      "name": "selectAll",
+      "params": [],
+      "returns": "void",
+      "doc": "Selects the whole document."
+    },
+    {
+      "name": "setSuggesting",
+      "params": [
+        {
+          "name": "on",
+          "type": "bool"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Turns suggesting mode on or off. False when the current user may not suggest."
+    },
+    {
+      "name": "acceptSuggestion",
+      "params": [
+        {
+          "name": "id",
+          "type": "string"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Accepts a suggestion."
+    },
+    {
+      "name": "rejectSuggestion",
+      "params": [
+        {
+          "name": "id",
+          "type": "string"
+        }
+      ],
+      "returns": "bool",
+      "doc": "Rejects a suggestion."
+    },
+    {
+      "name": "acceptAllSuggestions",
+      "params": [],
+      "returns": "bool",
+      "doc": "Accepts every suggestion the current user may accept."
+    },
+    {
+      "name": "rejectAllSuggestions",
+      "params": [],
+      "returns": "bool",
+      "doc": "Rejects every suggestion the current user may reject."
+    }
+  ]
+}

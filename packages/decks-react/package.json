@@ -1,0 +1,69 @@
+{
+  "name": "@pli.dev/decks-react",
+  "version": "1.0.0",
+  "description": "React slide editor for Pli: filmstrip, canvas, toolbar, speaker notes and present mode driven by the @pli.dev/decks engine.",
+  "keywords": [
+    "pli",
+    "react",
+    "slides",
+    "presentation",
+    "pptx",
+    "editor"
+  ],
+  "license": "Apache-2.0",
+  "author": "Maison de Code (https://maisondecode.com)",
+  "homepage": "https://pli.dev",
+  "bugs": {
+    "url": "https://github.com/MaisonDeCode/pli.dev/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaisonDeCode/pli.dev.git",
+    "directory": "packages/decks-react"
+  },
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepack": "node ../../scripts/prepack.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "dependencies": {
+    "@pli.dev/core": "workspace:^",
+    "@pli.dev/decks": "workspace:^",
+    "@pli.dev/react": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./styles.css": "./dist/styles.css",
+      "./package.json": "./package.json"
+    }
+  }
+}

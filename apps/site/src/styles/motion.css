@@ -1,0 +1,33 @@
+/*
+ * Scroll motion. Only transform and opacity ever animate, so nothing moves the layout. The script (scripts/motion.ts) adds
+ * classes and sets custom properties; with no script, with reduced motion, everything below resolves to its resting state.
+ *
+ *   [data-reveal]            fades and slides in once, when it enters the viewport. Values: up (default) | left | right | scale | fade
+ *   [data-reveal-delay]      seconds-ish stagger: set style="--i:2" to delay by 80ms * i
+ *   [data-parallax="0.2"]    drifts by that fraction of its scroll distance (positive moves up, negative down)
+ *   [data-scroll]            gets --p (0 when it enters at the bottom, 1 when it leaves at the top)
+ *   [data-story]             a tall pinned section; see scripts/motion.ts
+ *   [data-count-to]          counts up from 0 once visible
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html.pli-js [data-reveal]:not(.pli-in) { opacity: 0; transform: translate3d(0, 28px, 0); }
+  html.pli-js [data-reveal="left"]:not(.pli-in) { transform: translate3d(-36px, 0, 0); }
+  html.pli-js [data-reveal="right"]:not(.pli-in) { transform: translate3d(36px, 0, 0); }
+  html.pli-js [data-reveal="scale"]:not(.pli-in) { transform: scale(0.94); }
+  html.pli-js [data-reveal="fade"]:not(.pli-in) { transform: none; }
+  html.pli-js [data-reveal] {
+    transition: opacity var(--pli-dur-slow) var(--pli-ease), transform var(--pli-dur-slow) var(--pli-ease);
+    transition-delay: calc(var(--i, 0) * 80ms);
+    will-change: opacity, transform;
+  }
+  html.pli-js [data-reveal].pli-in { will-change: auto; }
+  [data-parallax] { transform: translate3d(0, calc((var(--p, 0.5) - 0.5) * var(--pli-parallax, 0) * -120px), 0); will-change: transform; }
+  .pli-float { animation: pli-float 7s ease-in-out infinite; }
+  @keyframes pli-float { 50% { transform: translate3d(0, -10px, 0); } }
+  .pli-pulse { animation: pli-pulse 2.4s ease-in-out infinite; }
+  @keyframes pli-pulse { 50% { opacity: 0.45; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal], [data-parallax] { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .pli-float, .pli-pulse { animation: none !important; }
+}

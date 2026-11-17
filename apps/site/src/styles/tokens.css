@@ -1,0 +1,124 @@
+/*
+ * Pli design tokens: the one place colour, type, space, radius and motion are decided. Every marketing component and the
+ * Starlight docs theme (starlight.css) read these. Light is the default; dark follows the system unless the page sets
+ * data-theme (the same attribute and storage key Starlight uses, so the choice carries between landing page and docs).
+ */
+:root {
+  /* Brand and product hues. Each product keeps one hue and a lighter tint for glows and chips. */
+  --pli-brand: #5b3df5;
+  --pli-brand-2: #8b5cf6;
+  --pli-docs: #5b4bf0;
+  --pli-sheets: #12a371;
+  --pli-decks: #f08a1c;
+  --pli-pdf: #e5484d;
+  --pli-docs-soft: rgb(91 75 240 / 0.14);
+  --pli-sheets-soft: rgb(18 163 113 / 0.14);
+  --pli-decks-soft: rgb(240 138 28 / 0.16);
+  --pli-pdf-soft: rgb(229 72 77 / 0.14);
+
+  /* Surfaces and ink (light). */
+  --pli-bg: #fbfbfd;
+  --pli-bg-2: #f3f3f8;
+  --pli-surface: #ffffff;
+  --pli-surface-2: #f7f7fb;
+  --pli-ink: #0f1020;
+  --pli-ink-2: #3b3e55;
+  --pli-muted: #5f6378;
+  --pli-line: rgb(15 16 32 / 0.1);
+  --pli-line-strong: rgb(15 16 32 / 0.18);
+  --pli-glow: rgb(91 61 245 / 0.28);
+  --pli-shadow-sm: 0 1px 2px rgb(15 16 32 / 0.06), 0 1px 1px rgb(15 16 32 / 0.04);
+  --pli-shadow-md: 0 8px 24px -8px rgb(15 16 32 / 0.18), 0 2px 6px rgb(15 16 32 / 0.06);
+  --pli-shadow-lg: 0 30px 80px -24px rgb(40 30 120 / 0.35), 0 8px 24px -12px rgb(15 16 32 / 0.2);
+  --pli-code-bg: #0f1020;
+  --pli-code-ink: #e9e9f5;
+  --pli-on-brand: #ffffff;
+
+  /* Type. System fonts only: nothing to download, so the first paint never waits on a font. */
+  --pli-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --pli-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --pli-text-xs: 0.78rem;
+  --pli-text-sm: 0.9rem;
+  --pli-text-base: 1.0625rem;
+  --pli-text-lg: clamp(1.15rem, 1.05rem + 0.4vw, 1.35rem);
+  --pli-text-xl: clamp(1.4rem, 1.2rem + 0.9vw, 1.9rem);
+  --pli-text-2xl: clamp(1.9rem, 1.4rem + 2vw, 3rem);
+  --pli-text-3xl: clamp(2.4rem, 1.6rem + 3.6vw, 4.4rem);
+  --pli-text-hero: clamp(2.9rem, 1.8rem + 5.4vw, 6.2rem);
+  --pli-leading: 1.6;
+  --pli-tracking-tight: -0.035em;
+
+  /* Space (4px base), radius, layout. */
+  --pli-s1: 0.25rem;
+  --pli-s2: 0.5rem;
+  --pli-s3: 0.75rem;
+  --pli-s4: 1rem;
+  --pli-s5: 1.5rem;
+  --pli-s6: 2rem;
+  --pli-s7: 3rem;
+  --pli-s8: 4.5rem;
+  --pli-s9: clamp(4rem, 3rem + 6vw, 9rem);
+  --pli-radius-sm: 0.5rem;
+  --pli-radius: 0.875rem;
+  --pli-radius-lg: 1.5rem;
+  --pli-container: 74rem;
+  --pli-gutter: clamp(1rem, 4vw, 2rem);
+  --pli-header-h: 3.75rem;
+
+  /* Motion. */
+  --pli-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pli-ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --pli-dur-fast: 0.18s;
+  --pli-dur: 0.6s;
+  --pli-dur-slow: 0.9s;
+}
+
+/* Dark: the system's setting, unless the page was set to light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --pli-dark: 1;
+    --pli-bg: #08080f;
+    --pli-bg-2: #0d0d17;
+    --pli-surface: #12121d;
+    --pli-surface-2: #181826;
+    --pli-ink: #f3f3fa;
+    --pli-ink-2: #c6c8da;
+    --pli-muted: #9a9db4;
+    --pli-line: rgb(255 255 255 / 0.1);
+    --pli-line-strong: rgb(255 255 255 / 0.2);
+    --pli-glow: rgb(139 92 246 / 0.4);
+    --pli-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+    --pli-shadow-md: 0 8px 24px -8px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.4);
+    --pli-shadow-lg: 0 30px 80px -24px rgb(91 61 245 / 0.45), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+    --pli-code-bg: #0b0b14;
+    --pli-brand: #8b7bff;
+    --pli-on-brand: #0b0b14;
+    --pli-docs: #8b82ff;
+    --pli-sheets: #34d399;
+    --pli-decks: #fbab4c;
+    --pli-pdf: #ff7a7f;
+  }
+}
+:root[data-theme="dark"] {
+  --pli-dark: 1;
+  --pli-bg: #08080f;
+  --pli-bg-2: #0d0d17;
+  --pli-surface: #12121d;
+  --pli-surface-2: #181826;
+  --pli-ink: #f3f3fa;
+  --pli-ink-2: #c6c8da;
+  --pli-muted: #9a9db4;
+  --pli-line: rgb(255 255 255 / 0.1);
+  --pli-line-strong: rgb(255 255 255 / 0.2);
+  --pli-glow: rgb(139 92 246 / 0.4);
+  --pli-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --pli-shadow-md: 0 8px 24px -8px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.4);
+  --pli-shadow-lg: 0 30px 80px -24px rgb(91 61 245 / 0.45), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+  --pli-code-bg: #0b0b14;
+  --pli-brand: #8b7bff;
+  --pli-on-brand: #0b0b14;
+  --pli-docs: #8b82ff;
+  --pli-sheets: #34d399;
+  --pli-decks: #fbab4c;
+  --pli-pdf: #ff7a7f;
+}

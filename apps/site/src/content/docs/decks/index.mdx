@@ -1,0 +1,54 @@
+---
+title: Decks
+description: A slide editor for React and a headless slide engine, with masters, layouts, themes, animations, and PPTX, PDF and template files.
+sidebar:
+  badge:
+    text: In progress
+    variant: caution
+tableOfContents: false
+---
+
+import ProductHero from "../../../components/marketing/ProductHero.astro";
+
+<ProductHero
+  product="decks"
+  title="Slides that work like Google Slides"
+  tagline="A slide editor with masters, layouts, themes, animations and present mode, over a headless engine, with PPTX files in and out, template import and PDF export."
+  status="In progress"
+  actions={[
+    { text: "Get started", href: "/decks/getting-started/", variant: "brand" },
+    { text: "The slide editor", href: "/decks/ready-made-ui/", variant: "ghost" },
+    { text: "Roadmap", href: "/decks/roadmap/", variant: "ghost" },
+  ]}
+  badges={["PPTX in and out", "Template import", "PDF export"]}
+/>
+
+**Status:** in progress. The engine, a React slide editor, present mode, PowerPoint (PPTX) files in and out, template import and PDF export are built and tested, and the engine runs in Swift and Kotlin (`PliDeck`) without a native slide view yet. What is left needs PowerPoint, Google Slides and real devices to check. It is number 3 on the [roadmap](/roadmap/).
+
+Decks is a [slide editor for React](/decks/ready-made-ui/) that looks and works like Google Slides, on a headless engine that runs anywhere JavaScript does. It gives you:
+
+- **A deck** of slides, saved as plain JSON, with masters, layouts and themes as in PowerPoint and Google Slides. A slide picks a layout, a layout's placeholders inherit their position and text style from the master, and changing the theme changes every slide.
+- **Editing as operations**, with undo and redo. Slides, text boxes, shapes, pictures, tables, groups, arranging, aligning and find and replace are all invertible JSON operations on a session. See [Get started](/decks/getting-started/).
+- **Themes and layouts**: [twelve built-in themes](/decks/themes-and-layouts/), colour schemes and font pairs you can change, and your own layouts.
+- **PowerPoint and Google Slides files**: [export to PPTX, import PPTX](/decks/files/), and [import a template](/decks/templates/) (`.potx`, `.pptx`, or a Google Slides deck downloaded as `.pptx`). Its masters, layouts, colours, fonts and backgrounds become Pli.Decks themes.
+- **Animations**: [entrances, emphasis and exits for any object](/decks/animations/), a Motion panel in the editor, click-by-click steps in the slideshow, and PowerPoint object animations in the files.
+- **Present mode** with speaker notes, a presenter view and slide transitions, and [PDF export](/decks/files/#pdf) with the same PDF writer as Documents.
+
+```ts
+import { DeckSession, createDeck, paragraphsFromText, toPptx } from "@pli.dev/decks";
+
+const s = new DeckSession(createDeck({ title: "Quarterly review" }));
+const [title] = s.deck.slides[0]!.elements;
+s.setText(s.deck.slides[0]!.id, title!.id, paragraphsFromText("Quarterly review"));
+s.addSlide();                      // a "Title and body" slide after it
+const bytes = toPptx(s.deck);      // a .pptx file
+```
+
+## How it is offered
+
+Like [Documents](/documents/) and [Sheets](/sheets/), Decks comes in two layers:
+
+- **Ready-made UI:** `PliDeck`, a React slide editor with a filmstrip, canvas, toolbar, speaker notes, side panels and present mode. See [The slide editor](/decks/ready-made-ui/).
+- **Build your own:** the headless engine on the same operations, history and session foundation as the other editors, so you can drive it from your own interface, from native Swift and Kotlin code (`PliDeck`, see [Swift and Kotlin](/decks/swift-and-kotlin/)), or from a script.
+
+It runs on the same portable engine as every other editor. See [Architecture](/platform/architecture/).

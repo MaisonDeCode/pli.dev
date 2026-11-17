@@ -1,0 +1,18 @@
+com.apple.iWork.TSPNativeData
+com.apple.iWork.TSPNativeMetadata
+com.apple.iWork.TSPDescription
+com.apple.iWork.pasteboardState.countOfObject-1
+com.apple.iWork.pasteboardState.hasTextStoragesAttachmentsAllowed
+com.apple.iWork.pasteboardState.hasTextStoragesAttachmentsNotAllowed
+com.apple.iWork.pasteboardState.documentId-16881074477586371815
+com.apple.iWork.pasteboardState.hasNativeText
+com.apple.iWork.pasteboardState.hasNativeTypes
+com.apple.iWork.pasteboardState.applicationName-Pages
+com.apple.flat-rtfd
+NeXT RTFD pasteboard type
+public.rtf
+NeXT Rich Text Format v1.0 pasteboard type
+public.utf16-external-plain-text
+CorePasteboardFlavorType 0x75743136
+public.utf8-plain-text
+NSStringPboardType

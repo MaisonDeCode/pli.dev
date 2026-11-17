@@ -1,0 +1,38 @@
+com.apple.iWork.TSPNativeData
+com.apple.iWork.TSPNativeMetadata
+com.apple.iWork.TSPDescription
+com.apple.iWork.pasteboardState.numberOfRowsInFirstTable-12
+com.apple.iWork.pasteboardState.maxinlinenestingdepth-1
+com.apple.iWork.pasteboardState.numberOfDrawables-1
+com.apple.iWork.pasteboardState.singleTableId-1A665762-6BDD-4E7D-AB45-C6FDD69B774C
+com.apple.iWork.pasteboardState.hasNativeDrawables
+com.apple.iWork.pasteboardState.numberOfColumnsInFirstTable-14
+com.apple.iWork.pasteboardState.numberOfTopLevelDrawables-1
+com.apple.iWork.pasteboardState.elementKinds-4
+com.apple.iWork.pasteboardState.hasNativeTypes
+com.apple.iWork.pasteboardState.singleTableDrawable
+com.apple.iWork.pasteboardState.drawableInfoKinds-1
+com.apple.iWork.pasteboardState.countOfObject-1
+com.apple.iWork.pasteboardState.largestRowsAndColumnsInTables-12-14
+com.apple.iWork.pasteboardState.documentId-2898319844854972940
+com.apple.iWork.pasteboardState.applicationName-Numbers
+com.apple.iWork.pasteboardState.hasTables
+com.apple.iWork.pasteboardState.numberOfTables-1
+com.apple.flat-rtfd
+NeXT RTFD pasteboard type
+com.apple.webarchive
+Apple Web Archive pasteboard type
+public.rtf
+NeXT Rich Text Format v1.0 pasteboard type
+public.utf16-external-plain-text
+CorePasteboardFlavorType 0x75743136
+public.utf8-plain-text
+NSStringPboardType
+public.html
+Apple HTML pasteboard type
+public.png
+Apple PNG pasteboard type
+com.adobe.pdf
+Apple PDF pasteboard type
+public.tiff
+NeXT TIFF v4.0 pasteboard type

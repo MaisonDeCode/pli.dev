@@ -1,0 +1,798 @@
+{
+  "_": "What the Swift and Kotlin packages can do with a workbook, a deck and a PDF (documents are in catalog.json). Each method is written as a signature; types are string, int, double, bool, json, scalar (a string, number, boolean or null), T?, [T], map<T>, or the name of an enum or type of the editor. The engine (src/editors/*.ts) implements every method here and checks each call's arguments against it, and scripts/generate.mjs writes the typed Swift and Kotlin from it.",
+  "shared": [
+    "User",
+    "Thread",
+    "Comment",
+    "Peer"
+  ],
+  "editors": {
+    "docs": {
+      "class": "PliDocument",
+      "engine": "pli-engine.js",
+      "extends": true,
+      "doc": "What a document has beyond the commands of catalog.json: comments anchored to text.",
+      "enums": {},
+      "types": {
+        "CommentRange": {
+          "doc": "Where a comment thread's text is now: a block, and a range of its text in UTF-16 units.",
+          "fields": {
+            "block": "string",
+            "from": "int",
+            "to": "int"
+          }
+        }
+      },
+      "methods": [
+        {
+          "sig": "commentOnSelection(body: string, mentions: [string]?): Thread?",
+          "doc": "Starts a comment thread on the selected text, with `body` as its first comment, as one undo step. Returns nil when no text is selected. The thread's anchor is `{\"block\": …, \"from\": …, \"to\": …, \"quote\": …}`."
+        },
+        {
+          "sig": "commentRanges(thread: string): [CommentRange]",
+          "doc": "Where the thread's text is now, one range per block it covers; empty once the text is gone."
+        },
+        {
+          "sig": "threadsAtSelection(): [Thread]",
+          "doc": "The threads attached to the text at the caret, or anywhere in the selection, in the order they were started."
+        }
+      ],
+      "files": []
+    },
+    "sheets": {
+      "class": "PliWorkbook",
+      "engine": "pli-sheets.js",
+      "doc": "A workbook: sheets of cells with formulas that recalculate, number formats, styles, tables and charts.",
+      "enums": {
+        "ClearWhat": [
+          "all",
+          "contents",
+          "formats"
+        ],
+        "FillDirection": [
+          "down",
+          "right"
+        ]
+      },
+      "types": {
+        "SheetInfo": {
+          "doc": "A sheet of the workbook.",
+          "fields": {
+            "id": "string",
+            "name": "string",
+            "hidden": "bool",
+            "usedRange": "string?",
+            "tabColor": "string?"
+          }
+        },
+        "CellInfo": {
+          "doc": "A cell as it shows and as it was typed. `value` is what it is worth (null when empty or an error), `error` is the formula error such as `#DIV/0!`, `text` is the value with its number format, and `formula` is what was typed when it starts with `=`.",
+          "fields": {
+            "address": "string",
+            "value": "json",
+            "error": "string?",
+            "text": "string",
+            "formula": "string?",
+            "format": "string?"
+          }
+        },
+        "FoundCell": {
+          "doc": "A cell that has the text looked for.",
+          "fields": {
+            "sheet": "string",
+            "address": "string",
+            "text": "string"
+          }
+        },
+        "ReplaceResult": {
+          "doc": "What replacing text did.",
+          "fields": {
+            "cells": "int",
+            "occurrences": "int",
+            "skipped": "int"
+          }
+        }
+      },
+      "methods": [
+        {
+          "sig": "title(): string",
+          "doc": "The workbook's title."
+        },
+        {
+          "sig": "setTitle(title: string): void",
+          "doc": "Renames the workbook."
+        },
+        {
+          "sig": "sheets(): [SheetInfo]",
+          "doc": "The sheets, in tab order."
+        },
+        {
+          "sig": "usedRange(sheet: string): string?",
+          "doc": "Where the sheet has anything, as a range such as `A1:D20`, or nil when it is empty."
+        },
+        {
+          "sig": "cell(sheet: string, address: string): CellInfo",
+          "doc": "One cell: its value, how it shows and what was typed. `sheet` is a name (any case) or an id."
+        },
+        {
+          "sig": "value(sheet: string, address: string): json",
+          "doc": "What the cell is worth: a number, text, true or false, nil for an empty cell, or `{\"error\": \"#DIV/0!\"}`."
+        },
+        {
+          "sig": "text(sheet: string, address: string): string",
+          "doc": "The cell as it shows, with its number format applied."
+        },
+        {
+          "sig": "values(sheet: string, range: string): json",
+          "doc": "The values of a range, row by row, as a list of lists."
+        },
+        {
+          "sig": "toText(sheet: string, range: string): string",
+          "doc": "A range as tab-separated text, as the clipboard has it."
+        },
+        {
+          "sig": "toHtml(sheet: string, range: string): string",
+          "doc": "A range as an HTML table, with its formatting."
+        },
+        {
+          "sig": "merges(sheet: string): [string]",
+          "doc": "The merged ranges of a sheet."
+        },
+        {
+          "sig": "find(text: string, matchCase: bool?, wholeCell: bool?, sheet: string?): [FoundCell]",
+          "doc": "Finds cells that show the text, in one sheet or in every visible sheet. `*` stands for any text and `?` for any one character."
+        },
+        {
+          "sig": "replace(text: string, replacement: string, matchCase: bool?, wholeCell: bool?, sheet: string?): ReplaceResult",
+          "doc": "Replaces text in what cells hold, as one undo step."
+        },
+        {
+          "sig": "setCell(sheet: string, address: string, value: scalar): void",
+          "doc": "Types into a cell as a person would: text that starts with `=` is a formula, and numbers, dates and percentages in text become what they look like."
+        },
+        {
+          "sig": "setCells(sheet: string, inputs: map<scalar>): void",
+          "doc": "Types into several cells at once, keyed by address, as one undo step."
+        },
+        {
+          "sig": "setValues(sheet: string, at: string, rows: json): void",
+          "doc": "Puts a block of values (a list of rows) with its top left at `at`."
+        },
+        {
+          "sig": "clear(sheet: string, range: string, what: ClearWhat): void",
+          "doc": "Clears the contents, the formats, or both."
+        },
+        {
+          "sig": "setFormat(sheet: string, range: string, format: string?): void",
+          "doc": "Sets the number format, such as `0.00`, `#,##0`, `0%` or `yyyy-mm-dd`; nil goes back to General."
+        },
+        {
+          "sig": "setStyle(sheet: string, range: string, style: json): void",
+          "doc": "Changes the look of a range: `{\"bold\": true, \"fill\": \"#ffeeaa\", \"color\": \"#222222\", \"align\": \"center\"}`. A property set to null is removed."
+        },
+        {
+          "sig": "fill(sheet: string, range: string, direction: FillDirection): void",
+          "doc": "Copies the first row (or column) of the range over the rest, moving the formulas' references."
+        },
+        {
+          "sig": "autofill(sheet: string, source: string, target: string): void",
+          "doc": "Continues a series (1, 2, 3 or Monday, Tuesday) from the source range over the target."
+        },
+        {
+          "sig": "copy(sheet: string, range: string, toSheet: string, at: string, cut: bool): void",
+          "doc": "Copies a range to where `at` is on another (or the same) sheet; with `cut`, it moves and formulas that point at it follow."
+        },
+        {
+          "sig": "sort(sheet: string, range: string, by: int?, descending: bool?, header: bool?): void",
+          "doc": "Sorts the rows of a range by one column (1 is the range's first column, the default)."
+        },
+        {
+          "sig": "insertRows(sheet: string, at: int, count: int): void",
+          "doc": "Inserts rows before row `at` (1 is the first). Formulas that point at the rows after them follow."
+        },
+        {
+          "sig": "deleteRows(sheet: string, at: int, count: int): void",
+          "doc": "Deletes rows; references to deleted cells become `#REF!`."
+        },
+        {
+          "sig": "insertColumns(sheet: string, at: int, count: int): void",
+          "doc": "Inserts columns before column `at` (1 is A)."
+        },
+        {
+          "sig": "deleteColumns(sheet: string, at: int, count: int): void",
+          "doc": "Deletes columns."
+        },
+        {
+          "sig": "setColumnWidth(sheet: string, column: int, width: double?): void",
+          "doc": "Sets a column's width in pixels (nil for the default); `column` is 1 for A."
+        },
+        {
+          "sig": "setRowHeight(sheet: string, row: int, height: double?): void",
+          "doc": "Sets a row's height in pixels (nil for the default)."
+        },
+        {
+          "sig": "setFrozen(sheet: string, rows: int, cols: int): void",
+          "doc": "Freezes the top rows and left columns."
+        },
+        {
+          "sig": "mergeCells(sheet: string, range: string): void",
+          "doc": "Merges a range into one cell."
+        },
+        {
+          "sig": "unmergeCells(sheet: string, range: string): void",
+          "doc": "Takes a merge apart."
+        },
+        {
+          "sig": "setNote(sheet: string, address: string, text: string?): void",
+          "doc": "Puts a note on a cell, or takes it off with nil."
+        },
+        {
+          "sig": "setFilter(sheet: string, range: string?): void",
+          "doc": "Puts filter buttons on the first row of a range, or takes the filter off with nil."
+        },
+        {
+          "sig": "defineName(name: string, formula: string?): void",
+          "doc": "Defines a name that formulas can use (`=Tax*A1`), or removes it with nil."
+        },
+        {
+          "sig": "addSheet(name: string?, index: int?): SheetInfo",
+          "doc": "Adds an empty sheet."
+        },
+        {
+          "sig": "deleteSheet(sheet: string): void",
+          "doc": "Deletes a sheet. The last sheet stays."
+        },
+        {
+          "sig": "renameSheet(sheet: string, name: string): void",
+          "doc": "Renames a sheet; formulas that name it follow."
+        },
+        {
+          "sig": "moveSheet(sheet: string, index: int): void",
+          "doc": "Moves a sheet's tab."
+        },
+        {
+          "sig": "setTabColor(sheet: string, color: string?): void",
+          "doc": "Colours a sheet's tab (`#rrggbb`), or clears it with nil."
+        },
+        {
+          "sig": "insertChart(sheet: string, range: string, type: string?): json",
+          "doc": "Makes a chart from a range (the first row and column are labels) and returns it: type is `column`, `bar`, `line`, `area`, `pie`, `scatter` and the rest the chart types list."
+        },
+        {
+          "sig": "commentOnRange(sheet: string, range: string, body: string, mentions: [string]?): Thread",
+          "doc": "Starts a comment thread on a cell or a range (`B3`, `B3:C5`). The thread's anchor is `{\"sheet\": <the sheet's id>, \"range\": \"B3\"}`, so it stays with the sheet when it is renamed."
+        },
+        {
+          "sig": "threadsAt(sheet: string, address: string): [Thread]",
+          "doc": "The comment threads whose cell or range holds this cell, oldest first."
+        },
+        {
+          "sig": "undo(): bool",
+          "doc": "Undoes the last step."
+        },
+        {
+          "sig": "redo(): bool",
+          "doc": "Does the undone step again."
+        }
+      ],
+      "files": [
+        {
+          "name": "exportXlsx",
+          "format": "xlsx",
+          "direction": "export",
+          "doc": "The workbook as an .xlsx file."
+        },
+        {
+          "name": "importXlsx",
+          "format": "xlsx",
+          "direction": "import",
+          "doc": "Replaces the workbook with an .xlsx file. History starts again."
+        },
+        {
+          "name": "exportCsv",
+          "format": "csv",
+          "direction": "export",
+          "params": "sheet: string?, delimiter: string?",
+          "doc": "One sheet as CSV text (UTF-8), formulas written as what they work out to. The first visible sheet by default.",
+          "text": true
+        },
+        {
+          "name": "importCsv",
+          "format": "csv",
+          "direction": "import",
+          "params": "delimiter: string?",
+          "doc": "Replaces the workbook with a sheet holding the CSV.",
+          "text": true
+        },
+        {
+          "name": "exportPdf",
+          "format": "pdf",
+          "direction": "export",
+          "async": true,
+          "params": "sheet: string?",
+          "doc": "One sheet as a PDF, paged as it prints (page setup, print area and titles)."
+        }
+      ]
+    },
+    "decks": {
+      "class": "PliDeck",
+      "engine": "pli-decks.js",
+      "doc": "A deck of slides: masters and layouts, text, shapes, pictures, tables and charts, with notes and transitions.",
+      "enums": {
+        "ArrangeHow": [
+          "front",
+          "back",
+          "forward",
+          "backward"
+        ],
+        "AlignHow": [
+          "left",
+          "center",
+          "right",
+          "top",
+          "middle",
+          "bottom"
+        ]
+      },
+      "types": {
+        "SlideInfo": {
+          "doc": "A slide of the deck.",
+          "fields": {
+            "id": "string",
+            "name": "string?",
+            "layout": "string",
+            "title": "string?",
+            "notes": "string",
+            "skipped": "bool",
+            "elements": "int"
+          }
+        },
+        "ElementInfo": {
+          "doc": "An element of a slide, layout or master. Position and size are in points; they are nil for a placeholder that takes them from its layout.",
+          "fields": {
+            "id": "string",
+            "type": "string",
+            "name": "string?",
+            "x": "double?",
+            "y": "double?",
+            "w": "double?",
+            "h": "double?",
+            "rotation": "double?",
+            "text": "string?",
+            "placeholder": "string?"
+          }
+        },
+        "LayoutInfo": {
+          "doc": "A layout a slide can use.",
+          "fields": {
+            "id": "string",
+            "name": "string",
+            "master": "string"
+          }
+        },
+        "DeckSize": {
+          "doc": "The size of the slides, in points.",
+          "fields": {
+            "width": "double",
+            "height": "double"
+          }
+        },
+        "DeckFindHit": {
+          "doc": "Where text was found.",
+          "fields": {
+            "slide": "string",
+            "element": "string?",
+            "paragraph": "int",
+            "offset": "int",
+            "length": "int"
+          }
+        }
+      },
+      "methods": [
+        {
+          "sig": "title(): string",
+          "doc": "The deck's title."
+        },
+        {
+          "sig": "setTitle(title: string): void",
+          "doc": "Renames the deck."
+        },
+        {
+          "sig": "size(): DeckSize",
+          "doc": "The size of the slides."
+        },
+        {
+          "sig": "setSize(width: double, height: double, scale: bool): void",
+          "doc": "Changes the slide size; with `scale` the elements are scaled to fit."
+        },
+        {
+          "sig": "slides(): [SlideInfo]",
+          "doc": "The slides, in order."
+        },
+        {
+          "sig": "layouts(): [LayoutInfo]",
+          "doc": "The layouts of every master."
+        },
+        {
+          "sig": "elements(slide: string): [ElementInfo]",
+          "doc": "The elements of a slide (or a layout or master, by its id), from the back to the front."
+        },
+        {
+          "sig": "notes(slide: string): string",
+          "doc": "A slide's speaker notes."
+        },
+        {
+          "sig": "find(query: string, matchCase: bool?, notes: bool?): [DeckFindHit]",
+          "doc": "Finds text in the slides (and in the notes with `notes`)."
+        },
+        {
+          "sig": "addSlide(layout: string?, after: string?): SlideInfo",
+          "doc": "Adds a slide from a layout (the first by default), after another slide (the end by default)."
+        },
+        {
+          "sig": "duplicateSlides(ids: [string]): [string]",
+          "doc": "Duplicates slides; returns the new ids."
+        },
+        {
+          "sig": "deleteSlides(ids: [string]): void",
+          "doc": "Deletes slides."
+        },
+        {
+          "sig": "moveSlides(ids: [string], to: int): void",
+          "doc": "Moves slides so that the first lands at position `to` (0 is first)."
+        },
+        {
+          "sig": "renameSlide(slide: string, name: string): void",
+          "doc": "Names a slide."
+        },
+        {
+          "sig": "setNotes(slide: string, notes: string): void",
+          "doc": "Sets the speaker notes."
+        },
+        {
+          "sig": "setSkipped(ids: [string], skipped: bool): void",
+          "doc": "Skips slides when presenting."
+        },
+        {
+          "sig": "setLayout(slide: string, layout: string): void",
+          "doc": "Gives a slide another layout; its placeholders follow."
+        },
+        {
+          "sig": "setBackground(ids: [string], fill: json): void",
+          "doc": "Sets the background of slides to a fill (a colour such as `\"#102040\"` or `{\"theme\": \"dk2\"}`), or back to the layout's with nil."
+        },
+        {
+          "sig": "setTransition(ids: [string], transition: json): void",
+          "doc": "Sets how slides change when presenting, or none with nil."
+        },
+        {
+          "sig": "addTextBox(slide: string, x: double, y: double, w: double, h: double, text: string): string",
+          "doc": "Puts a text box on a slide. Returns its id."
+        },
+        {
+          "sig": "addShape(slide: string, geometry: string, x: double, y: double, w: double, h: double): string",
+          "doc": "Puts a shape (`rect`, `ellipse`, `rightArrow`, any preset name) on a slide. Returns its id."
+        },
+        {
+          "sig": "addImage(slide: string, src: string, width: double, height: double, x: double?, y: double?): string",
+          "doc": "Puts a picture on a slide: `src` is a `data:` address, or a reference your storage knows. Returns its id."
+        },
+        {
+          "sig": "addTable(slide: string, rows: int, columns: int): string",
+          "doc": "Puts an empty table on a slide. Returns its id."
+        },
+        {
+          "sig": "addChart(slide: string, chartType: string): string",
+          "doc": "Puts a sample chart on a slide (`column`, `bar`, `line`, `area`, `pie`, `doughnut`, `scatter`). Returns its id."
+        },
+        {
+          "sig": "setText(slide: string, element: string, text: string): void",
+          "doc": "Replaces the text of a shape; line breaks start new paragraphs."
+        },
+        {
+          "sig": "formatText(slide: string, ids: [string], patch: json): void",
+          "doc": "Formats the text of shapes: `{\"bold\": true, \"fontSize\": 24, \"color\": \"#c00000\"}`. A property set to null is removed."
+        },
+        {
+          "sig": "setFrame(slide: string, element: string, x: double?, y: double?, w: double?, h: double?, rotation: double?): void",
+          "doc": "Moves, resizes and turns an element; a value left out stays."
+        },
+        {
+          "sig": "moveBy(slide: string, ids: [string], dx: double, dy: double): void",
+          "doc": "Moves elements by a distance in points."
+        },
+        {
+          "sig": "setFill(slide: string, ids: [string], fill: json): void",
+          "doc": "Fills shapes with a colour (`\"#ffffff\"` or `{\"theme\": \"accent1\"}`), or none with nil."
+        },
+        {
+          "sig": "deleteElements(slide: string, ids: [string]): void",
+          "doc": "Deletes elements."
+        },
+        {
+          "sig": "duplicateElements(slide: string, ids: [string]): [string]",
+          "doc": "Duplicates elements, a little to the side. Returns the new ids."
+        },
+        {
+          "sig": "arrange(slide: string, ids: [string], how: ArrangeHow): void",
+          "doc": "Changes the drawing order."
+        },
+        {
+          "sig": "align(slide: string, ids: [string], how: AlignHow): void",
+          "doc": "Aligns elements to each other, or one element to the slide."
+        },
+        {
+          "sig": "group(slide: string, ids: [string]): string?",
+          "doc": "Groups elements. Returns the group's id."
+        },
+        {
+          "sig": "ungroup(slide: string, id: string): [string]",
+          "doc": "Takes a group apart. Returns the ids of what was in it."
+        },
+        {
+          "sig": "replaceAll(query: string, replacement: string, matchCase: bool?, notes: bool?): int",
+          "doc": "Replaces text in every slide; returns how many places changed."
+        },
+        {
+          "sig": "commentOnSlide(slide: string, body: string, mentions: [string]?): Thread",
+          "doc": "Starts a comment thread on a slide. The thread's anchor is `{\"slide\": <the slide's id>}`."
+        },
+        {
+          "sig": "commentOnElement(slide: string, element: string, body: string, mentions: [string]?): Thread",
+          "doc": "Starts a comment thread on an element of a slide. The anchor is `{\"slide\": …, \"element\": …}`."
+        },
+        {
+          "sig": "threadsOn(slide: string, element: string?): [Thread]",
+          "doc": "The comment threads on a slide, or on one of its elements, oldest first."
+        },
+        {
+          "sig": "undo(): bool",
+          "doc": "Undoes the last step."
+        },
+        {
+          "sig": "redo(): bool",
+          "doc": "Does the undone step again."
+        }
+      ],
+      "files": [
+        {
+          "name": "exportPptx",
+          "format": "pptx",
+          "direction": "export",
+          "doc": "The deck as a .pptx file."
+        },
+        {
+          "name": "importPptx",
+          "format": "pptx",
+          "direction": "import",
+          "doc": "Replaces the deck with a .pptx file. History starts again."
+        },
+        {
+          "name": "exportPdf",
+          "format": "pdf",
+          "direction": "export",
+          "params": "slides: [string]?",
+          "doc": "The slides as a PDF, one page each; skipped slides are left out unless listed."
+        }
+      ]
+    },
+    "pdf": {
+      "class": "PliPdf",
+      "engine": "pli-pdf.js",
+      "doc": "A PDF: pages, annotations, form fields, text search and redaction, written back as the original file plus your changes.",
+      "enums": {
+        "MarkupKind": [
+          "highlight",
+          "underline",
+          "strikeout",
+          "squiggly"
+        ],
+        "ShapeKind": [
+          "square",
+          "circle"
+        ]
+      },
+      "types": {
+        "PageInfo": {
+          "doc": "A page of the PDF. Sizes are in points.",
+          "fields": {
+            "id": "string",
+            "number": "int",
+            "width": "double",
+            "height": "double",
+            "rotate": "int",
+            "label": "string?",
+            "annotations": "int"
+          }
+        },
+        "AnnotationInfo": {
+          "doc": "An annotation on a page. `rect` is in page space.",
+          "fields": {
+            "id": "string",
+            "type": "string",
+            "page": "string",
+            "contents": "string?",
+            "author": "string?",
+            "thread": "string?"
+          }
+        },
+        "FieldInfo": {
+          "doc": "A form field.",
+          "fields": {
+            "id": "string",
+            "name": "string",
+            "type": "string",
+            "value": "json"
+          }
+        },
+        "SearchHit": {
+          "doc": "Where text was found. `rects` are one per line the match covers, in page space.",
+          "fields": {
+            "page": "string",
+            "text": "string",
+            "rects": "json"
+          }
+        },
+        "RedactionResult": {
+          "doc": "What applying redactions did.",
+          "fields": {
+            "pages": "[string]",
+            "rects": "int",
+            "removedAnnotations": "int"
+          }
+        },
+        "PdfMeta": {
+          "doc": "The file's own information.",
+          "fields": {
+            "title": "string?",
+            "author": "string?",
+            "subject": "string?",
+            "keywords": "string?",
+            "creator": "string?"
+          }
+        }
+      },
+      "methods": [
+        {
+          "sig": "pages(): [PageInfo]",
+          "doc": "The pages, in order."
+        },
+        {
+          "sig": "annotations(page: string): [AnnotationInfo]",
+          "doc": "The annotations of a page, bottom to top."
+        },
+        {
+          "sig": "fields(): [FieldInfo]",
+          "doc": "The form fields."
+        },
+        {
+          "sig": "formData(): json",
+          "doc": "The form's values by field name."
+        },
+        {
+          "sig": "metadata(): PdfMeta",
+          "doc": "The title, author and the rest the file says about itself."
+        },
+        {
+          "sig": "outline(): json",
+          "doc": "The bookmarks, as a tree."
+        },
+        {
+          "sig": "text(page: string): string",
+          "doc": "The text of a page, in reading order."
+        },
+        {
+          "sig": "search(query: string, caseSensitive: bool?, wholeWord: bool?): [SearchHit]",
+          "doc": "Finds text on every page."
+        },
+        {
+          "sig": "setMetadata(patch: json): void",
+          "doc": "Changes the file's information: `{\"title\": \"Annual report\"}`; null removes one."
+        },
+        {
+          "sig": "rotatePages(ids: [string], degrees: int): void",
+          "doc": "Turns pages by 90, -90 or 180 degrees."
+        },
+        {
+          "sig": "deletePages(ids: [string]): void",
+          "doc": "Takes pages out, with what is on them. The last page stays."
+        },
+        {
+          "sig": "movePages(ids: [string], index: int): void",
+          "doc": "Moves pages so that the first lands at position `index`."
+        },
+        {
+          "sig": "duplicatePages(ids: [string]): [string]",
+          "doc": "Duplicates pages; returns the new ids."
+        },
+        {
+          "sig": "insertBlankPage(after: string?, width: double?, height: double?): string",
+          "doc": "Adds a blank page after another (the end by default), Letter size unless sized. Returns its id."
+        },
+        {
+          "sig": "addHighlight(page: string, rects: json, kind: MarkupKind?, color: string?, quote: string?): string",
+          "doc": "Marks text with a highlight, underline or strikeout over rectangles `[{\"x\": 72, \"y\": 700, \"w\": 100, \"h\": 12}]`. Returns its id."
+        },
+        {
+          "sig": "addNote(page: string, x: double, y: double, text: string): string",
+          "doc": "Puts a sticky note on a page. Returns its id."
+        },
+        {
+          "sig": "addShape(page: string, kind: ShapeKind, x: double, y: double, w: double, h: double, color: string?): string",
+          "doc": "Draws a rectangle or an ellipse. Returns its id."
+        },
+        {
+          "sig": "addFreeText(page: string, x: double, y: double, w: double, h: double, text: string): string",
+          "doc": "Puts text on a page. Returns its id."
+        },
+        {
+          "sig": "addLink(page: string, x: double, y: double, w: double, h: double, uri: string): string",
+          "doc": "Makes a rectangle a link to a web address. Returns its id."
+        },
+        {
+          "sig": "setAnnotationText(id: string, text: string): void",
+          "doc": "Changes the text of a note or free text."
+        },
+        {
+          "sig": "moveAnnotations(ids: [string], dx: double, dy: double): void",
+          "doc": "Moves annotations by a distance in points."
+        },
+        {
+          "sig": "removeAnnotations(ids: [string]): void",
+          "doc": "Deletes annotations."
+        },
+        {
+          "sig": "setFieldValue(id: string, value: json): void",
+          "doc": "Fills a form field: text, true or false, or a list for a list box."
+        },
+        {
+          "sig": "fillForm(values: json): [string]",
+          "doc": "Fills fields by name; returns the ids of the fields that were filled."
+        },
+        {
+          "sig": "markRedaction(page: string, rects: json): string",
+          "doc": "Marks rectangles for redaction. Nothing is removed until `applyRedactions`. Returns the mark's id."
+        },
+        {
+          "sig": "markSearchRedactions(query: string): [string]",
+          "doc": "Marks every match of a search for redaction. Returns the marks' ids."
+        },
+        {
+          "sig": "applyRedactions(pages: [string]?): RedactionResult",
+          "doc": "Removes what is under the marks for good, from the pages given (all by default)."
+        },
+        {
+          "sig": "addComment(page: string, x: double, y: double, body: string, mentions: [string]?): Thread",
+          "doc": "Starts a comment thread with a sticky note at a point of a page; the note's text in the file is the first comment."
+        },
+        {
+          "sig": "commentOnAnnotation(annotation: string, body: string, mentions: [string]?): Thread",
+          "doc": "Starts a comment thread on a highlight or any other annotation."
+        },
+        {
+          "sig": "undo(): bool",
+          "doc": "Undoes the last step."
+        },
+        {
+          "sig": "redo(): bool",
+          "doc": "Does the undone step again."
+        }
+      ],
+      "files": [
+        {
+          "name": "exportPdf",
+          "format": "pdf",
+          "direction": "export",
+          "async": true,
+          "doc": "The PDF written back: the original file with your changes added, so what you didn't touch stays byte for byte."
+        },
+        {
+          "name": "importPdf",
+          "format": "pdf",
+          "direction": "import",
+          "doc": "Replaces the document with another PDF file. History starts again."
+        }
+      ]
+    }
+  }
+}

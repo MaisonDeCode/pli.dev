@@ -1,0 +1,30 @@
+{
+  "title": "Website proposal",
+  "page": { "size": "a4", "orientation": "portrait", "margins": { "top": 1, "right": 1, "bottom": 1, "left": 1 } },
+  "header": "Acme Studio · Website proposal",
+  "footer": "Page {page} of {pages}",
+  "blocks": [
+    { "type": "title", "text": "Website proposal" },
+    { "type": "subtitle", "text": "Prepared for Northwind Traders" },
+    { "type": "toc", "levels": 2 },
+    { "type": "heading", "level": 1, "text": "Overview" },
+    { "type": "paragraph", "md": "We will redesign the **Northwind** website around three goals: faster pages, clearer products, and an easier checkout." },
+    { "type": "heading", "level": 1, "text": "Scope" },
+    { "type": "list_item", "list": "bullet", "depth": 0, "md": "Design: *home, product, checkout*" },
+    { "type": "list_item", "list": "bullet", "depth": 0, "text": "Build and content migration" },
+    { "type": "list_item", "list": "bullet", "depth": 1, "text": "Up to 200 product pages" },
+    { "type": "heading", "level": 1, "text": "Price" },
+    {
+      "type": "table",
+      "headerRow": true,
+      "columns": [0.5, 0.25, 0.25],
+      "rows": [
+        ["Phase", "Weeks", "Price"],
+        ["Design", "3", "$6,000"],
+        ["Build", "5", "$11,000"],
+        ["**Total**", "**8**", "**$17,000**"]
+      ]
+    },
+    { "type": "paragraph", "md": "Questions? Write to [hello@acme.example](mailto:hello@acme.example)." }
+  ]
+}

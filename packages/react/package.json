@@ -1,0 +1,75 @@
+{
+  "name": "@pli.dev/react",
+  "version": "1.0.0",
+  "description": "React editor for Pli documents: a contenteditable view driven by the @pli.dev/docs engine.",
+  "keywords": [
+    "pli",
+    "react",
+    "document",
+    "editor",
+    "rich-text",
+    "docx",
+    "contenteditable"
+  ],
+  "license": "Apache-2.0",
+  "author": "Maison de Code (https://maisondecode.com)",
+  "homepage": "https://pli.dev",
+  "bugs": {
+    "url": "https://github.com/MaisonDeCode/pli.dev/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaisonDeCode/pli.dev.git",
+    "directory": "packages/react"
+  },
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepack": "node ../../scripts/prepack.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./collab": "./src/collab.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "dependencies": {
+    "@pli.dev/core": "workspace:^",
+    "@pli.dev/docs": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./collab": {
+        "types": "./dist/collab.d.ts",
+        "import": "./dist/collab.js",
+        "default": "./dist/collab.js"
+      },
+      "./styles.css": "./dist/styles.css",
+      "./package.json": "./package.json"
+    }
+  }
+}

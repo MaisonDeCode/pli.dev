@@ -1,0 +1,204 @@
+---
+// "Proof": facts anyone can check in the repository and the docs.
+// Every number is a floor of something countable (see test/sections.test.ts and the notes next to each figure).
+import { PRODUCTS } from "../../products";
+
+const KEYS: Record<string, "docs" | "sheets" | "decks" | "pdf"> = { Documents: "docs", Sheets: "sheets", Decks: "decks", PDF: "pdf" };
+const ships = PRODUCTS.filter((p) => p.name in KEYS).map((p) => ({ ...p, key: KEYS[p.name]! }));
+const WHERE: Record<string, string> = {
+  Documents: "React editor, Swift and Kotlin editors, headless engine",
+  Sheets: "React grid, headless engine, Swift and Kotlin engine",
+  Decks: "React slide editor, headless engine, Swift and Kotlin engine",
+  PDF: "React editor, headless engine, Swift and Kotlin engine",
+};
+
+// The 475 is the count in docs/sheets/formulas.md. The tests are every it( and test( in the *.test.ts(x) files plus the
+// Swift and Kotlin unit tests, rounded down to the hundred; one square below is 100 of them.
+const FUNCTIONS = 475;
+const TESTS = 5700;
+const squares = Array.from({ length: TESTS / 100 }, (_, i) => i);
+
+const formulaChips = ["XLOOKUP", "LET", "LAMBDA", "FILTER", "SORT", "UNIQUE", "TEXTSPLIT", "REGEXEXTRACT", "GROUPBY", "XNPV", "IRR", "MAP", "REDUCE", "SPARKLINE"];
+const formats = ["DOCX", "XLSX", "PPTX", "PDF", "CSV", "Markdown", "HTML", "JSON"];
+const worksWith = [
+  { name: "React 18 and 19", note: "ready-made editors" },
+  { name: "TypeScript", note: "the engine is written in it" },
+  { name: "Node", note: "headless engines" },
+  { name: "Capacitor", note: "runs on the platform's own JavaScript engine" },
+  { name: "Swift", note: "iPhone, iPad, Mac" },
+  { name: "Kotlin", note: "Android and the JVM" },
+  { name: "Socket.io", note: "ready-made transport" },
+  { name: "WebSocket", note: "ready-made transport" },
+  { name: "Redis", note: "for several servers" },
+  { name: "pdf.js", note: "draws PDF pages" },
+];
+---
+<section class="pli-section proof" id="proof" aria-labelledby="proof-h">
+  <div class="pli-container">
+    <header class="head" data-reveal>
+      <p class="pli-eyebrow">Proof</p>
+      <h2 class="pli-h2" id="proof-h">What you can check</h2>
+    </header>
+
+    <div class="bento">
+      <article class="fact fact--fn pli-card" data-reveal style="--i:0">
+        <p class="label">Excel-compatible functions</p>
+        <p class="big"><span class="num" data-count-to={FUNCTIONS} style="--w:3ch">{FUNCTIONS}</span></p>
+        <p class="desc">One formula engine for Pli.Sheets. It follows Excel's formula language, error values and array behaviour, and recalculates only the cells that changed.</p>
+        <p class="formula" aria-hidden="true"><b>fx</b><code>=LET(r, 7%, XNPV(r, B2:B6, A2:A6))</code></p>
+        <ul class="fnchips" aria-label="A few of the functions">
+          {formulaChips.map((f) => <li>{f}</li>)}
+        </ul>
+        <a class="more" href="/sheets/formulas/">Every function, by category <span aria-hidden="true">→</span></a>
+      </article>
+
+      <article class="fact fact--tests pli-card" data-reveal style="--i:1">
+        <p class="label">Automated tests</p>
+        <p class="big"><span class="num" data-count-to={TESTS} data-count-suffix="+" style="--w:6ch">{TESTS.toLocaleString("en-US")}+</span></p>
+        <p class="desc">Across the engines, the React editors and the Swift and Kotlin packages. Each square is one hundred.</p>
+        <div class="squares" data-reveal="fade" aria-hidden="true">
+          {squares.map((i) => <i style={`--n:${i}`}></i>)}
+        </div>
+      </article>
+
+      <article class="fact fact--ed pli-card" data-reveal style="--i:2">
+        <p class="label">Editors you can use today</p>
+        <p class="big"><span class="num" data-count-to="4" style="--w:1ch">4</span></p>
+        <ul class="dots">
+          {ships.map((p) => <li data-product={p.key}><i></i>{p.name}</li>)}
+        </ul>
+        <p class="desc">Boards, Forms and Databases are planned and are marked that way in the docs.</p>
+      </article>
+
+      <article class="fact fact--plat pli-card" data-reveal style="--i:3">
+        <p class="label">Platforms</p>
+        <p class="big"><span class="num" data-count-to="3" style="--w:1ch">3</span></p>
+        <ul class="plat">
+          <li><b>JavaScript and React</b><span>the engine is plain TypeScript</span></li>
+          <li><b>Swift</b><span>runs in JavaScriptCore</span></li>
+          <li><b>Kotlin</b><span>runs in QuickJS</span></li>
+        </ul>
+      </article>
+
+      <article class="fact fact--fmt pli-card" data-reveal style="--i:4">
+        <p class="label">File formats</p>
+        <p class="big"><span class="num" data-count-to="8" style="--w:1ch">8</span></p>
+        <ul class="fmts">
+          {formats.map((f) => <li>{f}</li>)}
+        </ul>
+        <p class="desc">Read, written, or both, depending on the editor. The flow chart further down says which.</p>
+      </article>
+    </div>
+
+    <div class="ships">
+      <div class="ships-head" data-reveal>
+        <h3 class="pli-h3">What ships today</h3>
+        <p>Each one is an engine plus a ready-made editor. Use either.</p>
+      </div>
+      <ul class="ship-grid">
+        {ships.map((p, i) => (
+          <li data-reveal style={`--i:${i}`}>
+            <a class="pli-card ship" href={p.href} data-product={p.key} style={`--from:${p.from};--to:${p.to}`}>
+              <span class="tile" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={p.icon} />
+              </span>
+              <h3>Pli.{p.name}</h3>
+              <p>{p.blurb}</p>
+              <span class="where">{WHERE[p.name]}</span>
+              <span class="go">Open the docs <span aria-hidden="true">→</span></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="works" data-reveal>
+      <h3 class="works-h">Works with</h3>
+      <ul class="chips">
+        {worksWith.map((w) => <li class="pli-chip" title={w.note}><i></i>{w.name}</li>)}
+      </ul>
+      <p class="fine">Anything that can carry JSON also works as the pipe for live editing; the docs show Ably as a worked example.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .proof { background: linear-gradient(180deg, transparent, var(--pli-bg-2) 18%, var(--pli-bg-2) 82%, transparent); }
+  .head { display: grid; gap: var(--pli-s4); max-width: 46rem; margin-bottom: var(--pli-s7); }
+
+  /* ---- Bento ---- */
+  .bento { display: grid; gap: var(--pli-s4); grid-template-columns: 1fr; }
+  .fact { display: flex; flex-direction: column; gap: 0.6rem; padding: var(--pli-s5); overflow: hidden; min-width: 0; }
+  .label { margin: 0; font: 600 var(--pli-text-xs)/1.2 var(--pli-font); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pli-muted); }
+  .big { margin: 0; font: 760 clamp(3.4rem, 2.4rem + 5vw, 6rem)/0.95 var(--pli-font); letter-spacing: var(--pli-tracking-tight); color: var(--pli-ink); }
+  .num { display: inline-block; min-width: var(--w, 1ch); font-variant-numeric: tabular-nums; background: linear-gradient(100deg, var(--pli-docs), var(--pli-brand-2) 55%, var(--pli-pdf)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .fact .desc { color: var(--pli-muted); font-size: 0.95rem; line-height: 1.5; max-width: 34rem; }
+
+  .formula { display: flex; align-items: center; gap: 0.6rem; margin: 0.4rem 0 0; padding: 0.55rem 0.8rem; border-radius: var(--pli-radius-sm); background: var(--pli-surface-2); border: 1px solid var(--pli-line); font-family: var(--pli-mono); font-size: 0.82rem; min-width: 0; }
+  .formula b { color: var(--pli-sheets); font-style: italic; font-family: var(--pli-font); }
+  .formula code { overflow-wrap: anywhere; color: var(--pli-ink); }
+  .fnchips { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; margin: 0.2rem 0 0; padding: 0; }
+  .fnchips li { font: 600 0.72rem/1 var(--pli-mono); padding: 0.32rem 0.55rem; border-radius: 0.4rem; color: var(--pli-sheets); background: var(--pli-sheets-soft); }
+  .more { margin-top: auto; padding-top: 0.6rem; font-weight: 600; font-size: 0.92rem; color: var(--pli-ink); text-decoration: none; }
+  .more:hover span { transform: translateX(3px); }
+  .more span, .go span { display: inline-block; transition: transform var(--pli-dur-fast) var(--pli-ease); }
+  .more:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: 3px; border-radius: 4px; }
+
+  .squares { display: grid; grid-template-columns: repeat(auto-fill, 0.7rem); gap: 0.25rem; margin-top: 0.4rem; }
+  .squares i { width: 0.7rem; height: 0.7rem; border-radius: 0.18rem; background: linear-gradient(135deg, var(--pli-brand), var(--pli-brand-2)); opacity: calc(0.45 + 0.55 * (var(--n) / 56)); }
+
+  .dots, .plat, .fmts { list-style: none; margin: 0; padding: 0; }
+  .dots { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 0.8rem; }
+  .dots li { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.95rem; }
+  .dots i { width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .plat { display: grid; gap: 0.5rem; }
+  .plat li { display: flex; flex-direction: column; line-height: 1.25; padding-left: 0.8rem; border-left: 2px solid var(--pli-line-strong); }
+  .plat b { font-size: 0.97rem; color: var(--pli-ink); }
+  .plat span { font-size: 0.85rem; color: var(--pli-muted); }
+  .fmts { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .fmts li { font: 650 0.78rem/1 var(--pli-mono); padding: 0.4rem 0.6rem; border-radius: 0.45rem; background: var(--pli-surface-2); border: 1px solid var(--pli-line); color: var(--pli-ink-2); }
+
+  /* ---- What ships today ---- */
+  .ships { margin-top: var(--pli-s8); }
+  .ships-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.4rem 2rem; margin-bottom: var(--pli-s5); }
+  .ships-head p { margin: 0; color: var(--pli-muted); }
+  .ship-grid { display: grid; gap: var(--pli-s4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.5rem), 1fr)); list-style: none; margin: 0; padding: 0; }
+  .ship-grid > li { display: flex; }
+  .ship { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; border-top: 3px solid var(--accent); }
+  .ship:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .tile { --tile: var(--from); display: grid; place-items: center; width: 2.9rem; height: 2.9rem; border-radius: 0.8rem; color: #fff; background: linear-gradient(135deg, var(--from), var(--to)); box-shadow: 0 8px 20px -8px var(--accent); transition: transform var(--pli-dur) var(--pli-ease); }
+  .ship:hover .tile { transform: rotate(-6deg) scale(1.06); }
+  .tile :global(.pdf-letters) { stroke: var(--tile); fill: none; }
+  .ship h3 { margin-top: 0.3rem; }
+  .where { font-size: 0.8rem; color: var(--pli-muted); line-height: 1.4; }
+  .go { margin-top: auto; padding-top: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--accent); }
+  .ship:hover .go span { transform: translateX(4px); }
+
+  /* ---- Works with ---- */
+  .works { margin-top: var(--pli-s8); display: grid; gap: var(--pli-s3); }
+  .works-h { margin: 0; font: 600 var(--pli-text-xs)/1 var(--pli-font); letter-spacing: 0.12em; text-transform: uppercase; color: var(--pli-muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; margin: 0; padding: 0; }
+  .chips .pli-chip { padding: 0.45rem 0.9rem; font-size: 0.85rem; }
+  .fine { margin: 0; font-size: 0.85rem; color: var(--pli-muted); }
+
+  @media (min-width: 640px) {
+    .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fact--fn { grid-column: 1 / -1; }
+  }
+  @media (min-width: 960px) {
+    .bento { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .fact--fn { grid-column: span 5; grid-row: span 2; }
+    .fact--tests { grid-column: span 4; }
+    .fact--ed { grid-column: span 3; }
+    .fact--plat { grid-column: span 3; }
+    .fact--fmt { grid-column: span 4; }
+  }
+
+  /* Squares appear one after another when the card scrolls in. Resting state (no script, reduced motion) is all visible. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.pli-js) .squares i { transition: opacity 0.5s var(--pli-ease), transform 0.5s var(--pli-ease); transition-delay: calc(var(--n) * 18ms); }
+    :global(html.pli-js) .squares:not(:global(.pli-in)) i { opacity: 0; transform: scale(0.3); }
+    .fnchips li { transition: transform var(--pli-dur-fast) var(--pli-ease); }
+    .fnchips li:hover { transform: translateY(-2px); }
+  }
+</style>

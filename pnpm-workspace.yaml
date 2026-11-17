@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - apps/*
+  - examples/capacitor
+  - skills/pli-documents
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp

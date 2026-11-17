@@ -1,0 +1,131 @@
+---
+import Logo from "./Logo.astro";
+
+/**
+ * The sticky site header: mark and name, the section links, the theme toggle. Under 900px the links fold into a <details>
+ * menu, which needs no script to open. The hairline under the bar fades in as the page scrolls, with a scroll-driven
+ * animation where the browser has one and stays on (faint) where it doesn't.
+ */
+const links = [
+  { label: "Documents", href: "/documents/", product: "docs" },
+  { label: "Sheets", href: "/sheets/", product: "sheets" },
+  { label: "Decks", href: "/decks/", product: "decks" },
+  { label: "PDF", href: "/pdf/", product: "pdf" },
+  { label: "Platform", href: "/platform/architecture/" },
+  { label: "Docs", href: "/introduction/" },
+  { label: "Roadmap", href: "/roadmap/" },
+];
+---
+<header class="site-header">
+  <div class="site-header__bar pli-container">
+    <a class="site-header__brand" href="/" aria-label="Pli, home">
+      <Logo size={28} id="pli-logo-header" />
+      <span>Pli</span>
+    </a>
+
+    <nav class="site-header__nav" aria-label="Main">
+      <ul>
+        {links.map((l) => (
+          <li>
+            <a href={l.href} data-product={l.product}>
+              {l.product && <i aria-hidden="true"></i>}
+              {l.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="site-header__tools">
+      <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Dark mode">
+        <svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"></path></svg>
+      </button>
+
+      <details class="site-header__menu" data-menu>
+        <summary aria-label="Menu">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <path class="bar-a" d="M4 8h16"></path><path class="bar-b" d="M4 16h16"></path>
+          </svg>
+        </summary>
+        <nav class="site-header__sheet" aria-label="Main, small screens">
+          <ul>
+            {links.map((l) => (
+              <li>
+                <a href={l.href} data-product={l.product}>
+                  {l.product && <i aria-hidden="true"></i>}
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>
+
+<style is:global>
+  .site-header {
+    position: sticky; top: 0; z-index: 50; height: var(--pli-header-h);
+    background: color-mix(in srgb, var(--pli-bg) 74%, transparent);
+    -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px);
+  }
+  .site-header::after {
+    content: ""; position: absolute; inset: auto 0 0 0; height: 1px; background: var(--pli-line); pointer-events: none; opacity: 0.6;
+  }
+  @supports (animation-timeline: scroll()) {
+    .site-header::after { opacity: 0; animation: site-header-line linear both; animation-timeline: scroll(root block); animation-range: 0 90px; }
+    @keyframes site-header-line { to { opacity: 1; } }
+  }
+  .site-header__bar { height: 100%; display: flex; align-items: center; gap: var(--pli-s5); }
+  .site-header__brand { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--pli-ink); font: 750 1.2rem/1 var(--pli-font); letter-spacing: -0.03em; border-radius: 0.5rem; }
+  .site-header__brand:focus-visible, .site-header a:focus-visible, .site-header summary:focus-visible, .theme-toggle:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: 3px; }
+  .site-header ul { list-style: none; margin: 0; padding: 0; }
+  .site-header__nav { margin-inline: auto; display: none; }
+  .site-header__nav ul { display: flex; align-items: center; gap: 0.15rem; }
+  .site-header__nav a, .site-header__sheet a {
+    display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2.5rem; padding: 0 0.8rem; border-radius: 999px;
+    color: var(--pli-ink-2); text-decoration: none; font: 560 0.92rem/1 var(--pli-font);
+    transition: background var(--pli-dur-fast), color var(--pli-dur-fast);
+  }
+  .site-header__nav a:hover, .site-header__sheet a:hover { background: var(--pli-bg-2); color: var(--pli-ink); }
+  .site-header a i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); flex: none; }
+  .site-header__tools { display: flex; align-items: center; gap: 0.35rem; margin-left: auto; }
+
+  .theme-toggle, .site-header__menu summary {
+    display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; border-radius: 50%; border: 1px solid transparent;
+    background: transparent; color: var(--pli-ink-2); cursor: pointer; list-style: none;
+    transition: background var(--pli-dur-fast), color var(--pli-dur-fast);
+  }
+  .theme-toggle:hover, .site-header__menu summary:hover { background: var(--pli-bg-2); color: var(--pli-ink); }
+  .site-header__menu summary::-webkit-details-marker { display: none; }
+  /* The toggle needs the script; until it has run the button is not offered. */
+  html:not(.pli-js) .theme-toggle { display: none; }
+  .theme-toggle .i-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .i-sun { display: block; }
+  :root[data-theme="dark"] .theme-toggle .i-moon { display: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .i-sun { display: block; }
+    :root:not([data-theme="light"]) .theme-toggle .i-moon { display: none; }
+  }
+
+  .site-header__menu { position: static; }
+  .site-header__sheet {
+    position: absolute; inset: 100% 0 auto 0; padding: var(--pli-s3) var(--pli-gutter) var(--pli-s5);
+    /* Solid: a backdrop-filter inside the header's own backdrop-filter has nothing to blur. */
+    background: var(--pli-bg);
+    border-bottom: 1px solid var(--pli-line); box-shadow: var(--pli-shadow-md);
+  }
+  .site-header__sheet ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.25rem; max-width: 28rem; margin-inline: auto; }
+  .site-header__sheet a { width: 100%; min-height: 2.9rem; border-radius: var(--pli-radius-sm); }
+  .site-header__menu[open] .site-header__sheet { animation: site-sheet 0.22s var(--pli-ease); }
+  @keyframes site-sheet { from { opacity: 0; transform: translate3d(0, -6px, 0); } }
+  @media (prefers-reduced-motion: reduce) { .site-header__menu[open] .site-header__sheet { animation: none; } }
+
+  @media (min-width: 900px) {
+    .site-header__nav { display: block; }
+    .site-header__menu { display: none; }
+    .site-header__tools { margin-left: 0; }
+  }
+</style>

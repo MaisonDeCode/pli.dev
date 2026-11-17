@@ -1,0 +1,14 @@
+---
+import Default from "@astrojs/starlight/components/Footer.astro";
+---
+<Default {...Astro.props}><slot /></Default>
+<p class="docs-credit">
+  Built by <a href="https://maisondecode.com" target="_blank" rel="noopener noreferrer">Maison de Code</a> ·
+  <a href="https://github.com/MaisonDeCode/pli.dev" target="_blank" rel="noopener noreferrer">GitHub</a>
+</p>
+
+<style>
+  .docs-credit { margin: 1.5rem 0 0; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+  .docs-credit a { color: inherit; font-weight: 600; text-underline-offset: 3px; }
+  .docs-credit a:hover { color: var(--sl-color-text-accent); }
+</style>

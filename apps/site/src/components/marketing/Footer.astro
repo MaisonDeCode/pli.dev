@@ -1,0 +1,91 @@
+---
+import Logo from "./Logo.astro";
+import { PRODUCTS } from "../../products";
+
+/** The site footer: what Pli is, three link columns, and the licence. */
+const platform = [
+  { label: "Architecture", href: "/platform/architecture/" },
+  { label: "Comments", href: "/platform/comments/" },
+  { label: "Users and permissions", href: "/platform/users/" },
+  { label: "Live editing", href: "/platform/live-editing/" },
+  { label: "Fonts", href: "/platform/fonts/" },
+  { label: "Swift and Kotlin", href: "/platform/swift-and-kotlin/" },
+  { label: "Scripting", href: "/platform/scripting/" },
+];
+const resources: { label: string; href: string; external?: boolean }[] = [
+  { label: "Introduction", href: "/introduction/" },
+  { label: "Get started with Documents", href: "/documents/getting-started/" },
+  { label: "Roadmap", href: "/roadmap/" },
+  { label: "Contributing", href: "/platform/contributing/" },
+  { label: "GitHub repository", href: "https://github.com/MaisonDeCode/pli.dev", external: true },
+  { label: "llms.txt", href: "/llms.txt" },
+  { label: "llms-full.txt", href: "/llms-full.txt" },
+];
+---
+<footer class="site-footer">
+  <div class="pli-container">
+    <div class="site-footer__grid">
+      <div class="site-footer__about">
+        <a class="site-footer__brand" href="/" aria-label="Pli, home">
+          <Logo size={26} id="pli-logo-footer" />
+          <span>Pli</span>
+        </a>
+        <p>An open-source SDK of editors for documents, sheets, decks and PDFs, for JavaScript and React, Swift and Kotlin.</p>
+      </div>
+
+      <nav aria-labelledby="footer-products">
+        <h2 id="footer-products">Products</h2>
+        <ul>
+          {PRODUCTS.map((p) => (
+            <li>
+              <a href={p.href}>{p.menu}</a>
+              {p.status === "Planned" && <small>Planned</small>}
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-platform">
+        <h2 id="footer-platform">Platform docs</h2>
+        <ul>{platform.map((l) => <li><a href={l.href}>{l.label}</a></li>)}</ul>
+      </nav>
+
+      <nav aria-labelledby="footer-resources">
+        <h2 id="footer-resources">Resources</h2>
+        <ul>{resources.map((l) => <li><a href={l.href} {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{l.label}</a></li>)}</ul>
+      </nav>
+    </div>
+
+    <div class="site-footer__legal">
+      <p>
+        Built by <a class="site-footer__maker" href="https://maisondecode.com" target="_blank" rel="noopener noreferrer">Maison de Code</a>.
+        Pli is open source, released under the Apache License 2.0, and its code is on{" "}
+        <a class="site-footer__maker" href="https://github.com/MaisonDeCode/pli.dev" target="_blank" rel="noopener noreferrer">GitHub</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style is:global>
+  .site-footer { border-top: 1px solid var(--pli-line); background: var(--pli-bg-2); padding-block: var(--pli-s8) var(--pli-s6); }
+  .site-footer__grid { display: grid; gap: var(--pli-s7) var(--pli-s6); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .site-footer__about { grid-column: 1 / -1; max-width: 26rem; }
+  .site-footer__brand { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--pli-ink); font: 750 1.2rem/1 var(--pli-font); letter-spacing: -0.03em; }
+  .site-footer__about p { margin: var(--pli-s4) 0 0; color: var(--pli-muted); font-size: var(--pli-text-sm); line-height: 1.6; }
+  .site-footer h2 { margin: 0 0 var(--pli-s4); font: 650 var(--pli-text-xs)/1 var(--pli-font); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pli-muted); }
+  .site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+  .site-footer li { display: flex; align-items: baseline; gap: 0.5rem; }
+  .site-footer li a { display: inline-block; padding-block: 0.3rem; color: var(--pli-ink-2); text-decoration: none; font-size: var(--pli-text-sm); border-radius: 0.25rem; }
+  .site-footer li a:hover { color: var(--pli-brand); text-decoration: underline; text-underline-offset: 3px; }
+  .site-footer a:focus-visible { outline: 2px solid var(--pli-brand); outline-offset: 3px; }
+  .site-footer li small { font: 600 0.7rem/1 var(--pli-font); color: var(--pli-muted); border: 1px solid var(--pli-line-strong); border-radius: 999px; padding: 0.2rem 0.45rem; }
+  .site-footer__legal { margin-top: var(--pli-s8); padding-top: var(--pli-s5); border-top: 1px solid var(--pli-line); display: grid; gap: 0.35rem; }
+  .site-footer__legal p { margin: 0; color: var(--pli-muted); font-size: var(--pli-text-xs); line-height: 1.6; }
+  .site-footer__maker { color: var(--pli-ink-2); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  .site-footer__maker:hover { color: var(--pli-brand); }
+  @media (min-width: 900px) {
+    .site-footer__grid { grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); }
+    .site-footer__about { grid-column: auto; }
+    .site-footer__legal { grid-template-columns: 1fr auto; align-items: baseline; }
+  }
+</style>

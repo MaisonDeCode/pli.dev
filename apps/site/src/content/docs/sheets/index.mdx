@@ -1,0 +1,57 @@
+---
+title: Sheets
+description: Spreadsheets with Excel-compatible formulas, CSV and XLSX files, and a React grid editor.
+sidebar:
+  badge:
+    text: In progress
+    variant: caution
+tableOfContents: false
+---
+
+import ProductHero from "../../../components/marketing/ProductHero.astro";
+
+<ProductHero
+  product="sheets"
+  title="Spreadsheets with Excel-compatible formulas"
+  tagline="A React grid editor over a headless engine: 475 functions, charts, pivot tables, tables, data validation and conditional formats, with CSV and XLSX files in and out."
+  status="In progress"
+  actions={[
+    { text: "Get started", href: "/sheets/getting-started/", variant: "brand" },
+    { text: "The grid editor", href: "/sheets/grid/", variant: "ghost" },
+    { text: "Roadmap", href: "/sheets/roadmap/", variant: "ghost" },
+  ]}
+  badges={["475 functions", "XLSX and CSV", "Charts and pivot tables"]}
+/>
+
+**Status:** in progress. The engine, a React grid editor, charts, pivot tables, tables and CSV and XLSX files are built and tested, and the engine runs in Swift and Kotlin (`PliWorkbook`) without a native grid yet. What is left needs Excel itself and real devices to check. Number 2 on the [roadmap](/roadmap/).
+
+Sheets has a [grid editor for React](/sheets/grid/) and a headless engine that runs anywhere JavaScript does. The engine provides:
+
+- **A workbook** of sheets, with cells kept sparsely by address, number formats and styles, column widths and row heights, frozen panes and defined names, saved as JSON.
+- **Excel-compatible formulas**: the same language, operators, error values and coercion rules, with [475 functions](/sheets/formulas/) (math, statistics, text, dates, lookups such as `XLOOKUP`, finance), array arithmetic over ranges, and values that update as cells change.
+- **Editing as operations**, with undo and redo: typing, copy and paste, fill, sort, inserting and deleting rows and columns (formulas follow), and managing sheets.
+- **Charts**: [column, bar, line, area, pie and scatter](/sheets/charts/) charts over a sheet that follow their cells.
+- **Pivot tables**: [summarise a range or table](/sheets/pivot-tables/) by the items of some of its fields, with rows, columns, filters and values, several summaries, shares of totals, compact and tabular layouts, and Excel's pivot table parts in XLSX files.
+- **Tables**: [named tables](/sheets/tables/) with filter and sort buttons, slicers, a style (or one of your own), a totals row, calculated columns, and formulas that name their columns (`Orders[Total]`).
+- **Data validation**: [rules for what may be typed](/sheets/validation/) into cells, with messages, lists read from cells and a way to find the cells that break them.
+- **Formatting**: [borders, merged cells and conditional formats](/sheets/formatting/): colour scales, data bars, icon sets and rules by value, text, rank or date.
+- **Files**: [CSV and Excel (XLSX) files](/sheets/files/) in and out, JSON, and Excel's number formats.
+
+```ts
+import { SheetSession, createWorkbook } from "@pli.dev/sheets";
+
+const s = new SheetSession(createWorkbook("Budget"));
+s.setValues("Sheet1", "A1", [["Pens", 12.5], ["Paper", 8], ["Total", "=SUM(B1:B2)"]]);
+s.value("Sheet1", "B3");   // 20.5
+```
+
+Start with [Get started](/sheets/getting-started/).
+
+## Two layers
+
+Like [Documents](/documents/), Sheets comes in two layers:
+
+- **Ready-made UI**: `PliSheet`, a React grid with a formula bar, toolbar, sheet tabs, selection, fill handle, column sizing, sorting, freezing, clipboard and undo. See [The grid editor](/sheets/grid/).
+- **Headless engine**: it uses the same operations, history and session code as Documents. You can drive it from your own interface, from Swift and Kotlin (`PliWorkbook`, see [Swift and Kotlin](/sheets/swift-and-kotlin/)), or from a script.
+
+Both run on the same portable engine as every other editor. See [Architecture](/platform/architecture/).

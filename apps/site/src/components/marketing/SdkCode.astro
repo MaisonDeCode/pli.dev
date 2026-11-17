@@ -1,0 +1,205 @@
+---
+// A tabbed code showcase. Tabs are radio inputs and labels, so they switch with no JavaScript, and arrow keys work because
+// radios in one group already do that. Highlighting happens at build time (Shiki, through Astro's <Code>). The one small
+// script only adds the copy buttons, and only when the browser can copy.
+// Every snippet is copied from the docs pages named in `from`, and test/sections.test.ts checks the names against the packages.
+import { Code } from "astro:components";
+
+const react = `import { PliDocument, useDocumentSession } from "@pli.dev/react";
+import "@pli.dev/react/styles.css";
+
+export function Editor() {
+  const session = useDocumentSession();
+  return (
+    <div style={{ height: "100vh" }}>
+      <PliDocument session={session} autoFocus />
+    </div>
+  );
+}`;
+
+const swift = `import Pli
+
+struct NotesScreen: View {
+    @State private var document = ""        // a saved document, or empty for a new one
+
+    var body: some View {
+        PliEditor(json: $document)
+    }
+}`;
+
+const kotlin = `var document by remember { mutableStateOf(saved ?: "") }     // a saved document, or empty for a new one
+
+PliEditor(
+    json = document,
+    onJsonChange = { document = it; file.writeText(it) },
+    modifier = Modifier.fillMaxSize().imePadding(),          // imePadding lets the keyboard shrink it
+)`;
+
+const node = `import { writeFileSync } from "node:fs";
+import { DocumentSession, createDoc, heading, paragraph, bold, toMarkdown, toDocx } from "@pli.dev/docs";
+
+const intro = paragraph(["Pli is ", bold("headless"), "."]);
+const session = new DocumentSession(createDoc("My first doc", [heading(1, "Hello"), intro]));
+
+session.insertText(intro.id, 0, "Note: ");
+session.undo();                                      // back to before "Note: "
+
+console.log(toMarkdown(session.state));
+writeFileSync("hello.docx", toDocx(session.state));  // a ready-to-save .docx`;
+
+const tabs = [
+  {
+    id: "react", label: "React", file: "Editor.tsx", lang: "tsx" as const, code: react,
+    title: "A document editor in React",
+    install: "npm install @pli.dev/docs @pli.dev/react. It needs React 18 or 19 in your app.",
+    links: [{ href: "/documents/ready-made-ui/", text: "Ready-made editor" }, { href: "/documents/getting-started/", text: "Get started" }],
+  },
+  {
+    id: "swift", label: "Swift", file: "NotesScreen.swift", lang: "swift" as const, code: swift,
+    title: "The same editor in SwiftUI, on iPhone, iPad and Mac",
+    install: "Pli for Swift is a Swift package in the packages/swift folder of the repository. Clone it, add it as a local package in Xcode (File, Add Package Dependencies, Add Local), then add the Pli library to your app. It needs iOS 15 or macOS 12.",
+    links: [{ href: "/documents/swift/", text: "Swift docs" }, { href: "/platform/swift-and-kotlin/", text: "Swift and Kotlin reference" }],
+  },
+  {
+    id: "kotlin", label: "Kotlin", file: "NotesScreen.kt", lang: "kotlin" as const, code: kotlin,
+    title: "The same editor in Jetpack Compose, on Android",
+    install: "Pli for Android is a Gradle module in the packages/kotlin-android folder of the repository. Clone it, include it in settings.gradle.kts and depend on it. It needs Android 8 (API 26) and Jetpack Compose with Material 3.",
+    links: [{ href: "/documents/kotlin/", text: "Kotlin docs" }, { href: "/platform/swift-and-kotlin/", text: "Swift and Kotlin reference" }],
+  },
+  {
+    id: "node", label: "Node", file: "make-doc.ts", lang: "ts" as const, code: node,
+    title: "The headless engine, with no screen and no DOM",
+    install: "npm install @pli.dev/docs. Sheets, Decks and PDF each have a headless engine too: @pli.dev/sheets, @pli.dev/decks and @pli.dev/pdf.",
+    links: [{ href: "/documents/build-your-own/", text: "Build your own" }, { href: "/sheets/getting-started/", text: "Sheets engine" }],
+  },
+];
+---
+<section class="pli-section sdk-sec" id="sdk" aria-labelledby="sdk-h">
+  <div class="pli-container">
+    <header class="head" data-reveal>
+      <p class="pli-eyebrow">One SDK, three platforms</p>
+      <h2 class="pli-h2" id="sdk-h">The same editor on every platform</h2>
+      <p class="pli-lede">The ready-made editor is a component in React, a view in SwiftUI and a composable in Compose. Or skip the screen and drive the engine from code.</p>
+    </header>
+
+    <div class="shell" data-reveal="up">
+      <fieldset class="sdk">
+        <legend class="pli-sr-only">Language</legend>
+        {tabs.map((t, i) => (
+          <>
+            <input class="r pli-sr-only" type="radio" name="sdk-lang" id={`sdk-r-${t.id}`} aria-controls={`sdk-p-${t.id}`} checked={i === 0} />
+            <label class="tab" for={`sdk-r-${t.id}`}>{t.label}</label>
+          </>
+        ))}
+        {tabs.map((t) => (
+          <div class="panel" id={`sdk-p-${t.id}`} role="group" aria-label={`${t.label} example`}>
+            <div class="phead">
+              <span class="file">{t.file}</span>
+              <button class="copy" type="button" data-copy hidden>Copy</button>
+              <span class="pli-sr-only" role="status" aria-live="polite" data-live></span>
+            </div>
+            <div class="code"><Code code={t.code} lang={t.lang} theme="css-variables" /></div>
+            <div class="pfoot">
+              <p class="ptitle">{t.title}</p>
+              <p>{t.install}</p>
+              <p class="plinks">{t.links.map((l, i) => <><a class="pli-link" href={l.href}>{l.text}</a>{i < t.links.length - 1 ? " · " : ""}</>)}</p>
+            </div>
+          </div>
+        ))}
+      </fieldset>
+    </div>
+
+    <p class="status" data-reveal>
+      The JavaScript packages are on npm. Swift and Kotlin are used from a clone of the repository, as each tab says. Start with the <a class="pli-link" href="/introduction/">introduction</a> or the <a class="pli-link" href="/documents/getting-started/">Documents guide</a>. The full editor is built for Documents; Sheets, Decks and PDF have React editors and engines for Swift and Kotlin.
+    </p>
+  </div>
+</section>
+
+<script>
+  // Copy buttons: shown only when the browser can copy; the code is always selectable by hand.
+  const canCopy = !!navigator.clipboard?.writeText || (typeof document.queryCommandSupported === "function" && document.queryCommandSupported("copy"));
+  async function copyText(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      /* fall through to the old way */
+    }
+    try {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      area.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+  if (canCopy) {
+    document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
+      btn.hidden = false;
+      const panel = btn.closest(".panel");
+      const live = panel?.querySelector<HTMLElement>("[data-live]");
+      let timer = 0;
+      btn.addEventListener("click", async () => {
+        const text = panel?.querySelector("pre")?.textContent ?? "";
+        const ok = await copyText(text.replace(/\n$/, ""));
+        btn.textContent = ok ? "Copied" : "Press Ctrl+C";
+        if (live) live.textContent = ok ? "Copied to the clipboard" : "Could not copy; select the code and copy it by hand";
+        clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          btn.textContent = "Copy";
+          if (live) live.textContent = "";
+        }, 1800);
+      });
+    });
+  }
+</script>
+
+<style>
+  .head { display: grid; gap: var(--pli-s4); max-width: 46rem; margin-bottom: var(--pli-s7); }
+  .shell { max-width: 56rem; }
+
+  /* The panel is dark in both site themes (--pli-code-bg), so Shiki's one dark theme is always on the right background. */
+  .sdk { --astro-code-foreground: #e9e9f5; --astro-code-background: transparent; --astro-code-token-comment: #8387ad; --astro-code-token-keyword: #c9afff; --astro-code-token-string: #86e6bd; --astro-code-token-string-expression: #86e6bd; --astro-code-token-function: #84c8ff; --astro-code-token-constant: #ffbd78; --astro-code-token-parameter: #f2f2fc; --astro-code-token-punctuation: #a3a6c0; --astro-code-token-link: #84c8ff; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--pli-line-strong); border-radius: var(--pli-radius-lg); margin: 0; padding: 0; min-width: 0; background: var(--pli-code-bg); color: var(--pli-code-ink); box-shadow: var(--pli-shadow-lg); overflow: hidden; }
+  .tab { grid-row: 1; padding: 0.95rem 0.5rem; text-align: center; font: 600 0.92rem/1 var(--pli-font); color: color-mix(in srgb, var(--pli-code-ink) 60%, transparent); cursor: pointer; border-bottom: 2px solid rgb(255 255 255 / 0.1); background: rgb(255 255 255 / 0.03); transition: color var(--pli-dur-fast), background var(--pli-dur-fast); }
+  .tab:hover { color: var(--pli-code-ink); background: rgb(255 255 255 / 0.07); }
+  .panel { display: none; grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+
+  #sdk-r-react:checked ~ #sdk-p-react, #sdk-r-swift:checked ~ #sdk-p-swift, #sdk-r-kotlin:checked ~ #sdk-p-kotlin, #sdk-r-node:checked ~ #sdk-p-node { display: block; }
+  #sdk-r-react:checked ~ [for="sdk-r-react"], #sdk-r-swift:checked ~ [for="sdk-r-swift"], #sdk-r-kotlin:checked ~ [for="sdk-r-kotlin"], #sdk-r-node:checked ~ [for="sdk-r-node"] { color: #fff; border-bottom-color: var(--pli-brand-2); background: rgb(139 92 246 / 0.14); }
+  #sdk-r-react:focus-visible ~ [for="sdk-r-react"], #sdk-r-swift:focus-visible ~ [for="sdk-r-swift"], #sdk-r-kotlin:focus-visible ~ [for="sdk-r-kotlin"], #sdk-r-node:focus-visible ~ [for="sdk-r-node"] { outline: 2px solid #fff; outline-offset: -4px; border-radius: 0.6rem; }
+
+  .phead { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.7rem 1.1rem 0; min-height: 2.9rem; }
+  .file { font: 500 0.8rem/1 var(--pli-mono); color: color-mix(in srgb, var(--pli-code-ink) 55%, transparent); }
+  .copy { font: 600 0.78rem/1 var(--pli-font); color: var(--pli-code-ink); background: rgb(255 255 255 / 0.08); border: 1px solid rgb(255 255 255 / 0.18); border-radius: 999px; padding: 0.45rem 0.85rem; cursor: pointer; transition: background var(--pli-dur-fast); }
+  .copy:hover { background: rgb(255 255 255 / 0.16); }
+  .copy:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .copy[hidden] { display: none; }
+
+  .code :global(pre.astro-code) { margin: 0; padding: 0.6rem 1.3rem 1.3rem; background: transparent !important; overflow-x: auto; font: 0.86rem/1.7 var(--pli-mono); tab-size: 2; }
+  .code :global(pre.astro-code code) { font: inherit; }
+
+  .pfoot { padding: 1rem 1.3rem 1.3rem; border-top: 1px solid rgb(255 255 255 / 0.1); display: grid; gap: 0.35rem; font-size: 0.88rem; line-height: 1.55; color: color-mix(in srgb, var(--pli-code-ink) 72%, transparent); }
+  .pfoot p { margin: 0; }
+  .ptitle { font-weight: 650; color: var(--pli-code-ink); font-size: 0.95rem; }
+  .pfoot :global(a.pli-link) { color: var(--pli-code-ink); border-bottom-color: rgb(255 255 255 / 0.35); }
+  .pfoot :global(a.pli-link:hover) { border-bottom-color: #fff; }
+  .status { margin: var(--pli-s5) 0 0; max-width: 46rem; color: var(--pli-muted); font-size: 0.95rem; }
+  .status a { font-weight: 600; }
+
+  @media (min-width: 640px) {
+    .sdk { grid-template-columns: repeat(4, max-content) minmax(0, 1fr); }
+    .tab { padding-inline: 1.5rem; }
+    .sdk::after { content: ""; grid-row: 1; grid-column: 5; border-bottom: 2px solid rgb(255 255 255 / 0.1); background: rgb(255 255 255 / 0.03); }
+  }
+  @media (max-width: 420px) {
+    .code :global(pre.astro-code) { font-size: 0.78rem; padding-inline: 1rem; }
+  }
+</style>

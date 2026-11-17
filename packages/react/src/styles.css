@@ -1,0 +1,2824 @@
+@import "./ui/collab/collab.css";
+/*
+ * Default styles for @pli.dev/react. Everything is driven by the custom properties below, so you can
+ * theme the editor by overriding them on `.pli-document` or any ancestor. The app chrome (menus,
+ * toolbar, canvas) follows the system's light or dark setting, or force one with
+ * data-theme="light" | "dark" on <html>. Pages follow the same setting: white in light mode, dark in dark mode (set `paper="light"` to keep them white).
+ */
+
+.pli-document,
+.pli-editor,
+.pli-spreadsheet,
+.pli-toolbar,
+.pli-dialog,
+body > .pli-panel-fixed {
+  --pli-bg: #ffffff;
+  --pli-chrome: #f8f9fb;
+  --pli-canvas: #eceef2;
+  --pli-fg: #1b1d22;
+  --pli-muted: #5f6672;
+  --pli-border: #dcdfe5;
+  --pli-hover: #e9ebf0;
+  --pli-accent: #4f46e5;
+  --pli-accent-soft: #e4e2fb;
+  --pli-paper: #ffffff;
+  --pli-paper-fg: #1b1d22;
+  --pli-paper-muted: #6b7280;
+  --pli-code-bg: #f1f2f5;
+  /* Text on a highlight or a shaded cell: always dark, because those are light on every theme. */
+  --pli-ink: #1b1d22;
+  --pli-on-highlight: currentcolor;
+  --pli-paper-line: #c4c8d0;
+  --pli-paper-tint: #f3f4f6;
+  --pli-quote-line: #d0d3da;
+  --pli-quote-fg: #555555;
+  --pli-table-line: #bfbfbf;
+  --pli-link: #1a56db;
+  --pli-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --pli-doc-font: Arial, Helvetica, sans-serif;
+  --pli-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --pli-shadow: 0 1px 3px rgb(0 0 0 / 0.12), 0 4px 16px rgb(0 0 0 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pli-document,
+  :root:not([data-theme="light"]) .pli-editor,
+  :root:not([data-theme="light"]) .pli-spreadsheet,
+  :root:not([data-theme="light"]) .pli-toolbar,
+  :root:not([data-theme="light"]) .pli-dialog,
+  :root:not([data-theme="light"]) body > .pli-panel-fixed {
+    --pli-bg: #14161a;
+    --pli-chrome: #1d2026;
+    --pli-canvas: #0e1013;
+    --pli-fg: #e8eaee;
+    --pli-muted: #9aa1ad;
+    --pli-border: #2f343d;
+    --pli-hover: #2a2e36;
+    --pli-accent: #8b85ff;
+    --pli-accent-soft: #2c2a55;
+    --pli-shadow: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 18px rgb(0 0 0 / 0.4);
+    --pli-on-highlight: var(--pli-ink);
+    --pli-paper: #1b1d23;
+    --pli-paper-fg: #e8eaee;
+    --pli-paper-muted: #9ba2ae;
+    --pli-code-bg: #272a32;
+    --pli-paper-line: #434853;
+    --pli-paper-tint: #272a32;
+    --pli-quote-line: #444955;
+    --pli-quote-fg: #b4bac4;
+    --pli-table-line: #454a56;
+    --pli-link: #8ab4ff;
+  }
+}
+
+:root[data-theme="dark"] .pli-document,
+:root[data-theme="dark"] .pli-editor,
+:root[data-theme="dark"] .pli-spreadsheet,
+:root[data-theme="dark"] .pli-toolbar,
+:root[data-theme="dark"] .pli-dialog,
+:root[data-theme="dark"] body > .pli-panel-fixed {
+  --pli-bg: #14161a;
+  --pli-chrome: #1d2026;
+  --pli-canvas: #0e1013;
+  --pli-fg: #e8eaee;
+  --pli-muted: #9aa1ad;
+  --pli-border: #2f343d;
+  --pli-hover: #2a2e36;
+  --pli-accent: #8b85ff;
+  --pli-accent-soft: #2c2a55;
+  --pli-shadow: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 18px rgb(0 0 0 / 0.4);
+  --pli-on-highlight: var(--pli-ink);
+  --pli-paper: #1b1d23;
+  --pli-paper-fg: #e8eaee;
+  --pli-paper-muted: #9ba2ae;
+  --pli-code-bg: #272a32;
+  --pli-paper-line: #434853;
+  --pli-paper-tint: #272a32;
+  --pli-quote-line: #444955;
+  --pli-quote-fg: #b4bac4;
+  --pli-table-line: #454a56;
+  --pli-link: #8ab4ff;
+}
+
+/* `paper="light"` keeps white pages in a dark interface. */
+:root:root .pli-document[data-paper="light"],
+:root:root .pli-editor[data-paper="light"] {
+  --pli-on-highlight: currentcolor;
+  --pli-paper: #ffffff;
+  --pli-paper-fg: #1b1d22;
+  --pli-paper-muted: #6b7280;
+  --pli-code-bg: #f1f2f5;
+  --pli-paper-line: #c4c8d0;
+  --pli-paper-tint: #f3f4f6;
+  --pli-quote-line: #d0d3da;
+  --pli-quote-fg: #555555;
+  --pli-table-line: #bfbfbf;
+  --pli-link: #1a56db;
+}
+
+/* ------------------------------------------------------------------ Application layout */
+
+.pli-document {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  font-family: var(--pli-font);
+  font-size: 0.875rem;
+}
+
+.pli-chrome {
+  flex: none;
+  padding-bottom: 0.5rem;
+  background: var(--pli-chrome);
+  border-bottom: 1px solid var(--pli-border);
+}
+
+.pli-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem 0;
+}
+
+.pli-doc-title {
+  flex: 0 1 24rem;
+  min-width: 0;
+  margin-left: -0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.pli-doc-title:hover:not(:read-only) {
+  border-color: var(--pli-border);
+}
+
+.pli-doc-title:focus {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: -1px;
+  background: var(--pli-bg);
+}
+
+.pli-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.pli-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.pli-canvas {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: var(--pli-canvas);
+}
+
+.pli-document[data-view="continuous"] .pli-canvas {
+  background: var(--pli-bg);
+}
+
+/* ------------------------------------------------------------------ Menus and toolbar */
+
+.pli-menubar {
+  position: relative;
+  display: flex;
+  padding: 0.1rem 0.5rem 0;
+}
+
+.pli-menubar-item {
+  position: relative;
+}
+
+.pli-menubar-button {
+  padding: 0.2rem 0.55rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: default;
+}
+
+.pli-menubar-button:hover,
+.pli-menubar-button[aria-expanded="true"] {
+  background: var(--pli-hover);
+}
+
+/*
+ * The shape of the chrome. Docs, Sheets, Decks and PDF share these, and a host restyles all four by setting them on the editor or
+ * any ancestor (nothing below declares them, the fallbacks are the defaults):
+ *
+ *   --pli-chrome-radius  the ends of the bars (toolbar, tools row, text bar): a pill.      1.25rem (20px)
+ *   --pli-frame-radius   the corners of the editor's outer frame.                          0.75rem
+ *   --pli-frame-border   the border of the frame ("0" for none).                           1px solid var(--pli-border)
+ *   --pli-bar-margin     the space around a bar.                                           0.3rem 0.6rem 0
+ *   --pli-bar-padding    the space inside a bar.                                           0.25rem 0.5rem
+ *   --pli-bar-gap        the space between the controls of a bar.                          0.25rem
+ *   --pli-bar-bg         the surface of a bar (and of the fade at its ends).               var(--pli-bg)
+ *   --pli-tool-radius    the buttons in a bar: round.                                      999px
+ *
+ * data-pli-chrome="square" on the editor or any ancestor sets the radii to nothing, the frame border off and the buttons to
+ * the old square corners in one go.
+ */
+[data-pli-chrome="square"] {
+  --pli-chrome-radius: 0;
+  --pli-frame-radius: 0;
+  --pli-frame-border: 0;
+  --pli-tool-radius: 0.4rem;
+}
+
+.pli-document,
+.pli-spreadsheet,
+.pli-deck,
+.pli-pdf {
+  box-sizing: border-box;
+  border: var(--pli-frame-border, 1px solid var(--pli-border));
+  border-radius: var(--pli-frame-radius, 0.75rem);
+  /* The corners cut what is inside; menus and pickers are position: fixed, which overflow does not clip. */
+  overflow: hidden;
+}
+
+/*
+ * A bar is one row. When it is wider than the editor it scrolls sideways (the wheel, a swipe, the arrow keys and Tab work; the
+ * scroll bar is hidden), and a fade at an end says there is more there (`data-overflow`, set by `Bar` / `useBarScroll`).
+ */
+.pli-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--pli-bar-gap, 0.25rem);
+  margin: var(--pli-bar-margin, 0.3rem 0.6rem 0);
+  padding: var(--pli-bar-padding, 0.25rem 0.5rem);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  background: var(--pli-bar-bg, var(--pli-bg));
+  border: 1px solid var(--pli-border);
+  border-radius: var(--pli-chrome-radius, 1.25rem);
+  color: var(--pli-fg);
+  font-family: var(--pli-font);
+  font-size: 0.875rem;
+}
+
+.pli-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* The fades: empty, zero-width, stuck to the two ends of the visible part, casting a shadow of the bar's own colour over the controls beside them. */
+.pli-toolbar::before,
+.pli-toolbar::after {
+  content: "";
+  display: none;
+  position: sticky;
+  flex: none;
+  align-self: stretch;
+  width: 0;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 0 0.8rem 0.9rem var(--pli-bar-bg, var(--pli-bg));
+}
+
+.pli-toolbar::before {
+  left: 0;
+  margin-right: calc(-1 * var(--pli-bar-gap, 0.25rem));
+}
+
+.pli-toolbar::after {
+  right: 0;
+  margin-left: calc(-1 * var(--pli-bar-gap, 0.25rem));
+}
+
+.pli-toolbar[data-overflow="start"]::before,
+.pli-toolbar[data-overflow="both"]::before,
+.pli-toolbar[data-overflow="end"]::after,
+.pli-toolbar[data-overflow="both"]::after {
+  display: block;
+}
+
+.pli-group {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.pli-group + .pli-group {
+  position: relative;
+  margin-left: 0.35rem;
+  padding-left: 0.5rem;
+}
+
+.pli-group + .pli-group::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  width: 1px;
+  background: var(--pli-border);
+}
+
+.pli-group-end {
+  margin-left: auto;
+}
+
+/* The menu at the end of the toolbar (strikethrough, spacing, and on a phone the layout) isn't set apart by a divider. */
+.pli-group[data-group="more"] {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.pli-group[data-group="more"]::before {
+  display: none;
+}
+
+.pli-tool {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: var(--pli-tool-radius, 999px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-tool:hover:not(:disabled) {
+  background: var(--pli-hover);
+}
+
+.pli-tool[aria-pressed="true"] {
+  background: var(--pli-accent-soft);
+  color: var(--pli-accent);
+}
+
+.pli-tool:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pli-tool:focus-visible,
+.pli-select:focus-visible,
+.pli-menu-item:focus-visible,
+.pli-menubar-button:focus-visible,
+.pli-button:focus-visible {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: 1px;
+}
+
+.pli-glyph {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.pli-status select,
+.pli-dialog select,
+.pli-dialog input[type="text"],
+.pli-dialog input[type="url"],
+.pli-dialog input[type="number"] {
+  height: 1.9rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.pli-select-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.pli-select {
+  appearance: none;
+  height: 1.9rem;
+  padding: 0 1.4rem 0 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.pli-select:hover {
+  background: var(--pli-hover);
+}
+
+.pli-select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  display: grid;
+  color: var(--pli-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.pli-select-chevron svg {
+  width: 12px;
+  height: 12px;
+}
+
+.pli-select-style .pli-select { width: 8.5rem; }
+.pli-select-font .pli-select { width: 7.5rem; }
+
+.pli-size {
+  display: flex;
+  align-items: center;
+  margin: 0 0.1rem;
+}
+
+.pli-size .pli-tool {
+  min-width: 1.6rem;
+  padding: 0;
+}
+
+.pli-size-input {
+  width: 2.3rem;
+  height: 1.9rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+
+.pli-color-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.pli-color-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+/* ------------------------------------------------------------------ Dropdown panels */
+
+.pli-dropdown {
+  position: relative;
+}
+
+.pli-panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  min-width: 12rem;
+  padding: 0.3rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.5rem;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  box-shadow: var(--pli-shadow);
+}
+
+.pli-panel-fixed { position: fixed; top: 0; left: 0; z-index: 1000; max-width: calc(100vw - 16px); background-color: var(--pli-bg, #ffffff); }
+.pli-panel-start { left: 0; }
+.pli-panel-end { right: 0; }
+
+.pli-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 14rem;
+}
+
+.pli-menu-item-wrap {
+  position: relative;
+}
+
+.pli-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.pli-menu-item:hover:not(:disabled),
+.pli-menu-item:focus-visible {
+  background: var(--pli-hover);
+}
+
+.pli-menu-item:disabled {
+  opacity: 0.4;
+}
+
+.pli-menu-check {
+  width: 1rem;
+  color: var(--pli-accent);
+}
+
+.pli-menu-label {
+  flex: 1;
+}
+
+.pli-menu-shortcut,
+.pli-menu-arrow {
+  color: var(--pli-muted);
+  font-size: 0.8rem;
+}
+
+.pli-menu-separator {
+  height: 1px;
+  margin: 0.25rem 0.2rem;
+  background: var(--pli-border);
+}
+
+.pli-submenu {
+  top: -0.35rem;
+  left: calc(100% - 4px);
+}
+
+/* A submenu with no room beside its item unfolds under it, indented. */
+.pli-panel.pli-submenu-inline {
+  position: static;
+  min-width: 0;
+  padding: 0 0 0 1rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pli-colors {
+  display: grid;
+  gap: 0.4rem;
+  width: 14.5rem;
+}
+
+.pli-color-none,
+.pli-color-custom button {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.3rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-swatches {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+}
+
+.pli-swatch {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid rgb(0 0 0 / 0.18);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.pli-swatch:hover,
+.pli-swatch[aria-pressed="true"] {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: 1px;
+}
+
+.pli-color-custom {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pli-color-custom input[type="color"] {
+  width: 2rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.3rem;
+  background: transparent;
+}
+
+.pli-color-custom span {
+  flex: 1;
+}
+
+/* ------------------------------------------------------------------ Dialogs */
+
+.pli-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.75rem;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  font-family: var(--pli-font);
+  font-size: 0.9rem;
+  box-shadow: var(--pli-shadow);
+}
+
+.pli-dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+.pli-dialog form {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem 1.25rem;
+}
+
+.pli-dialog-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.pli-dialog-body {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.pli-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pli-spacer-flex {
+  flex: 1;
+}
+
+.pli-field-row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pli-field-narrow {
+  grid-template-columns: 4rem 1fr;
+}
+
+.pli-field-row input,
+.pli-field-row select {
+  min-width: 0;
+  width: 100%;
+}
+
+.pli-dialog fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.5rem;
+}
+
+.pli-margins {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+}
+
+.pli-margins legend,
+.pli-radio-row legend {
+  padding: 0 0.3rem;
+  color: var(--pli-muted);
+}
+
+.pli-radio-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pli-dialog-or,
+.pli-dialog-note {
+  margin: 0;
+  color: var(--pli-muted);
+  font-size: 0.8rem;
+}
+
+.pli-dialog-or { text-align: center; }
+.pli-dialog-error { margin: 0; color: #d33; }
+
+.pli-upload { display: grid; }
+
+.pli-button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.45rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-button:hover:not(:disabled) { background: var(--pli-hover); }
+.pli-button:disabled { opacity: 0.45; cursor: default; }
+
+.pli-button-primary {
+  border-color: var(--pli-accent);
+  background: var(--pli-accent);
+  color: #fff;
+}
+
+.pli-button-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--pli-accent) 88%, black); }
+.pli-button-danger { color: #d33; }
+
+.pli-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pli-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ Side panels and status bar */
+
+.pli-outline {
+  flex: none;
+  width: 15rem;
+  padding: 0.6rem;
+  overflow: auto;
+  border-right: 1px solid var(--pli-border);
+  background: var(--pli-chrome);
+}
+
+.pli-outline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.pli-outline ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pli-outline button:not(.pli-tool) {
+  display: block;
+  width: 100%;
+  padding: 0.25rem 0.4rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pli-outline button:not(.pli-tool):hover { background: var(--pli-hover); }
+.pli-outline-title { font-weight: 600; }
+.pli-outline-empty { color: var(--pli-muted); font-size: 0.8rem; }
+
+.pli-status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.25rem 0.75rem;
+  border-top: 1px solid var(--pli-border);
+  background: var(--pli-chrome);
+  color: var(--pli-muted);
+  font-size: 0.8rem;
+}
+
+.pli-status select { height: 1.6rem; }
+
+.pli-status > * { white-space: nowrap; }
+.pli-status-short { display: none; }
+
+.pli-segmented {
+  display: flex;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  overflow: hidden;
+}
+
+.pli-segmented button {
+  padding: 0.15rem 0.6rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-segmented button[aria-pressed="true"] {
+  background: var(--pli-accent-soft);
+  color: var(--pli-accent);
+}
+
+.pli-find {
+  position: sticky;
+  z-index: 30;
+  top: 0.5rem;
+  float: right;
+  width: 22rem;
+  max-width: calc(100% - 1rem);
+  margin: 0.5rem 1rem 0 0;
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.4rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.6rem;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  box-shadow: var(--pli-shadow);
+}
+
+.pli-find-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pli-find-input {
+  flex: 1;
+  min-width: 0;
+  height: 1.9rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.pli-find-count {
+  min-width: 4.5rem;
+  color: var(--pli-muted);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.pli-find-options {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--pli-muted);
+  font-size: 0.8rem;
+}
+
+::highlight(pli-find) { background-color: #ffe58f; color: #1b1d22; }
+::highlight(pli-find-current) { background-color: #ff9632; color: #1b1d22; }
+
+/* ------------------------------------------------------------------ Pages */
+
+.pli-canvas-content {
+  position: relative;
+  margin: 0 auto;
+}
+
+.pli-scaler {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: top left;
+}
+
+.pli-sheet {
+  position: absolute;
+  left: 0;
+  background: var(--pli-paper);
+  box-shadow: var(--pli-shadow);
+  color: var(--pli-paper-fg);
+}
+
+.pli-canvas-continuous {
+  padding: 1.5rem 1rem 4rem;
+}
+
+.pli-sheet-continuous {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  padding: 3rem 4.5rem;
+  box-sizing: border-box;
+  min-height: 24rem;
+}
+
+/* On a phone the status bar is one short row: the page as "2 / 6", no word count, and the controls keep their size. */
+@media (max-width: 40rem) {
+  .pli-status {
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem calc(0.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pli-status-long,
+  .pli-status-words {
+    display: none;
+  }
+
+  .pli-status-short {
+    display: inline;
+  }
+
+  .pli-status .pli-segmented,
+  .pli-status .pli-tool,
+  .pli-status select {
+    flex: none;
+  }
+
+  .pli-status .pli-segmented button {
+    padding: 0.15rem 0.45rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .pli-sheet-continuous { padding: 1.5rem 1rem; }
+}
+
+/* ------------------------------------------------------------------ Headers and footers */
+
+/* A band across the top or bottom margin of a page. Double-click it to edit; it dims the body while open. */
+/* Above the body editor, which is one tall element that also covers the margins of every page after the first. */
+.pli-region-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  box-sizing: border-box;
+}
+
+/* Dragging a selection through a header or footer that isn't open shouldn't select its copy of the text. */
+.pli-region-zone:not([data-live]) .pli-region {
+  user-select: none;
+}
+
+.pli-region-zone[data-kind="header"] { border-bottom: 1px dashed transparent; }
+.pli-region-zone[data-kind="footer"] { border-top: 1px dashed transparent; }
+
+.pli-region-zone:hover:not([data-editing]) {
+  background: color-mix(in srgb, var(--pli-accent) 4%, transparent);
+  border-color: color-mix(in srgb, var(--pli-paper-muted) 45%, transparent);
+}
+
+.pli-region-zone[data-editing] {
+  background: color-mix(in srgb, var(--pli-accent) 5%, transparent);
+  border-color: var(--pli-accent);
+}
+
+.pli-region {
+  position: absolute;
+  z-index: 2;
+  min-height: 1.3em;
+  display: flex;
+  flex-direction: column;
+  color: var(--pli-paper-muted);
+  font-size: 9pt;
+  line-height: 1.3;
+  font-family: var(--pli-doc-font);
+}
+
+.pli-footer { justify-content: flex-end; }
+
+/* Paragraphs sit close together in a header or footer; headings and other formatting keep their own look. */
+.pli-region p { margin: 0; }
+
+.pli-region-hint {
+  opacity: 0;
+  color: var(--pli-paper-muted);
+  font: italic 12px var(--pli-font);
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.pli-region-zone:hover .pli-region-hint { opacity: 0.85; }
+
+/* An invisible copy that only measures how tall a header or footer is. */
+.pli-region-measure {
+  top: -10000px;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The editing surface inside a header or footer takes its look from the page, not from the standalone editor. */
+.pli-region-editor.pli-editor {
+  max-width: none;
+  min-height: 1.3em;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pli-paper-fg);
+  font-size: inherit;
+  line-height: inherit;
+  outline: none;
+}
+
+.pli-editor.pli-region-editor:focus-visible:not(.pli-body-editor) {
+  border: 0;
+  box-shadow: none;
+}
+
+.pli-region-editor p,
+.pli-editor.pli-region-editor p { margin: 0; }
+
+.pli-region .pli-field {
+  background: none;
+  padding: 0;
+}
+
+.pli-region-editor .pli-field {
+  background: color-mix(in srgb, var(--pli-accent) 12%, transparent);
+}
+
+/* The tag and controls on the edge of the header or footer being edited. */
+.pli-region-bar-page {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: 12px/1 var(--pli-font);
+}
+
+.pli-region-bar-page[data-kind="header"] { bottom: -13px; }
+.pli-region-bar-page[data-kind="footer"] { top: -13px; }
+
+.pli-region-tag {
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.3rem;
+  background: var(--pli-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.pli-region-controls {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.pli-region-options,
+.pli-region-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.55rem;
+  padding: 0 0.55rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.3rem;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-region-done {
+  border-color: var(--pli-accent);
+  background: var(--pli-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.pli-region-options:hover:not(:disabled) { background: var(--pli-hover); }
+
+.pli-region-options svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* While a header or footer is open, the body steps back. */
+.pli-scaler[data-region-editing] .pli-body-editor {
+  opacity: 0.4;
+}
+
+/* ------------------------------------------------------------------ The editing surface */
+
+.pli-editor {
+  box-sizing: border-box;
+  max-width: 48rem;
+  min-height: 12rem;
+  margin: 0 auto;
+  padding: 2rem 2.5rem;
+  background: var(--pli-paper);
+  color: var(--pli-paper-fg);
+  border: 1px solid var(--pli-border);
+  border-radius: 0.5rem;
+  font-family: var(--pli-doc-font);
+  font-size: 11pt;
+  line-height: 1.15;
+  outline: none;
+  caret-color: var(--pli-paper-fg);
+  overflow-wrap: anywhere;
+}
+
+/* Inside a page, the sheet supplies the paper. */
+.pli-body-editor {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  min-height: 0;
+}
+
+.pli-editor-paged {
+  position: absolute;
+  z-index: 3;
+}
+
+.pli-editor:focus-visible:not(.pli-body-editor) {
+  border-color: var(--pli-accent);
+  box-shadow: 0 0 0 3px var(--pli-accent-soft);
+}
+
+.pli-editor ::selection {
+  background: color-mix(in srgb, var(--pli-accent) 30%, transparent);
+}
+
+/*
+ * Blocks use only a bottom margin. Margins never collapse that way, which keeps measurements for
+ * page layout exact: a gap added between blocks moves everything below it by exactly its height.
+ */
+.pli-editor > *,
+.pli-editor .pli-list > * {
+  white-space: pre-wrap;
+}
+
+.pli-editor p,
+.pli-editor h1,
+.pli-editor h2,
+.pli-editor h3,
+.pli-editor h4,
+.pli-editor h5,
+.pli-editor h6,
+.pli-editor blockquote,
+.pli-editor pre {
+  margin: 0 0 8pt;
+}
+
+.pli-editor h1 { font-size: 20pt; line-height: 1.2; padding-top: 12pt; margin-bottom: 6pt; }
+.pli-editor h2 { font-size: 16pt; line-height: 1.25; padding-top: 10pt; margin-bottom: 6pt; }
+.pli-editor h3 { font-size: 14pt; line-height: 1.3; padding-top: 8pt; margin-bottom: 4pt; color: #434343; }
+.pli-editor h4 { font-size: 12pt; padding-top: 6pt; margin-bottom: 4pt; color: #666; }
+.pli-editor h5 { font-size: 11pt; padding-top: 6pt; margin-bottom: 4pt; color: #666; }
+.pli-editor h6 { font-size: 11pt; font-style: italic; padding-top: 6pt; margin-bottom: 4pt; color: #666; }
+.pli-editor > :first-child { padding-top: 0; }
+
+.pli-editor .pli-title { font-size: 26pt; line-height: 1.2; font-weight: 700; margin-bottom: 3pt; }
+.pli-editor .pli-subtitle { font-size: 15pt; line-height: 1.3; color: #666; margin-bottom: 12pt; }
+
+.pli-editor p[data-placeholder]::before {
+  content: attr(data-placeholder);
+  color: var(--pli-paper-muted);
+  pointer-events: none;
+  position: absolute;
+}
+
+.pli-editor blockquote {
+  padding-left: 12pt;
+  border-left: 3pt solid var(--pli-quote-line);
+  color: var(--pli-quote-fg);
+}
+
+.pli-editor pre {
+  padding: 8pt 10pt;
+  border-radius: 4px;
+  background: var(--pli-code-bg);
+  color: var(--pli-paper-fg);
+  font-family: var(--pli-mono);
+  font-size: 10pt;
+  line-height: 1.45;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.pli-editor code {
+  font-family: var(--pli-mono);
+  font-size: 0.9em;
+}
+
+.pli-editor :not(pre) > code {
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  background: var(--pli-code-bg);
+}
+
+.pli-editor a { color: var(--pli-link); }
+
+.pli-editor hr {
+  height: 0;
+  margin: 0 0 10pt;
+  padding-top: 6pt;
+  border: 0;
+  border-top: 1px solid var(--pli-paper-line);
+}
+
+.pli-editor .pli-field {
+  background: color-mix(in srgb, var(--pli-accent) 12%, transparent);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.pli-region .pli-field {
+  background: none;
+  padding: 0;
+}
+
+.pli-region-editor .pli-field {
+  background: color-mix(in srgb, var(--pli-accent) 12%, transparent);
+}
+
+/* Page breaks show as a dashed rule with a label. */
+.pli-editor .pli-page-break {
+  position: relative;
+  height: 0;
+  margin: 0 0 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--pli-paper-line);
+  user-select: none;
+}
+
+.pli-editor .pli-page-break::after {
+  content: "Page break";
+  position: absolute;
+  top: -0.65em;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 0.6em;
+  background: var(--pli-paper);
+  color: var(--pli-paper-muted);
+  font-size: 8pt;
+}
+
+/* Lists: items are flat blocks; the marker is drawn by CSS so it adds no text to the DOM. */
+
+.pli-editor .pli-list {
+  margin: 0 0 8pt;
+}
+
+.pli-editor [data-type="list_item"] {
+  position: relative;
+  padding-left: calc(24pt + var(--pli-depth, 0) * 18pt);
+  margin-bottom: 2pt;
+}
+
+.pli-editor [data-type="list_item"]::before {
+  content: attr(data-marker);
+  position: absolute;
+  left: calc(var(--pli-depth, 0) * 18pt);
+  width: 18pt;
+  text-align: right;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Images */
+
+/* What a wrapped picture floats in must hold it, and a break ends the wrapping. */
+.pli-editor {
+  display: flow-root;
+}
+
+.pli-editor .pli-page-break,
+.pli-editor .pli-section-break {
+  clear: both;
+}
+
+.pli-editor .pli-image {
+  margin: 0 0 8pt;
+  line-height: 0;
+  user-select: none;
+}
+
+/*
+ * A picture text wraps around floats to the edge, and the blocks after it run beside it. It is only a float in the body of a
+ * document: in a table cell, a header, a footer or a footnote it stays on its own line.
+ */
+.pli-editor .pli-image[data-wrap="left"] {
+  float: left;
+  margin: 0 14px 6pt 0;
+}
+
+.pli-editor .pli-image[data-wrap="right"] {
+  float: right;
+  margin: 0 0 6pt 14px;
+}
+
+/* In a table cell the picture floats like it does on the page, and the cell holds it (a cell is its own block formatting context). */
+.pli-editor td > .pli-image[data-wrap] {
+  max-width: 70%;
+}
+
+.pli-region .pli-image[data-wrap],
+.pli-note .pli-image[data-wrap],
+.pli-notes .pli-image[data-wrap] {
+  float: none;
+  max-width: none;
+  margin: 0 0 8pt;
+}
+
+.pli-image-frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.pli-image-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* An image being fetched, whose file is missing, or whose upload is running or failed. */
+.pli-image-frame[data-state="loading"],
+.pli-image-frame[data-state="unavailable"] {
+  background: var(--pli-code-bg);
+  outline: 1px dashed var(--pli-border);
+  outline-offset: -1px;
+}
+
+.pli-image-frame[data-state="loading"] img,
+.pli-image-frame[data-state="unavailable"] img {
+  visibility: hidden;
+}
+
+.pli-image-frame[data-state="unavailable"]::after {
+  content: "Image unavailable";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--pli-paper-muted);
+  font-size: 0.8rem;
+}
+
+.pli-image-frame[data-state="uploading"] img,
+.pli-image-frame[data-state="failed"] img {
+  opacity: 0.55;
+}
+
+.pli-upload-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font: 0.75rem/1.2 var(--pli-font, system-ui, sans-serif);
+  user-select: none;
+}
+
+.pli-upload-bar {
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.3);
+}
+
+.pli-upload-bar > span {
+  display: block;
+  height: 100%;
+  background: #fff;
+  transition: width 0.2s;
+}
+
+.pli-upload-failed {
+  background: rgb(160 30 30 / 0.9);
+}
+
+.pli-upload-failed > span {
+  flex: 1;
+}
+
+.pli-upload-failed button {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid rgb(255 255 255 / 0.7);
+  border-radius: 0.3rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-upload-failed button:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.pli-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--pli-border);
+  background: var(--pli-accent-soft);
+  color: var(--pli-fg);
+}
+
+.pli-image[data-selected] .pli-image-frame {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: 0;
+}
+
+.pli-image-handle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--pli-accent);
+  border-radius: 2px;
+  background: #fff;
+  touch-action: none;
+}
+
+.pli-image-handle-nw { left: -6px; top: -6px; cursor: nwse-resize; }
+.pli-image-handle-ne { right: -6px; top: -6px; cursor: nesw-resize; }
+.pli-image-handle-sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+.pli-image-handle-se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+
+/* Setting a picture's crop: what is cut away is dimmed, and each edge of what is kept has a grip. */
+.pli-crop-shade {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.pli-crop-frame {
+  position: absolute;
+  outline: 2px solid var(--pli-accent);
+  outline-offset: -1px;
+  pointer-events: none;
+}
+
+.pli-crop-handle {
+  position: absolute;
+  width: 8px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--pli-accent);
+  border-radius: 3px;
+  background: #fff;
+  touch-action: none;
+  cursor: ew-resize;
+}
+
+.pli-crop-handle-top,
+.pli-crop-handle-bottom {
+  width: 28px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+/* Table of contents */
+
+.pli-editor .pli-toc {
+  margin: 0 0 12pt;
+  user-select: none;
+}
+
+.pli-toc-title {
+  margin: 0 0 6pt !important;
+  font-size: 14pt;
+  font-weight: 700;
+}
+
+.pli-toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pli-toc li { margin: 0 0 3pt; }
+
+.pli-toc a {
+  display: flex;
+  gap: 1em;
+  color: var(--pli-paper-fg);
+  text-decoration: none;
+}
+
+.pli-toc a:hover .pli-toc-text { text-decoration: underline; }
+.pli-toc-page { margin-left: auto; color: var(--pli-paper-muted); }
+.pli-toc-empty { color: var(--pli-paper-muted); font-style: italic; }
+
+/* Gaps that move content onto the next page. They are collapsed while the editor measures. */
+
+.pli-spacer {
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pli-measuring [data-pli-spacer] {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------ Tables */
+
+.pli-editor .pli-table-box,
+.pli-region .pli-table-box {
+  position: relative;
+  margin: 0 0 8pt;
+}
+
+/* In a header or footer, columns sit flush, with no gap below them. */
+.pli-region .pli-table-box { margin-bottom: 0; }
+
+.pli-editor table.pli-table,
+.pli-region table.pli-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: inherit;
+}
+
+.pli-table td {
+  position: relative;
+  min-width: 0;
+  padding: 4pt 6pt;
+  border: 1px solid var(--pli-table-line);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.pli-table[data-borders="horizontal"] td { border-left: 0; border-right: 0; }
+.pli-table[data-borders="none"] td { border: 0; }
+/* Columns laid out in a header or footer: flush with the text around them, with no padding to inset them or add height. */
+.pli-region .pli-table[data-borders="none"] td { padding: 0; }
+.pli-editor .pli-table[data-borders="none"] { outline: 1px dashed color-mix(in srgb, var(--pli-paper-muted) 40%, transparent); outline-offset: -1px; }
+
+.pli-table tr[data-header] td {
+  background: var(--pli-paper-tint);
+  font-weight: 700;
+}
+
+/* Text on a highlight, and in a shaded cell, stays dark: those backgrounds are light whatever the page is. */
+.pli-highlight,
+.pli-table td[data-shaded] {
+  color: var(--pli-on-highlight);
+}
+
+/* Text colored black is the page's text color, so it shows on a dark page. */
+.pli-ink:not(.pli-highlight) {
+  color: var(--pli-paper-fg) !important;
+}
+
+/* Blocks in a cell: tighter than the page, and the last one has no gap under it. */
+.pli-editor td > *,
+.pli-editor td .pli-list > * {
+  white-space: pre-wrap;
+}
+
+.pli-editor td > p,
+.pli-editor td > h1,
+.pli-editor td > h2,
+.pli-editor td > h3,
+.pli-editor td > h4,
+.pli-editor td > h5,
+.pli-editor td > h6,
+.pli-editor td > blockquote,
+.pli-editor td > pre,
+.pli-editor td > .pli-list,
+.pli-editor td > .pli-image {
+  margin-bottom: 2pt;
+}
+
+.pli-editor td > :last-child { margin-bottom: 0; }
+/* The handles for resizing a table sit after a cell's blocks, so the last block is the one just before them. */
+.pli-editor td > :has(+ :is(.pli-col-resizer, .pli-row-resizer)) { margin-bottom: 0; }
+.pli-editor td > h1, .pli-editor td > h2, .pli-editor td > h3 { padding-top: 0; }
+
+.pli-table td[data-selected-cell] {
+  box-shadow: inset 0 0 0 9999px color-mix(in srgb, var(--pli-accent) 18%, transparent);
+}
+
+.pli-table[data-selected] {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: 1px;
+}
+
+.pli-table-grip {
+  position: absolute;
+  left: -20px;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--pli-border);
+  border-radius: 3px;
+  background: var(--pli-paper);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+  user-select: none;
+  z-index: 2;
+}
+
+.pli-table-grip::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  background:
+    linear-gradient(var(--pli-paper-muted), var(--pli-paper-muted)) 0 50% / 100% 1px no-repeat,
+    linear-gradient(var(--pli-paper-muted), var(--pli-paper-muted)) 50% 0 / 1px 100% no-repeat;
+}
+
+.pli-table-box:hover .pli-table-grip,
+.pli-table-box:has(.pli-table[data-selected]) .pli-table-grip {
+  opacity: 1;
+}
+
+.pli-table-box:has(.pli-table[data-selected]) .pli-table-grip {
+  border-color: var(--pli-accent);
+}
+
+/* Dragging a column border */
+.pli-col-resizer {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  z-index: 2;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.pli-col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  background: transparent;
+}
+
+.pli-col-resizer:hover::after,
+.pli-col-resizer:active::after {
+  background: var(--pli-accent);
+}
+
+/* Dragging the bottom edge of a row */
+.pli-row-resizer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  z-index: 2;
+  height: 8px;
+  cursor: row-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.pli-row-resizer::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3px;
+  height: 2px;
+  background: transparent;
+}
+
+.pli-row-resizer:hover::after,
+.pli-row-resizer:active::after {
+  background: var(--pli-accent);
+}
+
+/* A copy of the header row, shown where a long table continues on a new page. */
+.pli-table tr.pli-repeat-row td {
+  background: #f3f4f6;
+  font-weight: 700;
+  user-select: none;
+  pointer-events: none;
+  vertical-align: top;
+  white-space: pre-wrap;
+}
+
+/* Gap inside a table where a row moves to the next page. */
+.pli-table tr.pli-spacer-row td {
+  padding: 0;
+  border: 0 !important;
+  background: none !important;
+}
+
+.pli-table-grid-wrap { padding: 0.25rem; }
+
+.pli-table-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1.15rem);
+  gap: 2px;
+}
+
+.pli-table-grid-cell {
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 1px solid var(--pli-border);
+  border-radius: 2px;
+  background: var(--pli-bg);
+  cursor: pointer;
+}
+
+.pli-table-grid-cell[data-active] {
+  border-color: var(--pli-accent);
+  background: var(--pli-accent-soft);
+}
+
+.pli-table-grid-label {
+  margin-top: 0.4rem;
+  color: var(--pli-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.pli-tool-wide {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pli-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ Small screens */
+
+@media (max-width: 640px) {
+  .pli-titlebar {
+    padding: 0.45rem 0.75rem 0;
+  }
+
+  .pli-titlebar {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .pli-doc-title {
+    flex: 1 1 8rem;
+    font-size: 1rem;
+  }
+
+  /* Extra controls (Comments, a Share button) drop to their own row when they don't fit beside the title. */
+  .pli-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 100%;
+    margin-left: auto;
+  }
+
+  /* Menus open full width under the bar, and submenus unfold in place, so nothing runs off the screen. */
+  .pli-menubar {
+    overflow: visible;
+  }
+
+  .pli-menubar-item {
+    position: static;
+  }
+
+  .pli-menubar .pli-panel {
+    left: 0.5rem;
+    right: 0.5rem;
+    min-width: 0;
+  }
+
+  .pli-menubar .pli-menu-list {
+    min-width: 0;
+  }
+
+  .pli-menubar .pli-submenu {
+    position: static;
+    padding: 0 0 0 1rem;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .pli-toolbar {
+    margin: var(--pli-bar-margin, 0.35rem 0.5rem 0);
+  }
+}
+
+/*
+ * On a phone the toolbar is wider than the screen and scrolls sideways, so it opens with what is used most: undo, bold and
+ * italic, lists. The style and font boxes, which are wide, come last, and the menu stays at the right edge, faded into
+ * what is hidden beside it, with the layout and zoom in it.
+ */
+@media (max-width: 40rem) {
+  .pli-toolbar [data-group="history"] { order: 1; }
+  .pli-toolbar [data-group="table"] { order: 2; }
+  .pli-toolbar [data-group="marks"] { order: 3; }
+  .pli-toolbar [data-group="list"] { order: 4; }
+  .pli-toolbar [data-group="align"] { order: 5; }
+  .pli-toolbar [data-group="insert"] { order: 6; }
+  .pli-toolbar [data-group="style"] { order: 7; }
+
+  /* Dividers are for groups that sit in their written order. */
+  .pli-toolbar .pli-group + .pli-group::before {
+    display: none;
+  }
+
+  .pli-toolbar .pli-group + .pli-group {
+    margin-left: 0.25rem;
+    padding-left: 0.25rem;
+  }
+
+  /* The menu's group takes the toolbar's right padding, so nothing that has scrolled shows through beside it. */
+  .pli-toolbar {
+    padding-right: 0;
+  }
+
+  .pli-toolbar [data-group="more"] {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    order: 99;
+    margin-left: auto;
+    padding-left: 0.35rem;
+    padding-right: 0.4rem;
+    background: var(--pli-bg);
+  }
+
+  /* The Documents toolbar fades its right end with the menu's own group (below), so it has no fade of its own on a phone. */
+  .pli-toolbar[data-overflow]:has([data-group="more"])::after {
+    display: none;
+  }
+
+  .pli-toolbar[data-overflow="end"] [data-group="more"],
+  .pli-toolbar[data-overflow="both"] [data-group="more"] {
+    box-shadow: -1rem 0 0.75rem -0.25rem var(--pli-bg);
+  }
+}
+
+/* ------------------------------------------------------------------ Ruler */
+
+/* Sticks to the top of the scrolling page area, as wide as the page, so it lines up with it. */
+.pli-ruler-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 auto;
+}
+
+.pli-ruler {
+  position: relative;
+  overflow: visible;
+  border-bottom: 1px solid var(--pli-border);
+  background: var(--pli-chrome);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  color: var(--pli-muted);
+  user-select: none;
+  touch-action: none;
+}
+
+.pli-ruler-margin {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--pli-muted) 22%, transparent);
+}
+
+.pli-ruler-ticks {
+  position: absolute;
+  inset: 0;
+  stroke: var(--pli-muted);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+  pointer-events: none;
+}
+
+.pli-ruler-ticks text {
+  fill: var(--pli-muted);
+  stroke: none;
+  font: 9px var(--pli-font);
+}
+
+.pli-ruler-handle {
+  position: absolute;
+  transform: translateX(-50%);
+  background: var(--pli-accent);
+  touch-action: none;
+}
+
+.pli-ruler-handle:focus-visible {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: 2px;
+}
+
+/* The page edges of the text: a thin bar across the whole ruler. */
+.pli-ruler-margin-handle {
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+.pli-ruler-margin-handle::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: var(--pli-muted);
+  opacity: 0.55;
+}
+
+.pli-ruler-margin-handle:hover::after,
+.pli-ruler-margin-handle[data-active]::after {
+  background: var(--pli-accent);
+  opacity: 1;
+}
+
+/* First-line marker points down from the top; left and right markers point up from the bottom. */
+.pli-ruler-first,
+.pli-ruler-left,
+.pli-ruler-right {
+  width: 11px;
+  height: 8px;
+  cursor: pointer;
+}
+
+.pli-ruler-first {
+  top: 1px;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.pli-ruler-left,
+.pli-ruler-right {
+  bottom: 1px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.pli-ruler-first:hover,
+.pli-ruler-left:hover,
+.pli-ruler-right:hover,
+.pli-ruler-handle[data-active] {
+  background: color-mix(in srgb, var(--pli-accent) 70%, #000);
+}
+
+/* A line down the page while a handle is dragged, to see where it will land. */
+.pli-ruler-guide {
+  position: absolute;
+  top: 100%;
+  width: 0;
+  height: 100vh;
+  border-left: 1px dashed var(--pli-accent);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ Footnotes */
+
+/* References are numbered by CSS in the order they appear in the editor, so they renumber as text changes. */
+.pli-editor {
+  counter-reset: pli-note;
+}
+
+.pli-footnote-ref {
+  counter-increment: pli-note;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.pli-footnote-ref::after {
+  content: counter(pli-note);
+  color: var(--pli-link);
+  font-size: 0.72em;
+  font-weight: 600;
+  vertical-align: super;
+}
+
+/* The notes at the bottom of a page: a short rule, then each note beside its number. */
+.pli-notes {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-top: 8px;
+  justify-content: flex-end;
+  color: var(--pli-paper-fg);
+  font-family: var(--pli-doc-font);
+  font-size: 9pt;
+  line-height: 1.25;
+}
+
+.pli-notes::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 33%;
+  border-top: 1px solid color-mix(in srgb, var(--pli-paper-fg) 55%, transparent);
+}
+
+.pli-note {
+  position: relative;
+  display: flex;
+  gap: 0.35em;
+  padding: 1px 0;
+  border-radius: 3px;
+}
+
+.pli-note:hover:not([data-editing]) {
+  background: color-mix(in srgb, var(--pli-accent) 7%, transparent);
+}
+
+.pli-note[data-editing] {
+  background: color-mix(in srgb, var(--pli-accent) 8%, transparent);
+  outline: 1px solid var(--pli-accent);
+  outline-offset: 1px;
+}
+
+.pli-note-number {
+  flex: none;
+  min-width: 1.1em;
+  font-size: 0.8em;
+  font-weight: 600;
+  vertical-align: super;
+  line-height: 1.6;
+  color: var(--pli-link);
+  text-align: right;
+}
+
+.pli-note-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pli-note-body p {
+  margin: 0;
+}
+
+.pli-note-editor.pli-editor {
+  max-width: none;
+  min-height: 1.25em;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  outline: none;
+  counter-reset: none;
+}
+
+.pli-note-done {
+  align-self: flex-end;
+  margin-top: 2px;
+  padding: 0 0.5rem;
+  height: 1.4rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: var(--pli-accent);
+  color: #fff;
+  font: 600 11px var(--pli-font);
+  cursor: pointer;
+}
+
+/* In the pageless view, and in exports without pages, the notes come after the text. */
+.pli-notes-end {
+  position: static;
+  margin-top: 2rem;
+  justify-content: flex-start;
+}
+
+.pli-notes:not(.pli-notes-end) .pli-note-body,
+.pli-notes .pli-note:not([data-editing]) {
+  user-select: none;
+}
+
+.pli-measure {
+  position: absolute;
+  top: -10000px;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pli-note-measure {
+  color: var(--pli-paper-fg);
+  font-family: var(--pli-doc-font);
+  font-size: 9pt;
+  line-height: 1.25;
+}
+
+/* ------------------------------------------------------------------ Sections and columns */
+
+/* A section break shows as a dashed rule with a label, like a page break. */
+.pli-editor .pli-section-break {
+  position: relative;
+  height: 0;
+  margin: 0 0 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--pli-accent);
+  user-select: none;
+}
+
+.pli-editor .pli-section-break::after {
+  content: "Section break (continuous)";
+  position: absolute;
+  top: -0.65em;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 0.6em;
+  background: var(--pli-paper);
+  color: var(--pli-accent);
+  font-size: 8pt;
+  white-space: nowrap;
+}
+
+.pli-editor .pli-section-break[data-kind="next_page"]::after {
+  content: "Section break (next page)";
+}
+
+/* Text in columns: the browser flows each page's text into the columns. The paginator sets the height. */
+.pli-cols {
+  box-sizing: border-box;
+  column-fill: balance;
+}
+
+.pli-cols [data-type="image"],
+.pli-cols [data-type="toc"],
+.pli-cols [data-type="divider"],
+.pli-cols .pli-table-box {
+  break-inside: avoid;
+}
+
+.pli-cols [data-type="heading"],
+.pli-cols [data-type="title"],
+.pli-cols [data-type="subtitle"] {
+  break-after: avoid;
+}
+
+/* While measuring, the columns are one narrow column as wide as a column, so every block has its natural height. */
+.pli-measuring .pli-cols {
+  column-count: 1 !important;
+  height: auto !important;
+  width: calc((100% - (var(--pli-cols) - 1) * var(--pli-col-gap)) / var(--pli-cols));
+}
+
+/* ------------------------------------------------------------------ Comments and collaboration */
+
+.pli-document {
+  --pli-comment: rgb(255 212 0 / 0.28);
+  --pli-comment-active: rgb(255 196 0 / 0.55);
+}
+
+/* Commented text on the page. The paper stays light, so these are the same in dark mode. */
+.pli-comment {
+  background: var(--pli-comment);
+  border-bottom: 2px solid rgb(240 180 0 / 0.7);
+  cursor: pointer;
+}
+
+.pli-presence {
+  display: flex;
+  align-items: center;
+}
+
+.pli-presence .pli-avatar {
+  margin-left: -6px;
+  border: 2px solid var(--pli-chrome);
+}
+
+.pli-presence .pli-avatar:first-child {
+  margin-left: 0;
+}
+
+.pli-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.pli-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pli-avatar-more {
+  background: var(--pli-hover);
+  color: var(--pli-fg);
+  font-size: 0.7rem;
+}
+
+.pli-comments {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 19rem;
+  max-width: 40%;
+  padding: 0.75rem;
+  overflow-y: auto;
+  border-left: 1px solid var(--pli-border);
+  background: var(--pli-chrome);
+}
+
+.pli-comments-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pli-comments-head .pli-tool {
+  margin-left: auto;
+}
+
+.pli-comments-count {
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--pli-accent-soft);
+  color: var(--pli-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pli-comments-note {
+  margin: 0;
+  color: var(--pli-muted);
+  font-size: 0.8rem;
+}
+
+.pli-comments-toggle {
+  align-self: flex-start;
+}
+
+.pli-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pli-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.5rem;
+  background: var(--pli-bg);
+}
+
+.pli-thread[data-active] {
+  border-color: var(--pli-accent);
+  box-shadow: 0 0 0 1px var(--pli-accent);
+}
+
+.pli-thread[data-resolved] {
+  opacity: 0.75;
+}
+
+.pli-thread-quote {
+  display: block;
+  margin: 0;
+  padding: 0 0 0 0.5rem;
+  border: 0;
+  border-left: 3px solid rgb(240 180 0 / 0.8);
+  background: none;
+  color: var(--pli-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.pli-thread-draft .pli-thread-quote {
+  cursor: default;
+}
+
+.pli-comment-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.pli-comment-author {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pli-comment-time {
+  color: var(--pli-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.pli-comment-tools {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.pli-comment-body {
+  margin: 0.25rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pli-mention {
+  padding: 0 0.15em;
+  border-radius: 0.25rem;
+  background: var(--pli-accent-soft);
+  color: var(--pli-accent);
+  font-weight: 600;
+}
+
+.pli-mention[data-self] {
+  background: var(--pli-accent);
+  color: #fff;
+}
+
+.pli-composer {
+  position: relative;
+}
+
+.pli-mention-list {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin: 0.15rem 0 0;
+  padding: 0.2rem;
+  list-style: none;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.5rem;
+  background: var(--pli-bg);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
+}
+
+.pli-mention-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.35rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.pli-mention-list li[aria-selected="true"] {
+  background: var(--pli-hover);
+}
+
+.pli-comment-confirm {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+}
+
+.pli-thread-resolved {
+  margin: 0;
+  color: var(--pli-muted);
+  font-size: 0.75rem;
+}
+
+.pli-thread-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pli-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pli-accent);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.pli-link-button:hover {
+  text-decoration: underline;
+}
+
+.pli-link-button.pli-danger {
+  color: #d14343;
+}
+
+.pli-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pli-composer textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.pli-composer textarea:focus {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: -1px;
+}
+
+.pli-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.pli-button-primary {
+  border-color: var(--pli-accent);
+  background: var(--pli-accent);
+  color: #fff;
+}
+
+.pli-button-primary:disabled {
+  opacity: 0.5;
+}
+
+/* Other people's cursors and selections, drawn over the pages. */
+.pli-remote-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.pli-remote-selection {
+  position: absolute;
+  background: var(--pli-peer);
+  opacity: 0.22;
+}
+
+.pli-remote-caret {
+  position: absolute;
+  width: 2px;
+  background: var(--pli-peer);
+}
+
+.pli-remote-flag {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  padding: 1px 5px;
+  border-radius: 3px 3px 3px 0;
+  background: var(--pli-peer);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .pli-comments {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    width: auto;
+    max-width: none;
+    max-height: 55%;
+    border-top: 1px solid var(--pli-border);
+    border-left: 0;
+    box-shadow: 0 -4px 16px rgb(0 0 0 / 0.15);
+  }
+
+  .pli-workspace {
+    position: relative;
+  }
+}
+
+/* ------------------------------------------------------------------ Live editing */
+
+.pli-sync {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--pli-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.pli-sync-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #8b93a1;
+}
+
+.pli-sync[data-status="synced"] .pli-sync-dot { background: #2f9e44; }
+.pli-sync[data-status="saving"] .pli-sync-dot,
+.pli-sync[data-status="resyncing"] .pli-sync-dot { background: #e8a200; animation: pli-sync-pulse 1s ease-in-out infinite; }
+.pli-sync[data-status="offline"] .pli-sync-dot { background: #d14343; }
+.pli-sync[data-status="offline"] { color: #d14343; }
+
+@keyframes pli-sync-pulse {
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pli-sync-dot { animation: none !important; }
+}
+
+/* Until the first copy of the shared document has arrived, the controls wait too. */
+.pli-document[data-loading] .pli-toolbar {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ Named styles */
+
+.pli-style-group h3 {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pli-muted);
+}
+
+.pli-style-group ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pli-style-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+}
+
+.pli-style-row input,
+.pli-style-row select {
+  min-width: 0;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.35rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.pli-style-look {
+  grid-column: 1 / -1;
+  color: var(--pli-muted);
+  font-size: 0.75rem;
+}
+
+.pli-style-confirm {
+  font-size: 0.8rem;
+}
+
+/* ------------------------------------------------------------------ Suggestions */
+
+ins.pli-suggest,
+del.pli-suggest {
+  color: var(--pli-suggest, var(--pli-accent));
+  text-decoration-color: var(--pli-suggest, var(--pli-accent));
+}
+
+ins.pli-suggest {
+  background: color-mix(in srgb, var(--pli-suggest, var(--pli-accent)) 10%, transparent);
+  text-decoration-line: underline;
+}
+
+del.pli-suggest {
+  text-decoration-line: line-through;
+}
+
+.pli-document[data-suggesting] .pli-mode-button {
+  border-color: var(--pli-accent);
+  background: var(--pli-accent-soft);
+  color: var(--pli-accent);
+}
+
+.pli-suggestion-bulk {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.pli-suggestion-kind {
+  color: var(--pli-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.pli-suggestion-struck {
+  text-decoration: line-through;
+}
+
+/* ------------------------------------------------------------------ Toolbar on a phone */
+
+/* On a phone the toolbar is the last thing in the editor, under the status bar, so it rides just above the keyboard. */
+.pli-toolbar-docked {
+  flex: none;
+  margin: 0;
+  padding: 0.3rem 0 0.3rem 0.5rem;
+  border-width: 1px 0 0;
+  border-radius: 0;
+}
+
+.pli-toolbar-docked:last-child {
+  padding-bottom: calc(0.3rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* The editor is fitted to what the keyboard leaves: it fills the visible part of the page, with no status bar. */
+.pli-document[data-keyboard] {
+  z-index: 100;
+}
+
+/* The toolbar below it takes the space for the home indicator. */
+.pli-document:has(.pli-toolbar-docked) .pli-status {
+  padding-bottom: 0.25rem;
+}
+
+.pli-document[data-keyboard] .pli-status {
+  display: none;
+}
+
+.pli-document[data-keyboard] .pli-toolbar-docked:last-child {
+  padding-bottom: 0.3rem;
+}
+
+/* Font picker */
+.pli-font-button {
+  position: relative;
+  width: 8.5rem;
+  justify-content: flex-start;
+  padding-right: 1.4rem;
+  text-align: left;
+}
+.pli-font-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pli-font-button .pli-select-chevron { right: 0.35rem; }
+
+.pli-fonts {
+  display: grid;
+  gap: 0.35rem;
+  box-sizing: border-box;
+  width: 17rem;
+  max-width: 100%;
+  background: var(--pli-bg, #ffffff);
+  color: var(--pli-fg, inherit);
+}
+.pli-fonts-search {
+  box-sizing: border-box;
+  width: 100%;
+  height: 1.9rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+}
+.pli-fonts-search:focus-visible,
+.pli-fonts-kind:focus-visible {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: 1px;
+}
+.pli-fonts-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.pli-fonts-kind {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.pli-fonts-kind:hover { background: var(--pli-hover); }
+.pli-fonts-kind[aria-pressed="true"] {
+  border-color: var(--pli-accent);
+  background: var(--pli-accent-soft);
+}
+.pli-fonts-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: 60vh;
+  background: var(--pli-bg, #ffffff);
+}
+.pli-fonts-header {
+  display: flex;
+  align-items: flex-end;
+  padding: 0 0.5rem 0.2rem;
+  color: var(--pli-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pli-fonts-empty {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  color: var(--pli-muted);
+}
+.pli-fonts-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.5rem 0 0.25rem;
+  border-radius: 0.3rem;
+  color: var(--pli-fg, inherit);
+  cursor: pointer;
+}
+.pli-fonts-item:hover,
+.pli-fonts-item[data-active] { background: var(--pli-hover); }
+.pli-fonts-item[aria-selected="true"] { background: var(--pli-accent-soft); }
+.pli-fonts-item[aria-selected="true"][data-active] { background: var(--pli-accent-soft); box-shadow: inset 0 0 0 1px var(--pli-accent); }
+.pli-fonts-check { width: 1rem; flex: none; text-align: center; color: var(--pli-accent); }
+.pli-fonts-sample {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pli-fonts-kindtag { flex: none; color: var(--pli-muted); font-size: 0.7rem; }
+.pli-fonts-item[data-status="failed"] .pli-fonts-sample { opacity: 0.75; }

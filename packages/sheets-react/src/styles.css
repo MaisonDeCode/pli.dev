@@ -1,0 +1,2974 @@
+/*
+ * Styles for @pli.dev/sheets-react. Load @pli.dev/react/styles.css as well: the toolbar, menus and colour pickers are its own,
+ * and its custom properties (--pli-bg, --pli-border, --pli-accent…) theme the grid, light or dark.
+ */
+
+.pli-spreadsheet {
+  --pli-grid-line: color-mix(in srgb, var(--pli-border) 85%, var(--pli-fg) 0%);
+  --pli-header-bg: var(--pli-chrome);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  font-family: var(--pli-font);
+  font-size: 13px;
+}
+
+/* The title, menus and toolbar are Pli.Documents' own chrome, so the two editors look alike. */
+.pli-sheet-chrome {
+  padding-bottom: 0.4rem;
+}
+
+.pli-sheet-toolbar {
+  flex: none;
+}
+
+.pli-sheet-sep {
+  flex: none;
+  align-self: stretch;
+  width: 1px;
+  margin: 0.25rem 0.2rem;
+  background: var(--pli-border);
+}
+
+.pli-sheet-fmt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.pli-sheet-formulabar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.5rem 0.3rem;
+}
+
+.pli-sheet-namebox,
+.pli-sheet-bar {
+  height: 1.8rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.pli-sheet-namebox {
+  flex: none;
+  width: 7rem;
+  text-align: center;
+}
+
+.pli-sheet-bar {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--pli-mono);
+  font-size: 12.5px;
+}
+
+.pli-sheet-namebox:focus,
+.pli-sheet-bar:focus {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: -1px;
+}
+
+.pli-sheet-fx {
+  flex: none;
+  color: var(--pli-muted);
+  font-style: italic;
+  font-family: serif;
+}
+
+/* ---- the grid ---- */
+
+.pli-grid {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--pli-bg);
+  border-top: 1px solid var(--pli-border);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pli-grid-quad {
+  position: absolute;
+  overflow: hidden;
+}
+
+.pli-grid-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.pli-cell {
+  position: absolute;
+  box-sizing: border-box;
+  border-right: 1px solid var(--pli-grid-line);
+  border-bottom: 1px solid var(--pli-grid-line);
+}
+
+.pli-cell-text {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--pli-fg);
+  line-height: 1.25;
+}
+
+/* Right-aligned and centred text stays inside its cell, so only the default (left) runs over its neighbours. */
+.pli-cell-text[style*="text-align: right"] {
+  justify-content: flex-end;
+}
+
+.pli-cell-text[style*="text-align: center"] {
+  justify-content: center;
+}
+
+/* Border lines are drawn over the cells, on the edges they belong to. */
+.pli-cell-line {
+  position: absolute;
+  box-sizing: border-box;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Conditional formats: a data bar behind the text, and an icon before it. */
+.pli-cell-bar {
+  position: absolute;
+  top: 2px;
+  bottom: 3px;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 1px;
+}
+
+.pli-cell-axis {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 1px;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--pli-fg);
+  opacity: 0.6;
+}
+
+.pli-cell-icon {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.pli-grid-range,
+.pli-grid-active,
+.pli-grid-copied,
+.pli-grid-fill-preview {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.pli-grid-range {
+  border: 1px solid var(--pli-accent);
+  z-index: 3;
+}
+
+.pli-grid-range[data-multi] {
+  background: color-mix(in srgb, var(--pli-accent) 12%, transparent);
+}
+
+.pli-grid-active {
+  border: 2px solid var(--pli-accent);
+  z-index: 4;
+}
+
+.pli-grid-copied {
+  border: 2px dashed var(--pli-accent);
+  z-index: 5;
+}
+
+.pli-grid-fill-preview {
+  border: 1px dashed var(--pli-fg);
+  z-index: 5;
+}
+
+.pli-grid-fill-preview[data-move] {
+  border: 2px dashed var(--pli-accent);
+  background: color-mix(in srgb, var(--pli-accent) 10%, transparent);
+}
+
+/* Where the cells being dragged can't be dropped (merged cells in the way, a locked cell). */
+.pli-grid-fill-preview[data-refused] {
+  border-color: var(--pli-danger, #d92d20);
+  background: color-mix(in srgb, var(--pli-danger, #d92d20) 12%, transparent);
+}
+
+/* A reference typed into a formula, outlined where it points. */
+.pli-grid-ref {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* The button in the heading cell of a filtered column. */
+.pli-grid-filterbtn {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--pli-border);
+  border-radius: 3px;
+  background: var(--pli-bg);
+  color: var(--pli-muted);
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.pli-grid-filterbtn[data-on] {
+  border-color: var(--pli-accent);
+  background: var(--pli-accent);
+  color: #fff;
+}
+
+.pli-grid-handle {
+  position: absolute;
+  z-index: 6;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--pli-bg);
+  background: var(--pli-accent);
+  pointer-events: none;
+}
+
+.pli-grid-corner,
+.pli-grid-colheads,
+.pli-grid-rowheads,
+.pli-grid-freeze {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.pli-grid-corner {
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  background: var(--pli-header-bg);
+  border-right: 1px solid var(--pli-border);
+  border-bottom: 1px solid var(--pli-border);
+}
+
+.pli-grid-colheads {
+  top: 0;
+  overflow: hidden;
+}
+
+.pli-grid-rowheads {
+  left: 0;
+  overflow: hidden;
+}
+
+.pli-grid-colhead,
+.pli-grid-rowhead {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  background: var(--pli-header-bg);
+  color: var(--pli-muted);
+  font-size: 11.5px;
+  border-right: 1px solid var(--pli-border);
+  border-bottom: 1px solid var(--pli-border);
+  overflow: hidden;
+}
+
+.pli-grid-colhead {
+  top: 0;
+  height: 100%;
+}
+
+.pli-grid-rowhead {
+  left: 0;
+  width: 100%;
+}
+
+.pli-grid-colhead[data-selected],
+.pli-grid-rowhead[data-selected] {
+  background: var(--pli-accent-soft);
+  color: var(--pli-accent);
+  font-weight: 600;
+}
+
+.pli-grid-colhead[data-whole],
+.pli-grid-rowhead[data-whole] {
+  background: var(--pli-accent);
+  color: #fff;
+}
+
+.pli-grid-freeze {
+  background: var(--pli-muted);
+  opacity: 0.55;
+  z-index: 4;
+}
+
+.pli-grid-scroller {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: auto;
+  overscroll-behavior: contain;
+  cursor: cell;
+  scrollbar-width: thin;
+}
+
+.pli-grid-sink {
+  position: absolute;
+  z-index: 6;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  opacity: 0;
+  pointer-events: none;
+  outline: none;
+  font: inherit;
+  white-space: pre;
+}
+
+/* Words for a screen reader (what was cropped, which picture is picked); nothing to look at. */
+.pli-grid-announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pli-grid-sink[data-editing] {
+  z-index: 7;
+  padding: 1px 4px;
+  border: 2px solid var(--pli-accent);
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  caret-color: var(--pli-fg);
+  opacity: 1;
+  pointer-events: auto;
+  line-height: 1.25;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ---- the foot: sheet tabs and the selection's totals ---- */
+
+.pli-sheet-footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--pli-border);
+  background: var(--pli-header-bg);
+}
+
+.pli-sheet-tabs {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pli-sheet-tab {
+  display: flex;
+  align-items: center;
+  flex: none;
+  border-bottom: 3px solid transparent;
+}
+
+.pli-sheet-tab {
+  border-bottom-color: var(--pli-tab, transparent);
+}
+
+.pli-sheet-tab[data-active] {
+  background: var(--pli-bg);
+  border-bottom-color: var(--pli-tab, var(--pli-accent));
+  font-weight: 600;
+}
+
+/* Sheets picked together, to hide or delete them at once. */
+.pli-sheet-tab[data-picked]:not([data-active]) {
+  background: var(--pli-accent-soft);
+}
+
+.pli-sheet-tab-problem {
+  align-self: center;
+  margin-left: 0.5rem;
+  color: #d93025;
+  font-size: 0.85em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pli-sheet-tab-name {
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 0.5rem 0.8rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pli-sheet-tab:not([data-active]) .pli-sheet-tab-name:hover {
+  background: var(--pli-hover);
+}
+
+.pli-sheet-tab-more {
+  min-width: 1.4rem;
+  height: 1.4rem;
+  margin-right: 0.25rem;
+}
+
+.pli-sheet-rename {
+  width: 8rem;
+  margin: 0.25rem 0.4rem;
+  padding: 0.15rem 0.35rem;
+  border: 1px solid var(--pli-accent);
+  border-radius: 0.3rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.pli-sheet-rename[aria-invalid] {
+  border-color: #d93025;
+}
+
+.pli-sheet-stats {
+  display: flex;
+  flex: none;
+  gap: 1rem;
+  padding: 0 0.8rem;
+  color: var(--pli-muted);
+  white-space: nowrap;
+}
+
+/* While a formula is typed the field's own text is hidden and this layer, which draws the references in colour, shows through. */
+.pli-grid-mirror {
+  position: absolute;
+  z-index: 7;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 1px 4px;
+  border: 2px solid var(--pli-accent);
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  line-height: 1.25;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+}
+
+.pli-grid-sink[data-formula] {
+  z-index: 8;
+  background: transparent;
+  color: transparent;
+  box-shadow: none;
+}
+
+/* ---- menus drawn over the grid ---- */
+
+.pli-grid-menu,
+.pli-grid-filtermenu {
+  z-index: 50;
+}
+
+.pli-grid-filtermenu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 15rem;
+  padding: 0.4rem;
+  color: var(--pli-fg);
+  font-size: 13px;
+}
+
+.pli-grid-filtersearch {
+  height: 1.8rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.pli-grid-filterlinks {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.pli-grid-filterlinks button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pli-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-grid-filterlist {
+  max-height: 11rem;
+  margin: 0;
+  padding: 0.2rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+}
+
+.pli-grid-filterlist label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 0.3rem;
+  cursor: pointer;
+}
+
+.pli-grid-filterlist label:hover {
+  background: var(--pli-hover);
+}
+
+.pli-grid-filtervalue {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pli-grid-filtercount,
+.pli-grid-filterempty {
+  color: var(--pli-muted);
+}
+
+.pli-grid-filtertree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pli-grid-filtertoggle {
+  width: 1.1rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pli-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-grid-filteractions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding-top: 0.2rem;
+}
+
+/* ---- help while typing a formula ---- */
+
+.pli-assist {
+  display: flex;
+  align-items: flex-start;
+  max-width: min(36rem, calc(100vw - 1.5rem));
+  border: 1px solid var(--pli-border);
+  border-radius: 0.5rem;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  box-shadow: var(--pli-shadow);
+  font-size: 12.5px;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.pli-assist-list {
+  flex: none;
+  width: 13rem;
+  max-height: 17rem;
+  margin: 0;
+  padding: 0.25rem;
+  overflow-y: auto;
+  list-style: none;
+  border-right: 1px solid var(--pli-border);
+}
+
+.pli-assist-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  font-family: var(--pli-mono);
+}
+
+.pli-assist-item[aria-selected="true"] {
+  background: var(--pli-accent-soft);
+  color: var(--pli-accent);
+}
+
+.pli-assist-item b {
+  font-weight: 700;
+}
+
+.pli-assist-kind {
+  flex: none;
+  color: var(--pli-muted);
+  font-family: var(--pli-font);
+  font-size: 11px;
+}
+
+.pli-assist-card {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+}
+
+.pli-assist-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.pli-assist-syntax {
+  font-family: var(--pli-mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.pli-assist-current {
+  font-weight: 700;
+  color: var(--pli-accent);
+  text-decoration: underline;
+}
+
+.pli-assist-category {
+  flex: none;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--pli-hover);
+  color: var(--pli-muted);
+  font-size: 11px;
+}
+
+.pli-assist-summary {
+  margin: 0.35rem 0 0;
+}
+
+.pli-assist-hintnote,
+.pli-assist-note {
+  margin: 0.3rem 0 0;
+  color: var(--pli-muted);
+}
+
+.pli-assist-params {
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.pli-assist-param {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.5rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.3rem;
+}
+
+.pli-assist-param[data-current] {
+  background: var(--pli-accent-soft);
+}
+
+.pli-assist-param dt {
+  font-family: var(--pli-mono);
+  overflow-wrap: anywhere;
+}
+
+.pli-assist-param dd {
+  margin: 0;
+  color: var(--pli-muted);
+}
+
+.pli-assist-example {
+  display: grid;
+  gap: 0.1rem;
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--pli-border);
+}
+
+.pli-assist-example code {
+  font-family: var(--pli-mono);
+  overflow-wrap: anywhere;
+}
+
+.pli-assist-label {
+  color: var(--pli-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pli-assist-result {
+  color: var(--pli-muted);
+}
+
+.pli-assist-hint {
+  max-width: min(30rem, calc(100vw - 1.5rem));
+}
+
+.pli-grid-assist {
+  position: absolute;
+  z-index: 9;
+}
+
+.pli-sheet-formulabar {
+  position: relative;
+}
+
+.pli-sheet-bar-assist {
+  position: absolute;
+  z-index: 20;
+  left: 9rem;
+  top: calc(100% - 0.2rem);
+}
+
+@media (max-width: 40rem) {
+  .pli-assist {
+    flex-direction: column;
+  }
+
+  .pli-assist-list {
+    width: auto;
+    max-height: 9rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--pli-border);
+  }
+}
+
+/* ---- checkboxes, dropdowns and badges in cells ---- */
+
+.pli-cell-checkbox {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid var(--pli-muted);
+  border-radius: 3px;
+  background: var(--pli-bg);
+  color: #fff;
+  z-index: 1;
+}
+
+.pli-cell-checkbox[data-on] {
+  border-color: var(--pli-accent);
+  background: var(--pli-accent);
+}
+
+.pli-cell-pills {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 0 22px 0 4px;
+  overflow: hidden;
+}
+
+.pli-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  height: 17px;
+  box-sizing: border-box;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--pli-accent-soft);
+  color: var(--pli-fg);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pli-pill-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pli-pill-image {
+  width: 13px;
+  height: 13px;
+  margin-left: -4px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.pli-pill-custom {
+  display: inline-flex;
+  flex: none;
+  max-width: 100%;
+}
+
+.pli-grid-choicebtn {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  background: var(--pli-bg);
+  border: 1px solid var(--pli-border);
+  color: var(--pli-muted);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.pli-grid-choicemenu {
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 15rem;
+  padding: 0.4rem;
+  color: var(--pli-fg);
+  font-size: 13px;
+}
+
+.pli-choice-list {
+  max-height: 14rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.pli-choice-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.25rem 0.35rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pli-choice-item:hover,
+.pli-choice-item[data-active] {
+  background: var(--pli-hover);
+}
+
+.pli-choice-tick {
+  flex: none;
+  width: 1rem;
+  color: var(--pli-accent);
+}
+
+.pli-choice-text {
+  display: grid;
+  min-width: 0;
+}
+
+.pli-choice-description {
+  color: var(--pli-muted);
+  font-size: 11.5px;
+}
+
+.pli-choice-empty {
+  padding: 0.4rem;
+  color: var(--pli-muted);
+}
+
+.pli-choice-search {
+  height: 1.8rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: var(--pli-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.pli-choice-clear {
+  align-self: flex-start;
+  padding: 0.1rem 0.35rem;
+  border: 0;
+  background: none;
+  color: var(--pli-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-choice-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pli-choice-done {
+  margin-left: auto;
+  padding: 0.1rem 0.6rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+  background: var(--pli-bg);
+  color: var(--pli-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pli-choice-source {
+  margin: 0;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.8em;
+  opacity: 0.75;
+}
+
+.pli-choice-source[data-state="stale"],
+.pli-choice-source[data-state="missing"] {
+  color: var(--pli-warn, #b45309);
+  opacity: 1;
+}
+
+.pli-dropdown-rows {
+  display: grid;
+  gap: 0.35rem;
+  min-width: min(22rem, 80vw);
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.pli-dropdown-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pli-dropdown-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.pli-dropdown-row input[type="color"] {
+  flex: none;
+  width: 2rem;
+  height: 1.8rem;
+  padding: 0;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.3rem;
+  background: none;
+}
+
+.pli-dropdown-options {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.pli-dropdown-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pli-dropdown-error {
+  margin: 0.4rem 0 0;
+  color: #d93025;
+}
+
+/* The cells a formula's results fill, outlined while the formula's cell is selected. */
+.pli-grid-spill {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed var(--pli-accent);
+  background: color-mix(in srgb, var(--pli-accent) 5%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---- charts ---- */
+.pli-chart {
+  display: block;
+  font-family: var(--pli-font);
+  user-select: none;
+}
+.pli-chart-bg {
+  fill: var(--pli-bg);
+  stroke: var(--pli-border);
+}
+.pli-chart-grid {
+  stroke: var(--pli-border);
+  stroke-width: 1;
+}
+.pli-chart-axis {
+  stroke: color-mix(in srgb, var(--pli-fg) 45%, transparent);
+  stroke-width: 1;
+}
+.pli-chart-label,
+.pli-chart-muted {
+  fill: color-mix(in srgb, var(--pli-fg) 70%, transparent);
+}
+.pli-chart-title {
+  fill: var(--pli-fg);
+  font-size: 15px;
+  font-weight: 600;
+}
+.pli-chart-axistitle {
+  fill: color-mix(in srgb, var(--pli-fg) 80%, transparent);
+  font-weight: 600;
+}
+.pli-chart-value {
+  fill: var(--pli-fg);
+  font-size: 10px;
+}
+.pli-chart-onmark {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.pli-chart-slice {
+  stroke: var(--pli-bg);
+  stroke-width: 1.5;
+}
+.pli-chart-empty {
+  fill: none;
+  stroke: var(--pli-border);
+}
+.pli-chart-bar:hover,
+.pli-chart-slice:hover,
+.pli-chart-marker:hover {
+  opacity: 0.8;
+}
+.pli-chart-area {
+  stroke-width: 2;
+}
+
+/* A chart over the grid. It is only painted here; the grid's scroller takes the pointer, so a click on a chart is found by position. */
+.pli-grid-chart {
+  position: absolute;
+  pointer-events: none;
+}
+.pli-grid-imageframe {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.pli-grid-imageborder {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.pli-grid-imagefx {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.pli-grid-imagereflect {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Crop mode: the whole picture dimmed behind the part that is kept, and crop marks in place of the usual handles. */
+.pli-grid-cropfull {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.35;
+}
+.pli-grid-cropfull img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: fill;
+}
+.pli-grid-chart[data-cropping] {
+  outline: 1px solid var(--pli-text, #202124);
+  outline-offset: 0;
+}
+.pli-grid-cropmark {
+  position: absolute;
+  background: var(--pli-text, #202124);
+  pointer-events: none;
+}
+.pli-grid-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+}
+.pli-grid-chart[data-selected] {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: -1px;
+}
+.pli-grid-charthandle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4px 0 0 -4px;
+  border: 1px solid var(--pli-accent);
+  border-radius: 2px;
+  background: var(--pli-bg);
+  pointer-events: none;
+}
+
+/* The chart editor. */
+.pli-chartform {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+}
+.pli-chartform input[type="text"],
+.pli-chartform select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.pli-chartform .pli-dropdown-rows {
+  min-width: 0;
+  margin: 0 0 0.5rem;
+}
+.pli-chartform .pli-dropdown-options label {
+  display: flex;
+  font-size: inherit;
+}
+.pli-chartform label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.85em;
+}
+.pli-chartform fieldset {
+  margin: 0;
+  padding: 0.4rem 0.5rem 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+}
+.pli-chartform legend {
+  padding: 0 0.3rem;
+  font-size: 0.85em;
+}
+.pli-chartform-series {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pli-chartform-series {
+  flex-wrap: wrap;
+}
+.pli-chartform-series input[type="text"] {
+  flex: 1 1 6rem;
+  min-width: 0;
+  width: auto;
+}
+.pli-chartform-series input[type="color"] {
+  flex: none;
+  width: 2rem;
+  height: 1.8rem;
+  padding: 0;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.3rem;
+  background: none;
+}
+.pli-chartform-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.6rem;
+}
+
+/* 3-D charts: the walls and floor behind the marks, and a thin edge on each face. */
+.pli-chart3d-wall {
+  fill: color-mix(in srgb, var(--pli-fg) 4%, var(--pli-bg));
+  stroke: var(--pli-border);
+}
+.pli-chart3d-floor {
+  fill: color-mix(in srgb, var(--pli-fg) 9%, var(--pli-bg));
+  stroke: var(--pli-border);
+}
+.pli-chart-solid {
+  stroke: rgb(0 0 0 / 0.22);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+.pli-chart-solid:hover {
+  opacity: 0.85;
+}
+
+/* The editor of conditional formats, and the list of them. */
+.pli-ruleform-hint {
+  margin: 0;
+  font-size: 0.8em;
+  color: var(--pli-muted);
+}
+.pli-ruleform-check {
+  display: flex !important;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pli-ruleform-point {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  font-size: 0.85em;
+}
+.pli-ruleform-point input[type="color"],
+.pli-ruleform-style input[type="color"] {
+  width: 2rem;
+  height: 1.7rem;
+  padding: 0;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.3rem;
+  background: none;
+}
+.pli-ruleform-style {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.7rem;
+}
+.pli-ruleform-style label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pli-ruleform-sample {
+  display: inline-block;
+  min-width: 4.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.2rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+.pli-ruleform-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pli-ruleform-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.4rem;
+}
+.pli-ruleform-what {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9em;
+}
+.pli-ruleform-where {
+  font-size: 0.85em;
+  color: var(--pli-muted);
+}
+.pli-ruleform-buttons {
+  display: flex;
+  gap: 0.2rem;
+}
+.pli-sheet-fmt[data-pressed] {
+  background: var(--pli-accent-soft);
+  border-radius: 0.3rem;
+}
+
+.pli-dialog:has(.pli-ruleform-list) {
+  width: min(42rem, calc(100vw - 2rem));
+  max-width: none;
+}
+
+/* Data validation: the note beside a cell, and the circle round a cell that breaks its rule. */
+.pli-grid-prompt {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  gap: 0.15rem;
+  max-width: 14rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.35rem;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+  font-size: 0.8em;
+  pointer-events: none;
+}
+
+.pli-grid-invalid {
+  position: absolute;
+  box-sizing: border-box;
+  z-index: 3;
+  pointer-events: none;
+  border: 2px solid #d93025;
+  border-radius: 50%;
+}
+
+/* Cells of a calculated column that don't follow its formula, and the button beside the active one. */
+.pli-grid-exception {
+  position: absolute;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  border-top: 7px solid #2f9e44;
+  border-right: 7px solid transparent;
+  pointer-events: none;
+}
+.pli-grid-exceptionbtn {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 1px solid #2f9e44;
+  border-radius: 3px;
+  background: var(--pli-bg);
+  color: #2f9e44;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+.pli-grid-filterbtn[data-sort] {
+  font-size: 8px;
+}
+
+/* Slicers: drawn over the cells; the grid handles the pointer. */
+.pli-grid-slicer {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+}
+.pli-slicer {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--pli-border);
+  border-radius: 4px;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  user-select: none;
+}
+.pli-slicer[data-selected] {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: -1px;
+}
+.pli-slicer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: 0 8px 0 10px;
+  border-bottom: 1px solid var(--pli-border);
+  font-weight: 600;
+}
+.pli-slicer[data-dark] .pli-slicer-head {
+  background: var(--pli-slicer-accent);
+  color: #fff;
+}
+.pli-slicer-caption {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pli-slicer-clear {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-size: 11px;
+  opacity: 0.35;
+}
+.pli-slicer-clear[data-active] {
+  border-color: currentColor;
+  opacity: 1;
+}
+.pli-slicer-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+}
+.pli-slicer-item {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid var(--pli-border);
+  border-radius: 3px;
+  color: var(--pli-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pli-slicer-item[data-on] {
+  border-color: var(--pli-slicer-accent);
+  background: color-mix(in srgb, var(--pli-slicer-accent) 22%, var(--pli-bg));
+  color: var(--pli-fg);
+}
+.pli-slicer-item[data-selected] {
+  background: color-mix(in srgb, var(--pli-slicer-accent) 38%, var(--pli-bg));
+}
+.pli-slicer-item[data-dim] {
+  opacity: 0.45;
+}
+.pli-slicer-thumb {
+  position: absolute;
+  right: 2px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--pli-border);
+}
+.pli-slicer-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, transparent 50%, var(--pli-border) 50%, var(--pli-border) 58%, transparent 58%, transparent 70%, var(--pli-border) 70%, var(--pli-border) 78%, transparent 78%);
+}
+
+/* Timelines: drawn over the cells and handling their own pointer. */
+.pli-grid-timeline {
+  position: absolute;
+  z-index: 5;
+  pointer-events: auto;
+}
+.pli-timeline {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--pli-border);
+  border-radius: 4px;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-size: 12px;
+  user-select: none;
+  touch-action: none;
+}
+.pli-timeline[data-selected] {
+  outline: 2px solid var(--pli-accent);
+}
+.pli-timeline-head {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 0.3rem 0 0.6rem;
+  border-bottom: 1px solid var(--pli-border);
+  background: color-mix(in srgb, var(--pli-timeline-accent) 12%, var(--pli-bg));
+  cursor: move;
+}
+.pli-timeline[data-dark] .pli-timeline-head {
+  background: var(--pli-timeline-accent);
+  color: #fff;
+}
+.pli-timeline-caption {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pli-timeline-range {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 0.5rem;
+  opacity: 0.75;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pli-timeline-level {
+  box-sizing: border-box;
+  width: 96px;
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.pli-timeline-clear {
+  box-sizing: border-box;
+  width: 34px;
+  opacity: 0.35;
+  text-align: center;
+  cursor: pointer;
+}
+.pli-timeline-clear[data-active] {
+  opacity: 1;
+}
+.pli-timeline-strip {
+  position: absolute;
+  overflow: hidden;
+}
+.pli-timeline-content {
+  position: relative;
+  height: 100%;
+}
+.pli-timeline-parent {
+  position: absolute;
+  top: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 0 0.3rem;
+  border-left: 1px solid var(--pli-border);
+  color: var(--pli-muted);
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.pli-timeline-period {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--pli-border);
+  border-left-width: 0;
+  background: var(--pli-bg);
+  line-height: 32px;
+  text-align: center;
+  cursor: pointer;
+}
+.pli-timeline-period[data-empty] {
+  color: var(--pli-muted);
+}
+.pli-timeline-period[data-on] {
+  background: color-mix(in srgb, var(--pli-timeline-accent) 30%, var(--pli-bg));
+  border-top-color: var(--pli-timeline-accent);
+  border-bottom-color: var(--pli-timeline-accent);
+}
+.pli-timeline-handle {
+  position: absolute;
+  z-index: 1;
+  border-radius: 3px;
+  background: var(--pli-timeline-accent);
+  cursor: ew-resize;
+}
+.pli-timeline-track {
+  position: absolute;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pli-border) 50%, var(--pli-bg));
+}
+.pli-timeline-thumb {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  border-radius: 5px;
+  background: var(--pli-border);
+}
+.pli-timeline-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--pli-border) 50%, var(--pli-border) 58%, transparent 58%, transparent 70%, var(--pli-border) 70%, var(--pli-border) 78%, transparent 78%);
+}
+
+/* The editor of table styles. */
+.pli-stylebuilder-body {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+.pli-stylebuilder-parts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 16rem;
+  overflow: auto;
+  border: 1px solid var(--pli-border);
+  border-radius: 0.3rem;
+}
+.pli-stylebuilder-parts button {
+  display: block;
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pli-stylebuilder-parts button[data-set]::after {
+  content: " \2022";
+  color: var(--pli-accent);
+}
+.pli-stylebuilder-parts button[data-active] {
+  background: var(--pli-accent);
+  color: #fff;
+}
+.pli-stylebuilder-edit {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+}
+.pli-stylebuilder-lines {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.6rem;
+}
+.pli-stylebuilder-lines label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.15rem 0.3rem;
+  font-size: 0.85em;
+}
+.pli-stylebuilder-lines label select {
+  grid-column: 1;
+  min-width: 0;
+}
+.pli-stylebuilder-lines input[type="color"] {
+  width: 1.8rem;
+  height: 1.5rem;
+  padding: 0;
+}
+.pli-stylebuilder-sample {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+.pli-stylebuilder-sample td {
+  padding: 0.15rem 0.5rem;
+  border: 0;
+}
+@media (max-width: 40rem) {
+  .pli-stylebuilder-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- find and replace ---- */
+
+.pli-findbar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0 0.5rem 0.3rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 6px;
+  background: var(--pli-chrome);
+}
+
+.pli-findbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.pli-findbar-input {
+  flex: 0 1 15rem;
+  min-width: 8rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 4px;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  font: inherit;
+}
+
+.pli-findbar-input:focus-visible {
+  outline: 2px solid var(--pli-accent);
+  outline-offset: -1px;
+}
+
+.pli-findbar-spacer {
+  flex: none;
+  width: 1.9rem;
+}
+
+.pli-findbar-spacer.pli-findbar-grow {
+  flex: 1 1 0;
+  width: auto;
+}
+
+.pli-findbar-count {
+  min-width: 4.5rem;
+  color: var(--pli-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pli-findbar-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.pli-findbar select {
+  padding: 0.2rem 0.3rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 4px;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  font: inherit;
+}
+
+.pli-grid-found {
+  position: absolute;
+  box-sizing: border-box;
+  z-index: 2;
+  pointer-events: none;
+  background: color-mix(in srgb, #f5b000 38%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #b07a00 70%, transparent);
+}
+
+.pli-grid-found[data-current] {
+  background: color-mix(in srgb, #f5b000 62%, transparent);
+  box-shadow: inset 0 0 0 2px #b07a00;
+}
+
+/* ---- links and notes ---- */
+
+/* The red mark in the corner of a cell that has a note. */
+.pli-grid-note {
+  position: absolute;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  border-top: 7px solid #d93025;
+  border-left: 7px solid transparent;
+}
+
+.pli-cellcard {
+  z-index: 40;
+  max-width: 22rem;
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 12px;
+}
+
+.pli-cellcard-link,
+.pli-cellcard-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pli-cellcard-to {
+  color: var(--pli-accent);
+  overflow-wrap: anywhere;
+}
+
+.pli-cellcard-tip {
+  color: var(--pli-muted);
+}
+
+.pli-cellcard-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.pli-cellcard-note + .pli-cellcard-link,
+.pli-cellcard-link + .pli-cellcard-note {
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--pli-border);
+}
+
+.pli-cellcard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pli-note-text {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font: inherit;
+}
+
+/* A note's text: Excel's own font and size unless a run says otherwise. */
+.pli-note-body,
+.pli-note-by,
+.pli-note-editor {
+  font-family: Tahoma, "Segoe UI", sans-serif;
+  font-size: 9pt;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pli-note-author {
+  color: var(--pli-muted);
+  font-size: 12px;
+}
+
+.pli-note-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pli-note-toolbar input[type="color"] {
+  width: 2rem;
+  height: 1.7rem;
+  padding: 0;
+  border: 1px solid var(--pli-border);
+  background: none;
+}
+
+.pli-note-tool[aria-pressed="true"] {
+  background: var(--pli-accent);
+  color: #fff;
+}
+
+.pli-note-tool[data-flag="bold"] { font-weight: bold; }
+.pli-note-tool[data-flag="italic"] { font-style: italic; }
+.pli-note-tool[data-flag="underline"] { text-decoration: underline; }
+.pli-note-tool[data-flag="strike"] { text-decoration: line-through; }
+
+.pli-note-editor {
+  min-height: 7rem;
+  max-height: 16rem;
+  overflow: auto;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--pli-border);
+  border-radius: 4px;
+  background: #ffffe1;
+  color: #000;
+  outline: none;
+}
+
+.pli-note-editor:focus {
+  border-color: var(--pli-accent);
+}
+
+/* Notes that stay showing: boxes over the grid, joined to their cell by a line. */
+.pli-notelayer {
+  position: absolute;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pli-notelines {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.pli-notelines line {
+  stroke: #7a7a50;
+  stroke-width: 1;
+}
+
+.pli-notebox {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 3px 5px;
+  overflow: visible;
+  background: #ffffe1;
+  color: #000;
+  border: 1px solid #7a7a50;
+  box-shadow: 2px 2px 4px rgb(0 0 0 / 0.25);
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.pli-notebox[data-selected] {
+  outline: 1px dashed var(--pli-accent);
+}
+
+.pli-notebox-text {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* A note whose box has a look of its own: the fill or picture is a layer behind the text. */
+.pli-cellcard-text[data-look] {
+  position: relative;
+  padding: 3px 5px;
+  border: 1px solid #7a7a50;
+}
+
+.pli-cellcard-notebody {
+  position: relative;
+}
+
+.pli-note-link {
+  color: #0563c1;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pli-note-linkrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pli-note-linkrow input[type="text"] {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.pli-note-looks {
+  border: 1px solid var(--pli-border);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+}
+
+.pli-note-looks summary {
+  cursor: pointer;
+}
+
+.pli-note-lookgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.pli-note-lookgrid label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pli-note-lookgrid input[type="number"] {
+  width: 4.5rem;
+}
+
+.pli-note-picturefield {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pli-note-thumb {
+  width: 2.5rem;
+  height: 2rem;
+  object-fit: cover;
+  border: 1px solid var(--pli-border);
+}
+
+.pli-notebox-grip {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--pli-accent);
+  border-radius: 50%;
+}
+
+.pli-notebox-hide {
+  position: absolute;
+  top: -9px;
+  right: 10px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  line-height: 14px;
+  font-size: 12px;
+  border: 1px solid var(--pli-border);
+  border-radius: 50%;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  cursor: pointer;
+}
+
+/* ---- protection ---- */
+
+.pli-sheet-tab-lock {
+  vertical-align: -1px;
+  margin-right: 0.25em;
+  opacity: 0.75;
+}
+
+.pli-sheet-protected {
+  color: var(--pli-muted);
+}
+
+/* The entry mode, as Excel's status bar shows it: Ready, Enter, Edit or Point. */
+.pli-sheet-mode {
+  flex: none;
+  min-width: 3.2rem;
+  padding: 0 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--pli-muted);
+}
+
+.pli-sheet-mode[data-mode="edit"],
+.pli-sheet-mode[data-mode="enter"],
+.pli-sheet-mode[data-mode="point"] {
+  color: var(--pli-text, inherit);
+}
+
+/* ---- printing ---- */
+
+.pli-print-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--pli-bg) 82%, #808080);
+  color: var(--pli-fg);
+  outline: none;
+}
+
+.pli-print-bar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--pli-chrome);
+  border-bottom: 1px solid var(--pli-border);
+}
+
+.pli-print-spacer {
+  flex: 1 1 0;
+}
+
+.pli-print-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pli-print-pager input[type="number"] {
+  width: 3.6rem;
+  margin-left: 0.3rem;
+}
+
+.pli-print-single {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pli-print-status {
+  flex: 1 0 100%;
+  color: var(--pli-muted);
+  font-size: 0.85em;
+}
+
+.pli-print-status[data-error] {
+  color: var(--pli-danger, #c00000);
+}
+
+.pli-print-scroll {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 1.2rem;
+}
+
+.pli-print-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.pli-print-sheet {
+  flex: none;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  background: #fff;
+  overflow: hidden;
+}
+
+.pli-print-empty {
+  text-align: center;
+  color: var(--pli-muted);
+}
+
+/* The paper. Its colours don't follow the page's theme: paper is white and ink is black. */
+.pli-print-page {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+  font-size: 11pt;
+  /* Charts take their colours from these: paper is white and ink black, whatever the page's theme. */
+  --pli-bg: #fff;
+  --pli-fg: #000;
+  --pli-border: #d4d4d4;
+}
+
+.pli-print-content {
+  position: absolute;
+  overflow: hidden;
+}
+
+.pli-print-scaled {
+  position: absolute;
+  transform-origin: top left;
+}
+
+.pli-print-scaled table td,
+.pli-print-scaled table th {
+  box-sizing: border-box;
+  line-height: 1.15;
+  vertical-align: bottom;
+}
+
+.pli-print-objects {
+  position: absolute;
+  overflow: hidden;
+}
+
+.pli-print-notes {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pli-print-note {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 3pt 4pt;
+  background: #ffffe1;
+  border: 0.75pt solid #000;
+  font-family: Tahoma, "Segoe UI", sans-serif;
+  font-size: 9pt;
+  line-height: 11.5pt;
+  box-shadow: 1.5pt 1.5pt 2pt rgb(0 0 0 / 0.3);
+}
+
+.pli-print-hf {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9pt;
+  white-space: nowrap;
+}
+
+.pli-print-hf-left,
+.pli-print-hf-center,
+.pli-print-hf-right {
+  flex: 1 1 0;
+}
+
+.pli-print-hf-center {
+  text-align: center;
+}
+
+.pli-print-hf-right {
+  text-align: right;
+}
+
+.pli-pagesetup fieldset {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.pli-pagesetup-trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.pli-pagesetup input[type="number"] {
+  width: 5rem;
+}
+
+@media print {
+  .pli-print-overlay {
+    position: static;
+    background: #fff;
+  }
+}
+
+/* Page breaks drawn over the grid: dashed, and darker for the ones made by hand. */
+.pli-grid-break {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border-top: 1px dashed color-mix(in srgb, var(--pli-fg) 40%, transparent);
+}
+
+.pli-grid-break-col {
+  border-top: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--pli-fg) 40%, transparent);
+}
+
+.pli-grid-break[data-manual] {
+  border-color: var(--pli-fg);
+}
+
+/* Picture settings: the crop's four sides in a grid, the flips side by side. */
+.pli-dialog:has(.pli-picform) .pli-ruleform {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.pli-ruleform-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+.pli-ruleform-check-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ---- groups: the outline margin with its brackets and 1 2 3 buttons ---- */
+
+.pli-grid-margin,
+.pli-grid-marginclip {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.pli-grid-margin {
+  background: var(--pli-header-bg);
+}
+.pli-grid-margin-top {
+  border-bottom: 1px solid var(--pli-border);
+}
+.pli-grid-margin-left {
+  border-right: 1px solid var(--pli-border);
+}
+.pli-grid-marginclip {
+  overflow: hidden;
+}
+.pli-outline-level {
+  position: absolute;
+  z-index: 4;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border: 1px solid color-mix(in srgb, var(--pli-fg) 55%, transparent);
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  font: 600 10px/12px var(--pli-font);
+  text-align: center;
+  pointer-events: none;
+}
+
+.pli-outline-line {
+  position: absolute;
+  z-index: 3;
+  width: 0;
+  border-left: 1px solid color-mix(in srgb, var(--pli-fg) 55%, transparent);
+  pointer-events: none;
+}
+
+.pli-outline-line-col {
+  height: 0;
+  border-left: 0;
+  border-top: 1px solid color-mix(in srgb, var(--pli-fg) 55%, transparent);
+}
+
+.pli-outline-button {
+  position: absolute;
+  z-index: 4;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border: 1px solid color-mix(in srgb, var(--pli-fg) 55%, transparent);
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  font: 600 10px/10px var(--pli-font);
+  text-align: center;
+  pointer-events: none;
+}
+
+/* A picture in a cell. */
+.pli-cell-picture {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.pli-cell-picture img {
+  display: block;
+  user-select: none;
+}
+.pli-cell-picture-missing {
+  padding: 0 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-style: italic;
+  color: var(--pli-muted);
+  line-height: 20px;
+}
+
+/* A sparkline over its cell. */
+.pli-cell-spark {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 1px;
+  pointer-events: none;
+}
+.pli-cell-spark svg {
+  display: block;
+}
+
+.pli-pivotform {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.pli-pivot-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pli-pivot-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--pli-border, #e5e7eb);
+}
+.pli-pivot-item:first-of-type {
+  border-top: 0;
+}
+.pli-pivot-itemhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pli-pivot-controls {
+  display: inline-flex;
+  gap: 4px;
+}
+.pli-pivot-items {
+  display: flex;
+  flex-direction: column;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 4px 8px;
+  border: 1px solid var(--pli-border, #e5e7eb);
+  border-radius: 4px;
+}
+
+.pli-grid-filterrule {
+  padding: 2px 12px 6px;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+.pli-hint {
+  margin: 0;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
+.pli-cell-filled {
+  display: flex;
+  overflow: hidden;
+  white-space: pre;
+}
+.pli-cell-fillmid {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.pli-pivot-order {
+  margin: 4px 0 8px;
+  padding-left: 22px;
+}
+.pli-pivot-order li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+}
+.pli-pivot-order li .pli-button {
+  padding: 0 6px;
+  line-height: 1.3;
+}
+
+/* A badge whose kind has a card (clicking it opens the card) and the card an app draws under it. */
+.pli-pill[data-chip],
+.pli-pill-custom[data-chip] {
+  cursor: pointer;
+}
+
+.pli-chipcard {
+  z-index: 40;
+  min-width: 12rem;
+  max-width: 22rem;
+  padding: 0.6rem 0.7rem;
+  font-size: 12px;
+  outline: none;
+}
+
+/* Touch: the handles that stretch and fill the selection, and the grips at the edges of the headings. Drawn only for a finger. */
+.pli-grid-touchhandle {
+  position: absolute;
+  z-index: 9;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  box-sizing: border-box;
+  border: 2px solid var(--pli-bg);
+  border-radius: 50%;
+  background: var(--pli-accent);
+  touch-action: none;
+}
+
+.pli-grid-touchhandle[data-handle="fill"] {
+  border-radius: 4px;
+}
+
+/* A larger area around each, so a fingertip finds it. */
+.pli-grid-touchhandle::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+}
+
+/* The move handle: a round handle beside the selection with four arrows on it. */
+.pli-grid-touchmove {
+  position: absolute;
+  z-index: 9;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  box-sizing: border-box;
+  border: 2px solid var(--pli-bg);
+  border-radius: 50%;
+  background: var(--pli-accent);
+  touch-action: none;
+}
+
+.pli-grid-touchmove::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background:
+    linear-gradient(var(--pli-bg), var(--pli-bg)) center / 2px 100% no-repeat,
+    linear-gradient(var(--pli-bg), var(--pli-bg)) center / 100% 2px no-repeat;
+}
+
+.pli-grid-touchmove::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+
+.pli-grid-touchgrip {
+  position: absolute;
+  z-index: 9;
+  touch-action: none;
+}
+
+.pli-grid-touchgrip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 14px;
+  margin: -7px 0 0 -1px;
+  border-radius: 2px;
+  background: var(--pli-accent);
+  opacity: 0.55;
+}
+
+.pli-grid-touchgrip[data-grip="row"]::after {
+  width: 14px;
+  height: 3px;
+  margin: -1px 0 0 -7px;
+}
+
+/* Filter views: the list in the dialog, and the bar over the grid while one is showing. */
+.pli-views {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pli-views-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pli-views-row input {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.pli-views-row[data-active] input {
+  font-weight: 600;
+}
+
+.pli-views-summary {
+  flex-basis: 100%;
+  order: 2;
+  font-size: 0.85em;
+  color: var(--pli-muted);
+}
+
+.pli-views-empty {
+  color: var(--pli-muted);
+}
+
+.pli-viewbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-top: 1px solid var(--pli-border);
+  background: var(--pli-accent-soft);
+  font-size: 12px;
+}
+
+.pli-viewbar-actions {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+/* Page break preview: what is outside the print ranges dimmed, the ranges outlined in blue, page numbers over the pages, and the breaks (dashed where a page is full, solid where you made one). */
+.pli-pbp-dim {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  background: color-mix(in srgb, #808080 45%, transparent);
+}
+
+.pli-pbp-area {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: 2px solid #1a5fd0;
+}
+
+.pli-pbp-page {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pli-pbp-page span {
+  font-size: 4rem;
+  font-weight: 700;
+  color: color-mix(in srgb, #808080 45%, transparent);
+  white-space: nowrap;
+}
+
+.pli-pbp-break {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  border-top: 2px dashed #1a5fd0;
+}
+
+.pli-pbp-break-col {
+  border-top: 0;
+  border-left: 2px dashed #1a5fd0;
+}
+
+.pli-pbp-break[data-manual] {
+  border-top-style: solid;
+}
+
+.pli-pbp-break-col[data-manual] {
+  border-left-style: solid;
+}
+
+.pli-pbp-ghost {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border-top: 2px solid color-mix(in srgb, #1a5fd0 60%, transparent);
+}
+
+.pli-pbp-ghost.pli-pbp-break-col {
+  border-top: 0;
+  border-left: 2px solid color-mix(in srgb, #1a5fd0 60%, transparent);
+}
+
+.pli-pagesetup-pic {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pli-pagesetup-pic img {
+  max-width: 3rem;
+  object-fit: contain;
+}
+/* Allow edit ranges, and roles in the Protect dialog */
+.pli-editranges { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pli-editranges th, .pli-editranges td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--pli-border, #ddd); }
+.pli-chartform input.pli-protect-roles { width: 9em; margin-left: 0.5em; font-size: 12px; }
+/* A sparkline colour: the colour box, and the theme colour and shade it can take instead. */
+.pli-sparkcolor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+}
+
+/* The other chart kinds: treemap tiles, the mesh of a wireframe surface, trendlines. */
+.pli-chart-tile {
+  stroke: var(--pli-bg);
+  stroke-width: 1;
+}
+.pli-chart-tile:hover {
+  opacity: 0.85;
+}
+.pli-chart-wire {
+  fill: none;
+  stroke: color-mix(in srgb, var(--pli-fg) 60%, transparent);
+  stroke-width: 0.8;
+}
+.pli-chart-trend {
+  fill: none;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+}
+.pli-chart-trendlabel {
+  fill: var(--pli-fg);
+  font-size: 10px;
+}
+/* A picked mark of a chart is outlined; its format panel stands under the chart. */
+.pli-chart [data-marksel] {
+  stroke: var(--pli-accent);
+  stroke-width: 2.5;
+  opacity: 1;
+}
+.pli-markpanel {
+  position: absolute;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+  padding: 8px 10px;
+  border: 1px solid var(--pli-border);
+  border-radius: 6px;
+  background: var(--pli-bg);
+  color: var(--pli-fg);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+  pointer-events: auto;
+}
+.pli-markpanel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pli-markpanel label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pli-chartform-trend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.pli-chart-stockline {
+  stroke: var(--pli-fg);
+  stroke-width: 1.5;
+}
+.pli-chart-grid-minor {
+  stroke-width: 0.5;
+  opacity: 0.6;
+}
+.pli-chart-tick {
+  stroke: color-mix(in srgb, var(--pli-fg) 45%, transparent);
+  stroke-width: 1;
+}
+.pli-chart-errbar {
+  stroke-width: 1.25;
+  fill: none;
+}
+.pli-chart-contour {
+  stroke: color-mix(in srgb, var(--pli-fg) 55%, transparent);
+  stroke-width: 0.75;
+}
+.pli-chartform-series-block {
+  display: grid;
+  gap: 0.3rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--pli-border);
+  list-style: none;
+}
+.pli-chartform-trends {
+  display: grid;
+  gap: 0.3rem;
+}
+.pli-chartform-trend label {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+/* Timelines on pivot tables: the groups (years) over the strip of periods. */
+.pli-timeline-group {
+  position: absolute;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--pli-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Sorting by colour and icon from a filter menu, and the Sort dialog */
+.pli-grid-sortcolors {
+  padding: 2px 0;
+}
+.pli-grid-sortswatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 12px;
+  font-size: 11px;
+  color: var(--pli-muted);
+}
+.pli-grid-sortswatches > span {
+  width: 32px;
+}
+.pli-sortswatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--pli-border, #c8ccd0);
+  border-radius: 3px;
+  background: var(--pli-bg, #fff);
+  color: var(--pli-fg, inherit);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.pli-sortswatch[data-none] {
+  background: repeating-linear-gradient(135deg, transparent 0 4px, var(--pli-border, #c8ccd0) 4px 5px);
+}
+.pli-sortswatch:hover,
+.pli-sortswatch:focus-visible {
+  outline: 2px solid var(--pli-accent, #2f6fed);
+  outline-offset: 1px;
+}
+.pli-sortlevel {
+  margin: 0 0 8px;
+  padding: 8px;
+  border: 1px solid var(--pli-border, #c8ccd0);
+  border-radius: 6px;
+}
+.pli-sortlevel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* A slicer drawn in a style of your own: the style gives the colours, so the built-in tints stay off. */
+.pli-slicer[data-custom] {
+  background: var(--pli-bg);
+}
+.pli-slicer[data-custom] .pli-slicer-head {
+  border-bottom: 0;
+}
+.pli-slicer-item[data-custom] {
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+}
+
+/* ---- review: spelling and accessibility ---- */
+
+.pli-spell { display: flex; flex-direction: column; gap: 0.6rem; min-width: min(30rem, 80vw); }
+.pli-spell-where { display: flex; align-items: center; gap: 0.5rem; }
+.pli-spell-label { font-weight: 600; }
+.pli-spell-where-cell { font-weight: 400; color: var(--pli-muted, inherit); opacity: 0.75; }
+.pli-spell-context { margin: 0; padding: 0.4rem 0.55rem; border: 1px solid var(--pli-border); border-radius: 4px; background: var(--pli-bg); white-space: pre-wrap; overflow-wrap: anywhere; }
+.pli-spell-context mark { background: transparent; color: #c00000; font-weight: 600; text-decoration: underline wavy #c00000; text-underline-offset: 3px; }
+.pli-spell-columns { display: flex; gap: 0.75rem; align-items: flex-start; }
+.pli-spell-side { flex: 1 1 auto; display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.pli-spell-side label { display: flex; flex-direction: column; gap: 0.2rem; }
+.pli-spell-side input { padding: 0.25rem 0.45rem; border: 1px solid var(--pli-border); border-radius: 4px; background: var(--pli-bg); color: var(--pli-fg); font: inherit; }
+.pli-spell-suggestions { list-style: none; margin: 0; padding: 0; max-height: 9rem; overflow: auto; border: 1px solid var(--pli-border); border-radius: 4px; }
+.pli-spell-suggestion { display: block; width: 100%; padding: 0.2rem 0.5rem; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pli-spell-suggestion[data-on] { background: var(--pli-accent); color: #fff; }
+.pli-spell-suggestion:hover:not([data-on]) { background: var(--pli-chrome); }
+.pli-spell-none { padding: 0.2rem 0.5rem; opacity: 0.7; }
+.pli-spell-buttons { flex: none; display: flex; flex-direction: column; gap: 0.3rem; }
+.pli-spell-done { margin: 0; }
+
+.pli-accessbar { flex: none; display: flex; flex-direction: column; gap: 0.3rem; margin: 0 0.5rem 0.3rem; padding: 0.35rem 0.5rem; border: 1px solid var(--pli-border); border-radius: 6px; background: var(--pli-chrome); max-height: 40%; min-height: 0; }
+.pli-accessbar-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; }
+.pli-accessbar-spacer { flex: 1 1 auto; }
+.pli-accessbar-list { overflow: auto; min-height: 0; }
+.pli-accessbar-group h3 { margin: 0.3rem 0 0.15rem; font-size: 0.85rem; }
+.pli-accessbar-group[data-severity="error"] h3 { color: #b00020; }
+.pli-accessbar-group[data-severity="warning"] h3 { color: #8a5a00; }
+.pli-accessbar-group ul { list-style: none; margin: 0; padding: 0; }
+.pli-accessbar-group li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem; padding: 0.15rem 0; }
+.pli-accessbar-go { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 0; }
+.pli-accessbar-go:hover { text-decoration: underline; }
+.pli-accessbar-where { font-weight: 600; }
+.pli-accessbar-hint { opacity: 0.75; }
+@media (prefers-color-scheme: dark) {
+  .pli-accessbar-group[data-severity="error"] h3 { color: #ff8a9b; }
+  .pli-accessbar-group[data-severity="warning"] h3 { color: #f0c060; }
+  .pli-spell-context mark { color: #ff8a9b; text-decoration-color: #ff8a9b; }
+}
+
+/* ---- yellow adjustment handles of a shaped picture ---- */
+
+.pli-grid-adjframe { position: absolute; inset: 0; pointer-events: none; }
+.pli-grid-adjhandle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  background: #ffc000;
+  border: 1px solid #7f6000;
+  transform: rotate(45deg);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: none;
+}
+.pli-grid-adjhandle:focus-visible { outline: 2px solid var(--pli-accent); outline-offset: 2px; }
+.pli-slider-row { display: flex; align-items: center; gap: 0.5rem; }
+.pli-slider-row input[type="range"] { flex: 1 1 auto; min-width: 8rem; order: -1; }
+.pli-slider-row input[type="number"] { flex: none; width: 5rem; }
+
+/* ---- comments and other people ---- */
+
+/* The purple mark in the corner of a cell that has a comment thread (a resolved one is grey). */
+.pli-grid-thread {
+  position: absolute;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  border-top: 8px solid #7e57c2;
+  border-left: 8px solid transparent;
+}
+.pli-grid-thread[data-resolved] { border-top-color: #9aa0a6; }
+.pli-grid-thread[data-active] { border-top-color: #4527a0; border-top-width: 10px; border-left-width: 10px; }
+
+.pli-grid-peers { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+
+.pli-sheet-threadcard { width: 300px; max-height: 60vh; overflow: auto; padding: 0.35rem; z-index: 40; }
+
+.pli-sheet-comments { flex: none; width: 320px; display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--pli-border); background: var(--pli-chrome); }
+.pli-sheet-comments > .pli-comments { flex: 1; min-height: 0; }
+.pli-sheet-comment-cell { font-family: var(--pli-mono, monospace); font-weight: 600; }
+.pli-sheet-body { flex: 1; display: flex; min-height: 0; min-width: 0; }
+.pli-sheet-body > .pli-grid { min-width: 0; }
+
+/* A dot on a sheet tab for each person who is on that sheet. */
+.pli-sheet-tab-people { display: inline-flex; margin-left: 0.3rem; gap: 2px; }
+.pli-sheet-tab-person { width: 8px; height: 8px; border-radius: 50%; background: var(--pli-peer, #1c7ed6); box-shadow: 0 0 0 1px var(--pli-bg); }

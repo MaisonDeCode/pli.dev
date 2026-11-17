@@ -1,0 +1,72 @@
+%PDF-1.3
+%¿÷¢þ
+1 0 obj
+<< /Pages 2 0 R /Type /Catalog >>
+endobj
+2 0 obj
+<< /Count 1 /Kids [ 3 0 R ] /Type /Pages >>
+endobj
+3 0 obj
+<< /Annots [ 4 0 R 5 0 R 6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R 12 0 R 13 0 R 14 0 R ] /Contents 15 0 R /MediaBox [ 0 0 300 400 ] /Parent 2 0 R /Resources << >> /Type /Page >>
+endobj
+4 0 obj
+<< /C [ 1 0.8 0 ] /Contents (First comment) /CreationDate (D:20260102030405Z) /F 4 /M (D:20260102030405+01'00') /Name /Comment /Open true /Popup 5 0 R /Rect [ 40 340 64 364 ] /Subtype /Text /T (Ana Example) /Type /Annot >>
+endobj
+5 0 obj
+<< /Open true /Parent 4 0 R /Rect [ 100 300 250 360 ] /Subtype /Popup /Type /Annot >>
+endobj
+6 0 obj
+<< /Contents (Reply one) /CreationDate (D:20260103000000Z) /F 28 /IRT 4 0 R /Name /Comment /RT /R /Rect [ 40 340 64 364 ] /Subtype /Text /T (Ben Example) /Type /Annot >>
+endobj
+7 0 obj
+<< /Contents (Reply two) /CreationDate (D:20260104000000Z) /F 28 /IRT 6 0 R /Name /Comment /RT /R /Rect [ 40 340 64 364 ] /Subtype /Text /T (Ana Example) /Type /Annot >>
+endobj
+8 0 obj
+<< /F 28 /IRT 4 0 R /Name /Comment /RT /R /Rect [ 40 340 64 364 ] /State (Completed) /StateModel (Review) /Subtype /Text /T (Ben Example) /Type /Annot >>
+endobj
+9 0 obj
+<< /C [ 1 1 0 ] /Contents (On a highlight) /Custom (keep me) /F 4 /QuadPoints [ 20 120 120 120 20 100 120 100 ] /Rect [ 20 100 120 120 ] /StructParent 5 /Subtype /Highlight /T (Ana Example) /Type /Annot >>
+endobj
+10 0 obj
+<< /Contents (unknown kind) /Rect [ 200 200 220 220 ] /Subtype /Caret /Type /Annot >>
+endobj
+11 0 obj
+<< /Subtype /Square /Type /Annot >>
+endobj
+12 0 obj
+<< /InkList (nope) /Rect [ 0 0 10 10 ] /Subtype /Ink /Type /Annot >>
+endobj
+13 0 obj
+<< /FT /Tx /Rect [ 10 10 80 30 ] /Subtype /Widget /T (field) /Type /Annot >>
+endobj
+14 0 obj
+<< /A << /S /URI /URI (https://example.com/b) >> /Border [ 0 0 0 ] /Rect [ 10 50 90 70 ] /Subtype /Link /Type /Annot >>
+endobj
+15 0 obj
+<< /Length 0 /Filter /FlateDecode >>
+stream
+
+endstream
+endobj
+xref
+0 16
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000123 00000 n 
+0000000313 00000 n 
+0000000551 00000 n 
+0000000652 00000 n 
+0000000837 00000 n 
+0000001022 00000 n 
+0000001191 00000 n 
+0000001412 00000 n 
+0000001514 00000 n 
+0000001566 00000 n 
+0000001651 00000 n 
+0000001744 00000 n 
+0000001880 00000 n 
+trailer << /Root 1 0 R /Size 16 /ID [<21b56ec0f495af5ded43af2f31196f13><21b56ec0f495af5ded43af2f31196f13>] >>
+startxref
+1951
+%%EOF
