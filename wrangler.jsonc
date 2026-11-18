@@ -1,0 +1,10 @@
+{
+  // Deploys the built docs site (apps/site/dist) to Cloudflare as static assets.
+  // The name must match the project name in the Cloudflare dashboard.
+  "name": "pli-dev",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./apps/site/dist",
+    "not_found_handling": "404-page"
+  }
+}
