@@ -46,7 +46,19 @@ Saving, restoring and deleting need the **editor** role. Anyone can read the lis
 - is **merged** with what other people are typing at that moment, and sent to everyone as a normal change;
 - shows up in the **activity feed** and the sync log like any other edit.
 
-Before it restores, `VersionHistory` saves the current state as an automatic version named *Before restoring "Name"*, so even undo is not the only way back. Turn that off with `keepBeforeRestore: false`.
+Nothing is ever taken out of the list. Before it restores, `VersionHistory` saves the current state as an automatic version named *Before restoring "Name"*, so even undo is not the only way back. After it restores, it saves the result as a version of its own, named *Restored "Name"*, so the restore shows in the list in its place in time and the version you went back to stays where it was. Turn these off with `keepBeforeRestore: false` and `keepAfterRestore: false`.
+
+### Autosaved versions
+
+Named versions only exist when someone makes one. To keep a history without asking anyone to, turn on `autoSave`:
+
+```ts
+const history = new VersionHistory({ /* … */, autoSave: { every: 5 * 60_000, keep: 40 } });
+// … when the editor goes away:
+history.dispose();
+```
+
+A version named *Autosaved* is kept once changes have been quiet for `every` milliseconds (five minutes by default), unless the file is the same as the last version. The first time a file with no versions is opened, a version named *Original* is kept, so there is always something to go back to (`baseline: false` turns that off). Only the newest `keep` autosaved versions are kept (40 by default). Versions people named, and the ones made around a restore, are never removed. Autosaving needs a session that has `subscribe`, and it saves as the signed-in person, so it does nothing for viewers.
 
 ### What an editor supplies
 
@@ -85,7 +97,7 @@ Over a table that is four statements. `memoryVersionStorage()` is there for test
 }
 ```
 
-`version` is the position in the [shared log](/platform/co-editing/) when it was saved, if the file is live. `automatic` is `true` for the ones Pli saved before a restore.
+`version` is the position in the [shared log](/platform/co-editing/) when it was saved, if the file is live. `automatic` is `true` for the ones Pli saved itself: before and after a restore, and by autosave.
 
 ### From the server, with no editor open
 
@@ -103,7 +115,26 @@ await currentFromStore(store, model, "sheet:budget");       // the file as it is
 
 ### The interface
 
-`VersionHistoryPanel` (see [Shared interface](/platform/shared-ui/)) is the side panel: a box to name the current version, the list with who saved each and when, a confirmation before restoring, and the "what changed" lines. `PliDocument` takes it as `history={history}`.
+The ready-made editors show the history in **View > Version history**. It opens a side panel with a box to name the current version, and the list: *Current version* first, then every version with who saved it and when. Choosing a version **previews** it: the editor shows the file as it was, read-only, under a bar that says what changed since ("1 block was edited") and offers **Restore this version** and **Back to current**. Your real file is not touched while you look. Restoring applies the version as an ordinary undoable edit, adds the *Restored* version to the list, and returns to the editor.
+
+Every editor takes the same props:
+
+```tsx
+<PliDocument session={session} users={users} versions={myVersionStorage} />            // makes the history for you, with autosave
+<PliSheet    session={session} users={users} versions={myVersionStorage} autoSaveVersions={{ every: 60_000 }} />
+<PliDeck     session={session} users={users} versions={myVersionStorage} autoSaveVersions={false} />
+<PliPdf      session={session} users={users} history={history} />                         // or a `VersionHistory` you made
+```
+
+| Prop | What it does |
+|------|--------------|
+| `history` | A `VersionHistory` you made. Adds the View item and the panel. |
+| `versions` | A `VersionStorage`. A shortcut that makes the `VersionHistory` for you (`documentVersionHistory`, `sheetVersionHistory`, `deckVersionHistory`, `pdfVersionHistory`), with autosave on. Needs `users`; `history` wins if you give both. |
+| `autoSaveVersions` | With `versions`: `false` turns autosave off, or give `{ every, keep }`. |
+
+Saving and restoring need the `editor` role in your `users`; everyone else can look at versions but sees no Restore button.
+
+If you build your own interface, `VersionHistoryPanel` (the side panel) and `VersionPreviewBar` (the bar above an older version) are in `@pli.dev/react/collab` (see [Shared interface](/platform/shared-ui/)).
 
 ## Activity and notifications
 

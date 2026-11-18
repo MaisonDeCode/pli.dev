@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { Dialog, Dropdown, MenuList, keepFocus, type MenuEntry } from "@pli.dev/react";
+import { useContext, useEffect, useRef } from "react";
+import { Dialog, Dropdown, FilePickerContext, MenuList, keepFocus, pickWith, type MenuEntry } from "@pli.dev/react";
 import { useFormController, type FormController } from "./formController";
 import type { PdfMenus } from "./commands";
 import { FormIcons as I } from "./formIcons";
@@ -214,27 +214,32 @@ export function FormsHost({ c }: { c: FormController }) {
   useFormController(c);
   const input = useRef<HTMLInputElement>(null);
   c.files = usePageTools()?.files ?? null;
+  const picker = useContext(FilePickerContext);
   useEffect(() => {
-    c.actions.pickFile = () => input.current?.click();
+    c.actions.pickFile = picker
+      ? () => void pickWith(picker, { purpose: "import", accept: "application/json,.json", label: "Import form data" }).then(([file]) => (file ? c.importFile(file) : undefined))
+      : () => input.current?.click();
     return () => {
       c.actions.pickFile = undefined;
     };
-  }, [c]);
+  }, [c, picker]);
   return (
     <>
-      <input
-        ref={input}
-        type="file"
-        hidden
-        accept="application/json,.json"
-        aria-label="Import form data"
-        tabIndex={-1}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          if (file) void c.importFile(file);
-        }}
-      />
+      {!picker && (
+        <input
+          ref={input}
+          type="file"
+          hidden
+          accept="application/json,.json"
+          aria-label="Import form data"
+          tabIndex={-1}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void c.importFile(file);
+          }}
+        />
+      )}
       <FlattenDialog c={c} />
       <span className="pli-pdf-sr" role="status" aria-live="polite">
         {c.live}

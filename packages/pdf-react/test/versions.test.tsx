@@ -21,15 +21,15 @@ const rect = { x: 72, y: 100, w: 100, h: 14 };
 const pageCount = (s: PdfSession) => s.doc.pages.length;
 
 async function openHistory() {
-  await chooseMenu("File", "Version history");
+  await chooseMenu("View", "Version history");
   await flush();
 }
 
-const versionNames = () => qa(".pli-version-name-text").map((e) => e.textContent);
+const versionNames = () => qa(".pli-version:not(.pli-version-current) .pli-version-name-text").map((e) => e.textContent);
 const restoreButton = (version: string) => qa(".pli-version", document).find((li) => li.querySelector(".pli-version-name-text")?.textContent === version)!.querySelector<HTMLElement>(".pli-version-actions .pli-link-button")!;
 
 describe("version history in the PDF editor", () => {
-  it("restores an older version after a confirmation, as one undo step", async () => {
+  it("restores an older version, as one undo step", async () => {
     const session = await openWords();
     const storage = memoryVersionStorage<PdfDoc>();
     const history = pdfVersionHistory(session, { storage, users: editors() });
@@ -51,21 +51,13 @@ describe("version history in the PDF editor", () => {
     expect(q("#pli-pdf-tab-history").getAttribute("aria-selected")).toBe("true");
     expect(versionNames()).toEqual(["Sent to legal"]);
 
-    // Restore asks first; Cancel leaves the document alone.
+    // Restoring needs no confirmation: it adds a version and the way back is in the list.
     await click(restoreButton("Sent to legal"));
-    expect(q(".pli-version-actions").textContent).toContain("Replace the current file with this version?");
-    const buttons = qa(".pli-version-actions .pli-link-button");
-    expect(buttons.map((b) => b.textContent)).toEqual(["Restore", "Cancel"]);
-    await click(buttons[1]);
-    expect(hashPdfDoc(session.doc)).toBe(hashPdfDoc(after));
-
-    await click(restoreButton("Sent to legal"));
-    await click(qa(".pli-version-actions .pli-link-button")[0]);
     await flush();
     expect(JSON.stringify(session.doc)).toBe(JSON.stringify(before));
     expect(pageCount(session)).toBe(5);
     // the way back was kept in the list
-    expect(versionNames()).toEqual(expect.arrayContaining(["Sent to legal", 'Before restoring "Sent to legal"']));
+    expect(versionNames()).toEqual(expect.arrayContaining(["Sent to legal", 'Before restoring "Sent to legal"', 'Restored "Sent to legal"']));
 
     // one undo puts back everything that was there before the restore
     await run(() => void session.undo());
@@ -80,7 +72,7 @@ describe("version history in the PDF editor", () => {
   it("builds the history itself from `versions` and `users`, saves a named version and restores it", async () => {
     const session = await openWords();
     const storage = memoryVersionStorage<PdfDoc>();
-    await mount(session, { versions: storage, users: editors() });
+    await mount(session, { versions: storage, users: editors(), autoSaveVersions: false });
     await openHistory();
     const input = q<HTMLInputElement>(".pli-version-name input");
     await run(() => {
@@ -97,7 +89,6 @@ describe("version history in the PDF editor", () => {
     const saved = hashPdfDoc(session.doc);
     await run(() => void session.pages.rotate([first], 180));
     await click(restoreButton("Draft"));
-    await click(qa(".pli-version-actions .pli-link-button")[0]);
     await flush();
     expect(hashPdfDoc(session.doc)).toBe(saved);
     expect(session.canUndo).toBe(true);

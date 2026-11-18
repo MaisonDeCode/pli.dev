@@ -117,7 +117,7 @@ interface Comment {
 }
 ```
 
-A mention is written into `body` as `@` and the person's name, so the text reads the same everywhere it is shown or exported, and `mentions` lists their ids. **Pli does not notify anyone.** Your `save` sees every `comment.add` and `thread.create` with `mentions` on it, which is where you send the email or the push notification (an edit that adds a mention sends the new list too).
+A mention is written into `body` as `@` and the person's name, so the text reads the same everywhere it is shown or exported, and `mentions` lists their ids. **Pli does not notify anyone.** It tells your app who should hear about each comment, and your app sends the email, push or inbox message: see [Notifying people](#notifying-people).
 
 For a document, the anchor says where the text was **when the comment was made**: the `block` id, `from` and `to` offsets in it, and a `quote` of the text (up to 200 characters). The live position is the highlight in the document; the anchor is what is left when the text is gone, and how Pli puts the highlight back for someone whose copy lacks it.
 
@@ -135,6 +135,53 @@ function threadsFromLog(changes: CommentChange[]): Thread[] {
 ```
 
 Every change is **safe to apply twice**, and one that no longer fits (a reply to a thread that was deleted) is ignored, so you do not have to worry about duplicates or ordering races. Or keep one row per thread and update it; the changes are small and obvious.
+
+## Notifying people
+
+Pli doesn't send notifications. Your app already has a way to (email, push, an inbox, a chat message), so Pli gives you one event per comment action, with who should be told and why. Pass `onNotify` where you turn comments on:
+
+```ts
+const session = new DocumentSession(doc, {
+  comments: {
+    users,
+    onNotify(notice) {
+      for (const { user, reason } of notice.recipients) {
+        // user.id is your own id for the person
+        myNotifications.send(user.id, {
+          title: reason === "mention" ? `${notice.actor.name} mentioned you` : `${notice.actor.name} replied`,
+          body: notice.comment?.body,
+          link: `/files/${notice.file}#${notice.thread.id}`,
+        });
+      }
+    },
+  },
+});
+```
+
+It is the same option in every editor: `comments={{ users, onNotify }}` on `PliSheet`, `PliDeck` and `PliPdf`, and `comments: { users, onNotify }` in the session options of Documents.
+
+Each notice has:
+
+| Field | What it is |
+|-------|------------|
+| `type` | `"comment.created"` (a new thread), `"comment.replied"`, `"comment.edited"`, `"thread.resolved"` or `"thread.reopened"` |
+| `actor` | The person who did it |
+| `thread`, `comment` | The thread, with the comment in it, as it was then. `comment` is left out for resolving and reopening |
+| `file` | The file the comments belong to |
+| `at` | When, in milliseconds since 1970 |
+| `recipients` | The people to tell, each once, as `{ user, reason }` |
+
+The `reason` is `"mention"` (the comment names them with `@`; for an edit, only people it names for the first time) or `"participant"` (they wrote an earlier comment in the thread). Someone who is both is told once, as a mention. The person who did it is never in the list. `recipients` is empty when nobody else is concerned, such as a first comment that mentions no one. The notice is still sent, so you can tell people who watch the file.
+
+Some things to know:
+
+- **Once per action.** The notice is made by the person who did the thing, so with ten people in a file an action is announced once, not ten times.
+- **After the store has kept it.** If your store refuses a comment, nobody is told about it.
+- **Use `user.id`.** The name and picture may not have been loaded yet, so look the person up in your own system by id.
+- **Errors.** If your handler throws (or its promise rejects), commenting carries on, and the error is thrown where it shows up in your error reporting.
+- **Other people's actions** are announced by their own editors, not by yours.
+
+To attach another handler to a client you already have, or to watch several clients, use `commentNotices(client, handler)`. It returns a function that stops it.
 
 ## Letting everyone see changes live
 

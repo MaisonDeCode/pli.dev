@@ -3,7 +3,7 @@
  * Default styles for @pli.dev/react. Everything is driven by the custom properties below, so you can
  * theme the editor by overriding them on `.pli-document` or any ancestor. The app chrome (menus,
  * toolbar, canvas) follows the system's light or dark setting, or force one with
- * data-theme="light" | "dark" on <html>. Pages follow the same setting: white in light mode, dark in dark mode (set `paper="light"` to keep them white).
+ * data-theme="light" | "dark" on <html>, or set the `theme` prop of the editor. Pages follow the same setting: white in light mode, dark in dark mode (set `paper="light"` to keep them white).
  */
 
 .pli-document,
@@ -41,12 +41,12 @@ body > .pli-panel-fixed {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .pli-document,
-  :root:not([data-theme="light"]) .pli-editor,
-  :root:not([data-theme="light"]) .pli-spreadsheet,
-  :root:not([data-theme="light"]) .pli-toolbar,
-  :root:not([data-theme="light"]) .pli-dialog,
-  :root:not([data-theme="light"]) body > .pli-panel-fixed {
+  :root:not([data-theme="light"]) .pli-document:not([data-theme="light"], [data-theme="light"] *),
+  :root:not([data-theme="light"]) .pli-editor:not([data-theme="light"], [data-theme="light"] *),
+  :root:not([data-theme="light"]) .pli-spreadsheet:not([data-theme="light"], [data-theme="light"] *),
+  :root:not([data-theme="light"]) .pli-toolbar:not([data-theme="light"], [data-theme="light"] *),
+  :root:not([data-theme="light"]) .pli-dialog:not([data-theme="light"], [data-theme="light"] *),
+  :root:not([data-theme="light"]) body > .pli-panel-fixed:not([data-theme="light"], [data-theme="light"] *) {
     --pli-bg: #14161a;
     --pli-chrome: #1d2026;
     --pli-canvas: #0e1013;
@@ -71,12 +71,23 @@ body > .pli-panel-fixed {
   }
 }
 
-:root[data-theme="dark"] .pli-document,
-:root[data-theme="dark"] .pli-editor,
-:root[data-theme="dark"] .pli-spreadsheet,
-:root[data-theme="dark"] .pli-toolbar,
-:root[data-theme="dark"] .pli-dialog,
-:root[data-theme="dark"] body > .pli-panel-fixed {
+:root[data-theme="dark"] .pli-document:not([data-theme="light"], [data-theme="light"] *),
+.pli-document[data-theme="dark"],
+[data-theme="dark"] .pli-document:not([data-theme="light"], [data-theme="light"] *),
+:root[data-theme="dark"] .pli-editor:not([data-theme="light"], [data-theme="light"] *),
+.pli-editor[data-theme="dark"],
+[data-theme="dark"] .pli-editor:not([data-theme="light"], [data-theme="light"] *),
+:root[data-theme="dark"] .pli-spreadsheet:not([data-theme="light"], [data-theme="light"] *),
+.pli-spreadsheet[data-theme="dark"],
+[data-theme="dark"] .pli-spreadsheet:not([data-theme="light"], [data-theme="light"] *),
+:root[data-theme="dark"] .pli-toolbar:not([data-theme="light"], [data-theme="light"] *),
+.pli-toolbar[data-theme="dark"],
+[data-theme="dark"] .pli-toolbar:not([data-theme="light"], [data-theme="light"] *),
+:root[data-theme="dark"] .pli-dialog:not([data-theme="light"], [data-theme="light"] *),
+.pli-dialog[data-theme="dark"],
+[data-theme="dark"] .pli-dialog:not([data-theme="light"], [data-theme="light"] *),
+:root[data-theme="dark"] body > .pli-panel-fixed:not([data-theme="light"], [data-theme="light"] *),
+body > .pli-panel-fixed[data-theme="dark"] {
   --pli-bg: #14161a;
   --pli-chrome: #1d2026;
   --pli-canvas: #0e1013;
@@ -174,6 +185,14 @@ body > .pli-panel-fixed {
   align-items: center;
   gap: 0.5rem;
   margin-left: auto;
+}
+
+/* The slot before the title: it sits at the left edge, and the title stays aligned with the text below it. */
+.pli-actions.pli-actions-start {
+  margin-left: 0;
+}
+.pli-actions-start + .pli-doc-title {
+  margin-left: 0;
 }
 
 .pli-workspace {
@@ -645,6 +664,14 @@ body > .pli-panel-fixed {
   font-family: var(--pli-font);
   font-size: 0.9rem;
   box-shadow: var(--pli-shadow);
+}
+
+/* While an app's own file chooser is open the dialog is held as a plain one (see `pickWith`): keep it where it was, in the middle. */
+.pli-dialog[open]:not(:modal) {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
 }
 
 .pli-dialog::backdrop {
@@ -2395,6 +2422,25 @@ body > .pli-panel-fixed {
   color: #fff;
 }
 
+/* A mention or a name the app handles clicks for (`UserDirectory.open`). */
+.pli-mention-button,
+.pli-comment-author-button {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.pli-comment-author-button {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+.pli-comment-author-button:hover,
+.pli-mention-button:hover {
+  text-decoration: underline;
+}
+
 .pli-composer {
   position: relative;
 }
@@ -2822,3 +2868,17 @@ del.pli-suggest {
 }
 .pli-fonts-kindtag { flex: none; color: var(--pli-muted); font-size: 0.7rem; }
 .pli-fonts-item[data-status="failed"] .pli-fonts-sample { opacity: 0.75; }
+
+/* An older version shown in place of the pages (View > Version history): the bar, then the document, which nobody can change. */
+.pli-version-preview {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.pli-version-preview > .pli-document {
+  flex: 1;
+  min-height: 0;
+}

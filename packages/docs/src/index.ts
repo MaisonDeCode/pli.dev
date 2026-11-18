@@ -50,7 +50,7 @@ export { canonicalOps, diffBlock } from "./canonical";
 export { rebase, transformOps, transformPair } from "./transform";
 export { docSyncModel, hashDoc } from "./sync";
 export { documentEditorSession } from "./editor-session";
-export { docVersionSupport, restoreDocOps, summarizeDocDiff } from "./versions";
+export { docVersionSupport, documentVersionHistory, restoreDocOps, summarizeDocDiff, type DocumentVersionHistoryOptions } from "./versions";
 export { marksSegments, restoreMarks, type MarkSegment } from "./runs";
 export { DocumentSession, emptyDoc, type DocumentSessionOptions, type UploadOutcome, type UploadState } from "./session";
 export { normalizeRuns, plainText, textLength } from "./runs";
@@ -172,7 +172,10 @@ export {
   memoryDocumentStore,
   CommentClient,
   Users,
+  VersionHistory,
+  memoryVersionStorage,
   applyCommentChange,
+  commentNotices,
   broadcastChannelTransport,
   memoryCommentStore,
   memoryHub,
@@ -191,7 +194,14 @@ export {
   type CommentAction,
   type CommentChange,
   type CommentClientOptions,
+  type CommentNotice,
+  type CommentNoticeType,
   type CommentStore,
+  type AutoSaveOptions,
+  type NamedVersion,
+  type VersionStorage,
+  type NoticeReason,
+  type UserSearchContext,
   type Authority,
   type AuthorityOptions,
   type DocumentStore,

@@ -1,6 +1,6 @@
 import { expectsReference } from "./edit";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { Bar, ColorPicker, Dropdown, FontPicker, FontsProvider, Icons, MenuBar, MenuList, downloadFile, keepFocus, useDocumentFonts, useFonts, type MenuDefinition, type MenuEntry } from "@pli.dev/react";
+import { Bar, ColorPicker, Dropdown, FontPicker, FontsProvider, Icons, MenuBar, MenuList, ThemeContext, VersionHistoryPanel, VersionPreviewBar, downloadFile, extendMenus, forcedTheme, keepFocus, pickWith, useDocumentFonts, useFonts, FilePickerProvider, type ExtraMenus, type FilePicker, type MenuDefinition, type MenuEntry, type PickOptions, type PliTheme } from "@pli.dev/react";
 import type { FontRegistry } from "@pli.dev/core";
 import {
   type Sheet,
@@ -54,7 +54,6 @@ import {
   type FormulaAssist,
   type Suggestion,
   type GridSelection,
-  type SheetSession,
   describePasteReport,
   parseExternalRef,
   type ExternalListResolver,
@@ -84,7 +83,7 @@ import { PasteSourceDialog } from "./PasteSourceDialog";
 import { ProtectDialog, type ProtectMode, type ProtectResult } from "./ProtectDialog";
 import { EditRangePasswordDialog, EditRangesDialog } from "./EditRangesDialog";
 import type { SheetUser, RangeSortLevel, SlicerStyleDef } from "@pli.dev/sheets";
-import { listPivots, listTables, type SubtotalFunction } from "@pli.dev/sheets";
+import { SheetSession, listPivots, listTables, sheetVersionHistory, type SubtotalFunction, type SheetOp, type Workbook } from "@pli.dev/sheets";
 import { builtinSlicerStyle, usedFonts } from "@pli.dev/sheets";
 import { SpellChecker, type AccessIssue, type SpellDictionary } from "@pli.dev/sheets";
 import { SpellDialog } from "./SpellDialog";
@@ -113,7 +112,7 @@ import { useSheetRevision } from "./hooks";
 import { CollabIcons } from "@pli.dev/react";
 import { PeopleBar, peerMarks, peersBySheet, publishPresence, useSheetCollab, type CommentsProp, type SyncProp } from "./collab";
 import { CommentsPanel, ThreadHover, threadMarks, useThreads } from "./comments";
-import type { CollabRoom, PliUser, Users } from "@pli.dev/core";
+import type { AutoSaveOptions, CollabRoom, NamedVersion, PliUser, Users, VersionHistory, VersionStorage } from "@pli.dev/core";
 import type { CellAnchor } from "@pli.dev/sheets";
 import { stepDecimals } from "./numberformat";
 
@@ -183,8 +182,43 @@ export interface PliSheetProps {
   onPrint?: (job: PliSheetPrintJob) => void | Promise<void>;
   /** Add "Print with the browser…" to the print preview, which opens the browser's own print dialog (where "Save as PDF" lives). Off by default. */
   browserPrint?: boolean;
-  /** Extra controls at the right end of the title row, such as a Share button. */
+  /** Extra controls in the title row, such as a Share button. */
   actions?: ReactNode;
+  /** Controls at the far left of the title row, before the spreadsheet's name: a back button, your logo, a breadcrumb. */
+  startActions?: ReactNode;
+  /** Controls at the far right of the title row, after everything else: a profile menu, a close button. */
+  endActions?: ReactNode;
+  /**
+   * `"light"`, `"dark"` or `"auto"` (default). Pass the theme your app is using so the editor matches it. `"auto"` follows
+   * `data-theme="light" | "dark"` on `<html>` if your page sets it, and otherwise the system's setting.
+   */
+  theme?: PliTheme;
+  /**
+   * Items for the menus, and menus of your own. `{ File: [{ label: "Share…", onSelect }], AI: [{ label: "Summarize", onSelect }] }`
+   * adds Share to the end of File and an AI menu before the last one. See `ExtraMenus` and
+   * [Menus and file pickers](https://pli.dev/platform/menus-and-file-pickers/).
+   */
+  extraMenus?: ExtraMenus;
+  /**
+   * Your own way of choosing a file, for File > Import, Insert > Image and the picture fields in dialogs: show your own dialog (files in
+   * your app, a drive) and return the chosen `File`. Left out, the browser's file chooser opens. See `FilePicker`.
+   */
+  filePicker?: FilePicker;
+  /**
+   * The versions of the workbook (see `VersionHistory`): adds View > Version history and a side panel where a version can be looked at
+   * (the sheet shows it, read-only) and restored. Restoring adds a new version and keeps every earlier one.
+   */
+  history?: VersionHistory<Workbook, SheetOp>;
+  /**
+   * Where versions are kept: a shortcut for `history` that makes the `VersionHistory` for you (`sheetVersionHistory`). Needs `users`.
+   * Saving and restoring need the `editor` role.
+   */
+  versions?: VersionStorage<Workbook>;
+  /**
+   * With `versions`: keep a version now and then without anyone asking, so the history shows how the workbook changed. On by default;
+   * `false` turns it off, or give `{ every, keep }` (see `AutoSaveOptions`).
+   */
+  autoSaveVersions?: boolean | AutoSaveOptions;
   /**
    * What the kinds of badge your app uses mean, by name: `{ person: { label: "Person", resolve, search } }`. A cell
    * that is a badge of kind `person` keeps an id, and this turns it into a name and a picture, and lets people search for
@@ -287,14 +321,47 @@ export function PliSheet(props: PliSheetProps) {
   const fonts = useFonts(props.fonts);
   return (
     <FontsProvider fonts={fonts}>
-      <PliSheetView {...props} />
+      <ThemeContext.Provider value={forcedTheme(props.theme)}>
+        <FilePickerProvider picker={props.filePicker}>
+          <PliSheetView {...props} />
+        </FilePickerProvider>
+      </ThemeContext.Provider>
     </FontsProvider>
   );
 }
 
-function PliSheetView({ session, remoteImages: remoteImagesProp = false, validatePaste, externalLists, readOnly = false, toolbar = true, formulaBar = true, tabs = true, statusBar = true, menu = true, onDownload, onPrint, browserPrint = false, actions, chips, className, author, user, pivotData, spellDictionary, spellWords, onSpellAddWord, room, users, comments, sync }: PliSheetProps) {
+function PliSheetView({ session, remoteImages: remoteImagesProp = false, validatePaste, externalLists, readOnly: readOnlyProp = false, toolbar = true, formulaBar = true, tabs = true, statusBar = true, menu = true, onDownload, onPrint, browserPrint = false, actions, startActions, endActions, theme, extraMenus, filePicker, history: historyProp, versions, autoSaveVersions, chips, className, author, user, pivotData, spellDictionary, spellWords, onSpellAddWord, room, users, comments, sync }: PliSheetProps) {
   const collab = useSheetCollab(session, { room, users, comments, sync });
   const commentClient = collab.comments;
+  // An older version being looked at: nothing in the real workbook can be changed meanwhile.
+  const [previewVersion, setPreviewVersion] = useState<NamedVersion<Workbook> | null>(null);
+  const readOnly = readOnlyProp || !!previewVersion;
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyUsers = users ?? commentClient?.users;
+  // Made in an effect, so that a history that was stopped when the editor was taken away is made again when it comes back (React
+  // does this in development), instead of a stopped one being kept.
+  const [ownHistory, setOwnHistory] = useState<VersionHistory<Workbook, SheetOp> | null>(null);
+  useEffect(() => {
+    if (historyProp || !versions || !historyUsers) {
+      setOwnHistory(null);
+      return;
+    }
+    const made = sheetVersionHistory(session, {
+      storage: versions,
+      users: historyUsers,
+      ...(autoSaveVersions === false ? {} : { autoSave: typeof autoSaveVersions === "object" ? autoSaveVersions : {} }),
+    });
+    setOwnHistory(made);
+    return () => made.dispose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the options are read once, when the history is made
+  }, [session, historyProp, versions, historyUsers]);
+  const history = historyProp ?? ownHistory ?? undefined;
+  /** The version being looked at, as a workbook of its own that nobody can change. */
+  const previewSession = useMemo(() => (previewVersion ? new SheetSession(JSON.parse(JSON.stringify(previewVersion.state)) as Workbook) : null), [previewVersion]);
+  const showHistory = (open: boolean) => {
+    setHistoryOpen(open);
+    if (!open) setPreviewVersion(null);
+  };
   const threadList = useThreads(commentClient);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [activeThread, setActiveThread] = useState<string | null>(null);
@@ -423,6 +490,11 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
   const [noteDialog, setNoteDialog] = useState(false);
   const [borderLine, setBorderLine] = useState<Border>({ style: "thin" });
   const importInput = useRef<HTMLInputElement>(null);
+  /** Chooses files the way the editor was set up to: the hidden file field's chooser, or the `filePicker` the app gave. */
+  const choose = (input: { current: HTMLInputElement | null }, options: PickOptions, use: (files: File[]) => void) => {
+    if (!filePicker) return input.current?.click();
+    void pickWith(filePicker, options).then((files) => files.length > 0 && use(files));
+  };
 
   // ---- help while typing a formula ----
   const [caretAt, setCaretAt] = useState(0);
@@ -1898,7 +1970,7 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
             { label: "Pli spreadsheet (.json)", onSelect: () => exportAs("json") },
           ],
         },
-        { label: "Import…", disabled: readOnly, onSelect: () => importInput.current?.click() },
+        { label: "Import…", disabled: readOnly, onSelect: () => choose(importInput, { purpose: "import", accept: ".xlsx,.csv,.tsv,.txt,.json", label: "Import a spreadsheet" }, ([file]) => void importFile(file!)) },
         "separator",
         { label: "Page setup…", onSelect: () => setPageDialog(true) },
         { label: "Print…", shortcut: `${MOD}P`, onSelect: () => setPreview(true) },
@@ -1932,6 +2004,7 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
       label: "View",
       items: [
         { label: "Pictures from the web", checked: remoteImages, onSelect: () => setRemoteImages(!remoteImages) },
+        ...(history ? [{ label: "Version history", checked: historyOpen, onSelect: () => showHistory(!historyOpen) }] : []),
         "separator",
         {
           label: "Freeze",
@@ -2006,8 +2079,8 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
         "separator",
         { label: "Sparklines…", disabled: readOnly, onSelect: openSparklines },
         { label: "Pivot table…", disabled: readOnly, onSelect: openPivot },
-        { label: "Image…", disabled: readOnly, onSelect: () => imageInput.current?.click() },
-        { label: "Image in cell…", disabled: readOnly || !singleCell, onSelect: () => cellImageInput.current?.click() },
+        { label: "Image…", disabled: readOnly, onSelect: () => choose(imageInput, { purpose: "image", accept: "image/*", multiple: true, label: "Insert an image" }, (files) => void insertImages(files, { row: active.row, col: active.col })) },
+        { label: "Image in cell…", disabled: readOnly || !singleCell, onSelect: () => choose(cellImageInput, { purpose: "image", accept: "image/*", label: "Insert an image in the cell" }, ([file]) => void insertImageInCell(file!)) },
         { label: ownLink ? "Edit link…" : "Link…", shortcut: `${MOD}K`, disabled: readOnly, onSelect: () => setLinkDialog(true) },
         ...commentItems(false),
         { label: cell?.note !== undefined ? "Edit note…" : "Note…", shortcut: `${SHIFT}F2`, disabled: readOnly || !singleCell, onSelect: () => setNoteDialog(true) },
@@ -2152,6 +2225,7 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
   return (
     <div
       className={classes}
+      data-theme={forcedTheme(theme)}
       role="application"
       aria-label="Spreadsheet"
       ref={root}
@@ -2195,6 +2269,7 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
           {menu && (
             <>
               <div className="pli-titlebar">
+                {startActions && <div className="pli-actions pli-actions-start">{startActions}</div>}
                 <input
                   className="pli-doc-title"
                   aria-label="Spreadsheet title"
@@ -2209,12 +2284,13 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
                     <button type="button" className="pli-tool" aria-label="Comments" aria-pressed={commentsOpen} title="Comments" onMouseDown={keepFocus} onClick={() => setCommentsOpen((v) => !v)}>{CollabIcons.comment}</button>
                   )}
                   {actions}
+                  {endActions}
                 </div>
               </div>
-              <MenuBar menus={menus.map((m) => ({ ...m, items: guarded(m.items) }))} />
+              <MenuBar menus={extendMenus(menus.map((m) => ({ ...m, items: guarded(m.items) })), extraMenus)} />
             </>
           )}
-          {toolbar && showToolbar && (
+          {toolbar && showToolbar && !previewVersion && (
         <Bar className="pli-sheet-toolbar" aria-label="Formatting">
           <button type="button" className="pli-tool" aria-label="Undo" title="Undo" disabled={!session.canUndo || readOnly} onMouseDown={keepFocus} onClick={() => session.undo()}>{Icons.undo}</button>
           <button type="button" className="pli-tool" aria-label="Redo" title="Redo" disabled={!session.canRedo || readOnly} onMouseDown={keepFocus} onClick={() => session.redo()}>{Icons.redo}</button>
@@ -2371,7 +2447,7 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
         />
       )}
 
-      {formulaBar && showFormulaBar && (
+      {formulaBar && showFormulaBar && !previewVersion && (
         <div className="pli-sheet-formulabar">
           <input
             className="pli-sheet-namebox"
@@ -2469,6 +2545,7 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
         </div>
       )}
       <div className="pli-sheet-body">
+      <div style={{ display: previewVersion ? "none" : "contents" }}>
       <Grid
         threads={marks}
         peers={peerList}
@@ -2556,6 +2633,14 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
           setExceptionMenu(info);
         }}
       />
+      </div>
+      {previewVersion && previewSession && history && (
+        <div className="pli-sheet-version-preview" onKeyDown={(e) => e.key === "Escape" && setPreviewVersion(null)}>
+          <VersionPreviewBar history={history} version={previewVersion} onBack={() => setPreviewVersion(null)} onRestored={() => setPreviewVersion(null)} />
+          <PliSheet session={previewSession} readOnly menu={false} toolbar={false} theme={theme} />
+        </div>
+      )}
+      {history && historyOpen && <VersionHistoryPanel history={history} activeId={previewVersion?.id ?? null} onPreview={setPreviewVersion} onRestored={() => setPreviewVersion(null)} onClose={() => showHistory(false)} />}
       {commentClient && commentsOpen && (
         <CommentsPanel
           session={session}

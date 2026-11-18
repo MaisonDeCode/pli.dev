@@ -31,10 +31,11 @@
  * - `usePdfView()`: inside any of these, the viewer's state and commands (`PdfViewContext`: page, zoom, `goToPage`,
  *   `setZoom`, `setTool`, selected pages, `pageElement(id)`...). The same object is given to panels and `toolbar`.
  * - `ref`: a `PliPdfHandle` with `goToPage`, `setZoom`, `setViewMode`, `rotateView`, `find`, for hosts that drive the view.
+ * - `extraMenus`: items for the menus or menus of your own (`{ File: [...], AI: [...] }`); `filePicker`: your own file chooser for every place the editor asks for a file.
  * - `menus`, `menusChanged`: entries for the menu bar (an object is added to the end of the menus it names; a function gets the viewer's
  *   own menus and returns the ones to show). `formatBar`: a row under the ribbon for formatting text (the text bar). The viewer's own
  *   commands (`buildCommands` in chrome.tsx) make the menu entries, the status bar and the (optional, `topToolbar`) toolbar alike, so they agree on name, key and state.
- * - `onShare`: gives a Share button in the title row. `actions`: more controls there. `onThemeChange`: View > Theme was used.
+ * - `onShare`: gives a Share button in the title row. `actions` (before Share) and `endActions` (after it): more controls at the right end there; `startActions`: controls before the name. `onThemeChange`: View > Theme was used.
  * - `room`, `users`, `comments`, `sync`: collaboration through `@pli.dev/core` (see `collab.tsx`). `comments` turns on
  *   `session.comments`; `room` is connected (and disconnected on unmount), carries the comments, and gets what you are doing
  *   (`{ page, selection, tool }`) through `room.setPresence`; the toolbar shows who is here; `sync` keeps the session in step
@@ -58,8 +59,7 @@
  *   unsaved dot are in the toolbar; Download options, warnings, export pages as PNG or JPEG are in the File menu.
  * - `usePageTools()` (inside the viewer) gives the controllers: `tools` (pages), `files`, `outline`, `notices`.
  */
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
-import type { PdfSession } from "@pli.dev/pdf";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ForwardRefExoticComponent, type ReactNode, type RefAttributes } from "react";
 import { setSelection, setPageSelection, getPageSelection, useElementBox, useHostWidth, useSessionRevision } from "./hooks";
 import { ALWAYS, DEFAULT_HOST_WIDTH, SIDEBAR_MIN, SIDEBAR_STEP, clampSidebar, shellOf, sidebarMax, sizeOf } from "./shell";
 import { SidebarResizer } from "./Resizer";
@@ -75,7 +75,7 @@ import { Outline, outlineFromDoc, outlineFromRendered, type OutlineNode } from "
 import { FindBar, useFind, type FindState } from "./find";
 import { PdfToolbar, ToolButtons } from "./Toolbar";
 import { PdfStatusBar } from "./StatusBar";
-import { LiveMenuBar, TitleBar, buildCommands, buildMenus, type ChromeDeps, type PdfTheme } from "./chrome";
+import { LiveMenuBar, TitleBar, buildCommands, buildMenus, fileMenuItems, type ChromeDeps, type PdfTheme } from "./chrome";
 import { weaveMenus, type PdfMenus } from "./commands";
 import { PropertiesDialog, ShortcutsDialog, WordCountDialog } from "./HelpDialogs";
 import { ReplaceDialog, useReplace } from "./replace";
@@ -89,10 +89,10 @@ import { FileMenu, SaveButton, DocumentTitle } from "./FileMenu";
 import { PageToolsProvider, usePageToolsKit } from "./usePageTools";
 import { setPageSelection as setPages } from "./hooks";
 import { useStore } from "./store";
-import { pdfVersionHistory, type PdfAnchor, type PdfDoc, type PdfOp, type SaveResult } from "@pli.dev/pdf";
-import type { FontRegistry, CollabRoom, ShareClient, StorageClient, Users, VersionHistory, VersionStorage } from "@pli.dev/core";
-import { OfflineBanner, ShareDialog, VersionHistoryPanel, useSyncStatus } from "@pli.dev/react/collab";
-import { Bar } from "@pli.dev/react";
+import { PdfSession, missingVersionSources, pdfVersionHistory, type PdfAnchor, type PdfDoc, type PdfOp, type SaveResult } from "@pli.dev/pdf";
+import type { AutoSaveOptions, FontRegistry, CollabRoom, NamedVersion, ShareClient, StorageClient, Users, VersionHistory, VersionStorage } from "@pli.dev/core";
+import { OfflineBanner, ShareDialog, VersionHistoryPanel, VersionPreviewBar, useSyncStatus } from "@pli.dev/react/collab";
+import { Bar, FilePickerProvider, extendMenus, type ExtraMenus, type FilePicker } from "@pli.dev/react";
 import { CURSOR_MS, PeopleBar, publishPresence, throttle, useCollab, type PresenceCursor, type CommentsProp, type SyncProp } from "./collab";
 import { setSessionFonts } from "./saving";
 import { SIDEBAR_KEYS } from "./shortcuts";
@@ -227,7 +227,10 @@ export interface PliPdfProps {
   onShare?: () => void;
   /** A `ShareClient` from `@pli.dev/core`: the Share button then opens the shared `ShareDialog` (people, roles, link access) for it. */
   shareClient?: ShareClient;
-  /** A `VersionHistory` from `@pli.dev/core`: adds a Version history tab (the shared `VersionHistoryPanel`) and File > Version history. */
+  /**
+   * A `VersionHistory` from `@pli.dev/core`: adds a Version history item to the View menu and a History tab (the shared `VersionHistoryPanel`).
+   * Choosing a version in the panel shows it in the viewer, read-only, with a bar to restore it or go back; the real document is not touched.
+   */
   history?: VersionHistory<PdfDoc, PdfOp>;
   /**
    * Where named versions are kept (a `VersionStorage` from `@pli.dev/core`; `memoryVersionStorage()` for a demo). The editor then makes the
@@ -235,8 +238,36 @@ export interface PliPdfProps {
    * reaches everyone. Needs `users`; `history` wins when both are given. Saving and restoring need the `editor` role in `users`.
    */
   versions?: VersionStorage<PdfDoc>;
-  /** More controls at the right end of the title row (after Comments, before Share), as in the other Pli editors. */
+  /**
+   * With `versions`: keep an "Autosaved" version now and then after changes, and an "Original" one when the file has no versions yet
+   * (default true). Pass `{ every, keep, baseline }` (`AutoSaveOptions`) to tune it, or `false` for only the versions people save.
+   * Needs `users` with the editor role. Not used with `history`: make that with `pdfVersionHistory(session, { autoSave })`.
+   */
+  autoSaveVersions?: boolean | AutoSaveOptions;
+  /**
+   * Draws the viewer that shows an older version while the person previews it (the session holds that version's pages, and shares this
+   * session's source files; show it read-only, with the theme and zoom you are given). `PdfEditor` gives one with the annotation and form layers; by default a plain viewer
+   * with pages and text is shown.
+   */
+  renderVersionPreview?: (preview: PdfSession, view: { theme: PdfTheme; zoom: Zoom }) => ReactNode;
+  /** More controls at the right end of the title row (after Comments, before Share), as in the other Pli editors. With `endActions` too, `actions` comes first (it is before Share, `endActions` is after it). */
   actions?: ReactNode;
+  /** Controls at the left end of the title row, before the document's name (the same prop Documents, Sheets and Decks have). Shown only with the menu bar (`menu` is not `false`). */
+  startActions?: ReactNode;
+  /**
+   * Items for the menu bar, by menu name. A name the bar has (File, Edit, View, Insert, Format, Tools, Help) gets the items at the end of that menu, after a
+   * divider; any other name is a new menu, placed before Help. Give `{ items, after }` or `{ items, before }` to put them next to a built-in item.
+   * Applied after `menus`, so it also reaches what a kit added. Read-only and disabled states cover the built-in items only. See [Menus and file pickers](/platform/menus-and-file-pickers/).
+   */
+  extraMenus?: ExtraMenus;
+  /**
+   * Your own way of choosing files: called for Open, Create from pictures, Insert pages from a file, Add picture, the signature picture, Replace picture and Import form data,
+   * with what for (`purpose`: `"open"`, `"image"` or `"import"`), the file types, and a `browse()` for the browser's chooser. Resolve with the chosen `File`(s), or `null`
+   * to do nothing. Left out, the browser's own chooser opens. Dropping files on the pages is not changed.
+   */
+  filePicker?: FilePicker;
+  /** Controls at the right end of the title row, after Share (the same prop Documents, Sheets and Decks have). */
+  endActions?: ReactNode;
   /** Find and replace: turns on the Replace row of the find bar (it writes text edits, so it needs the Edit tool: `PdfEditor` turns it on with `edit`). Default false. */
   replace?: boolean;
   className?: string;
@@ -249,7 +280,7 @@ const NO_THREADS: readonly never[] = [];
 const isField = (el: EventTarget | null) => el instanceof HTMLElement && (/^(input|textarea|select)$/i.test(el.tagName) || el.isContentEditable);
 
 /** A PDF viewer with thumbnails, outline, search, zoom and layouts, and places to plug annotation, page and form tools into. */
-export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(props, ref) {
+export const PliPdf: ForwardRefExoticComponent<PliPdfProps & RefAttributes<PliPdfHandle>> = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdfView(props, ref) {
   const { session, renderer, readOnly = false, tools = EMPTY_TOOLS } = props;
   useSessionRevision(session);
   const doc = session.doc;
@@ -266,6 +297,8 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
   const [zoom, setZoomState] = useState<Zoom>(props.defaultZoom ?? "fit-width");
   const [viewMode, setViewModeState] = useState<ViewMode>(props.defaultViewMode ?? "continuous");
   const [viewRotation, setViewRotation] = useState(0);
+  /** The older version being looked at (version history), or null. */
+  const [previewVersion, setPreviewVersion] = useState<NamedVersion<PdfDoc> | null>(null);
   const [fitRef, setFitRef] = useState(0);
   const [findOpen, setFindOpen] = useState(false);
   const [toolState, setToolState] = useState<string | null>(null);
@@ -535,7 +568,7 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
     session,
     renderer,
     readOnly,
-    hooks: { onSave: props.onSave, onOpen: props.onOpen, onPrint: props.onPrint, download: props.onDownload },
+    hooks: { onSave: props.onSave, onOpen: props.onOpen, onPrint: props.onPrint, download: props.onDownload, picker: props.filePicker },
     warnOnUnload: props.warnOnUnload,
     here: () => {
       const { list: pagesNow, current: cur, layout: lay, scale: s } = latest.current;
@@ -611,6 +644,15 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
   const onKeyDown = (e: React.KeyboardEvent) => {
     const mod = e.ctrlKey || e.metaKey;
     const key = e.key;
+    // Looking at an older version: Escape goes back to the current one, and the keys of the editor (undo, delete a page, ...) leave the real document alone.
+    if (previewVersion) {
+      if (key === "Escape" && !(e.target as HTMLElement | null)?.closest?.("dialog")) {
+        setPreviewVersion(null);
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return;
+    }
     // Alt+Shift+S: the sidebar. Alt+Shift+P: the properties panel. (By the physical key: Option changes the letter on a Mac.)
     if (e.altKey && e.shiftKey && !mod && !isField(e.target)) {
       const letter = /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : key.toLowerCase();
@@ -877,20 +919,63 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
     return set;
   }, [layout, scroll.top, viewport.height]);
 
+  // The older version as a session of its own (its pages, annotations and form values; the same source files), shown read-only. The real session is not touched.
+  const previewSession = useMemo(() => (previewVersion ? new PdfSession(structuredClone(previewVersion.state), { sources: session.sources, user: session.options.user }) : null), [previewVersion, session]);
+  const [previewMissing, setPreviewMissing] = useState<string[]>([]);
+  useEffect(() => {
+    setPreviewMissing([]);
+    if (!previewVersion) return;
+    let live = true;
+    void missingVersionSources(previewVersion.state, session.sources).then((list) => live && setPreviewMissing(list.map((s) => s.name)));
+    return () => {
+      live = false;
+    };
+  }, [previewVersion, session]);
+
   const syncRef = useRef(collab.sync);
   syncRef.current = collab.sync;
-  const ownHistory = useMemo(
-    () => (props.history || !props.versions || !props.users ? null : pdfVersionHistory(session, { storage: props.versions, users: props.users, version: () => syncRef.current?.version ?? null })),
-    [session, props.history, props.versions, props.users],
-  );
+  // Made in an effect, not while rendering: it watches the session for the autosave and must be let go of when the editor goes away.
+  const [ownHistory, setOwnHistory] = useState<VersionHistory<PdfDoc, PdfOp> | null>(null);
+  const autoSave = props.autoSaveVersions === false ? undefined : props.autoSaveVersions && props.autoSaveVersions !== true ? props.autoSaveVersions : {};
+  const autoKey = JSON.stringify(autoSave ?? null);
+  useEffect(() => {
+    if (props.history || !props.versions || !props.users) {
+      setOwnHistory(null);
+      return;
+    }
+    const made = pdfVersionHistory(session, { storage: props.versions, users: props.users, version: () => syncRef.current?.version ?? null, autoSave });
+    setOwnHistory(made);
+    return () => {
+      made.dispose();
+      setOwnHistory((now) => (now === made ? null : now));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, props.history, props.versions, props.users, autoKey]);
   const history = props.history ?? ownHistory ?? undefined;
-  const panels: PdfPanel[] = [...(props.sidebar ?? []), ...(history ? [{ id: "history", label: "History", icon: I.versions, render: () => <VersionHistoryPanel history={history} /> }] : [])];
+  const panels: PdfPanel[] = [
+    ...(props.sidebar ?? []),
+    ...(history
+      ? [
+          {
+            id: "history",
+            label: "History",
+            icon: I.versions,
+            render: () => <VersionHistoryPanel history={history} activeId={previewVersion?.id ?? null} onPreview={setPreviewVersion} onRestored={() => setPreviewVersion(null)} />,
+          },
+        ]
+      : []),
+  ];
   const tabs = [
     { id: "thumbnails", label: "Thumbnails", icon: I.thumbnails },
     { id: "outline", label: "Outline", icon: I.outlineTree },
     ...panels.map((p) => ({ id: p.id, label: p.label, icon: p.icon })),
   ];
   const tab = tabs.some((t) => t.id === sidebarTab) ? sidebarTab : "thumbnails";
+  const historyShown = sidebarOpen && tab === "history";
+  // The preview belongs to the History tab: closing the tab or the history ends it.
+  useEffect(() => {
+    if (previewVersion && (!history || !historyShown)) setPreviewVersion(null);
+  }, [previewVersion, history, historyShown]);
   const outlineItems = docOutline.length ? docOutline : fileOutline;
 
   // The commands the toolbar and the menus are both made from (see chrome.tsx).
@@ -934,7 +1019,10 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
       ? {
           open: sidebarOpen && tab === "history",
           toggle: () => {
-            if (sidebarOpen && tab === "history") setSidebar(false);
+            if (sidebarOpen && tab === "history") {
+              setPreviewVersion(null);
+              setSidebar(false);
+            }
             else {
               setSidebarTab("history");
               setSidebar(true);
@@ -994,6 +1082,7 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
 
   return (
     <PdfViewContextValue.Provider value={ctx}>
+      <FilePickerProvider picker={props.filePicker}>
       <PageToolsProvider value={pageToolsOn ? kit : null}>
       <div
         ref={rootRef}
@@ -1016,8 +1105,10 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
               comments={commands.comments}
               share={commands.share}
               actions={props.actions}
+              startActions={props.startActions}
+              endActions={props.endActions}
             />
-            <LiveMenuBar build={buildMenuBar} stores={[kit.files, kit.tools]} changed={props.menusChanged} />
+            <LiveMenuBar build={buildMenuBar} stores={[kit.files, kit.tools]} changed={props.menusChanged} extra={props.extraMenus} />
           </div>
         )}
         {topToolbar && (
@@ -1040,7 +1131,7 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
           people={!menuOn && props.room ? <PeopleBar collab={collab} room={props.room} /> : undefined}
           readOnly={readOnly}
           title={!menuOn && pageToolsOn ? <DocumentTitle files={kit.files} dirty={session.dirty} /> : undefined}
-          file={pageToolsOn ? menuOn ? <SaveButton files={kit.files} dirty={session.dirty} /> : <FileMenu files={kit.files} dirty={session.dirty} items={buildMenuBar().File} /> : undefined}
+          file={pageToolsOn ? menuOn ? <SaveButton files={kit.files} dirty={session.dirty} /> : <FileMenu files={kit.files} dirty={session.dirty} items={fileMenuItems(buildMenuBar().File, props.extraMenus)} /> : undefined}
           onOrganise={pageToolsOn && count > 0 ? () => kit.tools.setOrganise(true) : undefined}
         />
         )}
@@ -1106,6 +1197,23 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
             </>
           )}
           <div className="pli-pdf-main">
+            {previewVersion && previewSession && history && (
+              <div className="pli-pdf-version-preview" data-version-preview>
+                <VersionPreviewBar history={history} version={previewVersion} onBack={() => setPreviewVersion(null)} onRestored={() => setPreviewVersion(null)} />
+                {previewMissing.length > 0 && (
+                  <p className="pli-pdf-version-note" role="status">
+                    This version uses {previewMissing.length === 1 ? "a file" : "files"} this editor no longer has ({previewMissing.join(", ")}), so some pages cannot be shown. Restoring it still brings the pages back, and they appear when the file is available again.
+                  </p>
+                )}
+                <div className="pli-pdf-version-viewer" key={previewVersion.id}>
+                  {props.renderVersionPreview ? (
+                    props.renderVersionPreview(previewSession, { theme, zoom })
+                  ) : (
+                    <PliPdf session={previewSession} renderer={renderer} readOnly menu={false} topToolbar={false} pageTools={false} defaultSidebar={null} theme={theme} defaultZoom={zoom} password={props.password} className="pli-pdf-preview" />
+                  )}
+                </div>
+              </div>
+            )}
             {findOpen && <FindBar find={find} inputRef={findInput} onClose={() => setFindOpen(false)} actions={props.findActions?.(find, ctx)} replace={replaceOn ? replace : undefined} />}
             <div
               ref={scrollerRef}
@@ -1114,7 +1222,7 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
               aria-label="Document"
               tabIndex={0}
               data-active-tool={toolId ?? undefined}
-              inert={pageToolsOn && kit.tools.organise ? true : undefined}
+              inert={(pageToolsOn && kit.tools.organise) || previewVersion ? true : undefined}
               onScroll={onScroll}
               onPointerUp={onSelectUp}
             >
@@ -1213,6 +1321,7 @@ export const PliPdf = forwardRef<PliPdfHandle, PliPdfProps>(function PliPdf(prop
         <WordCountDialog session={session} open={dialog === "words"} onClose={() => setDialog(null)} />
       </div>
       </PageToolsProvider>
+      </FilePickerProvider>
     </PdfViewContextValue.Provider>
   );
 });

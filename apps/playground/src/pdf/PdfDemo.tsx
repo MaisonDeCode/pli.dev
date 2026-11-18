@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import { Users, defaultFonts } from "@pli.dev/core";
+import { Users, defaultFonts, memoryVersionStorage } from "@pli.dev/core";
 import { PdfEditor, downloadBytes } from "@pli.dev/pdf-react";
 import { pdfjsRenderer } from "@pli.dev/pdf-react/pdfjs";
-import { makeSamplePdf, openPdf, type PdfSession } from "@pli.dev/pdf";
+import { makeSamplePdf, openPdf, type PdfDoc, type PdfSession } from "@pli.dev/pdf";
 // Vite copies the worker into the build and gives its address.
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { BackToDemos } from "../BackToDemos";
@@ -50,6 +50,7 @@ export function PdfDemo() {
   const input = useRef<HTMLInputElement>(null);
   const renderer = useMemo(() => pdfjsRenderer({ workerSrc }), []);
   const users = useMemo(() => new Users(YOU), []);
+  const versions = useMemo(() => memoryVersionStorage<PdfDoc>(), []);
   const fonts = useMemo(() => defaultFonts(), []);
   const latest = useRef<PdfSession | null>(null);
   latest.current = session;
@@ -140,6 +141,7 @@ export function PdfDemo() {
             readOnly={readOnly}
             user={YOU}
             users={users}
+            versions={versions}
             comments
             fonts={fonts}
             warnOnUnload

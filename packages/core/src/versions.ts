@@ -80,8 +80,13 @@ export interface VersionSupport<State, Op> {
 export interface VersionHistoryOptions<State, Op> {
   /** The file the versions belong to. */
   file: string;
-  /** What the history works on: any editor session. */
-  session: { readonly state: State; transact(ops: readonly Op[]): void };
+  /** What the history works on: any editor session. With `subscribe`, `autoSave` can notice changes. */
+  session: {
+    readonly state: State;
+    transact(ops: readonly Op[]): void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- every editor's session has its own event type
+    subscribe?(listener: (event: any) => void): () => void;
+  };
   storage: VersionStorage<State>;
   users: Users;
   support: VersionSupport<State, Op>;
@@ -91,8 +96,32 @@ export interface VersionHistoryOptions<State, Op> {
   version?: () => number | null;
   /** Save a version named "Before restoring ..." before each restore, so a restore can itself be taken back. Default true. */
   keepBeforeRestore?: boolean;
+  /**
+   * Save a version named "Restored ..." right after each restore, so the restore shows in the list as a version of its own, in its
+   * place in time. Nothing is ever taken out of the list: the version that was restored and the one before it stay. Default true.
+   */
+  keepAfterRestore?: boolean;
+  /**
+   * Keep a version now and then without anyone asking, so the history shows how the file changed. Needs a `session` that has `subscribe`,
+   * and someone signed in with the editor role (it saves as them). Left out, only versions people save are kept.
+   */
+  autoSave?: AutoSaveOptions;
   now?: () => number;
 }
+
+export interface AutoSaveOptions {
+  /** Wait this long (milliseconds) after a change before keeping a version, and keep at most one in that time. Default 5 minutes. */
+  every?: number;
+  /** How many automatic versions to keep; the oldest go first. Default 40. People's named versions, and the ones made around a restore, are never removed. */
+  keep?: number;
+  /** Keep a version of the file as it is the first time it is opened with no versions yet, so there is something to go back to. Default true. */
+  baseline?: boolean;
+}
+
+/** The name of the versions `autoSave` makes. */
+export const AUTO_VERSION_NAME = "Autosaved";
+/** The name of the one `autoSave` makes when a file has none yet. */
+export const ORIGINAL_VERSION_NAME = "Original";
 
 type Listener = () => void;
 
@@ -111,10 +140,59 @@ export class VersionHistory<State, Op> {
   #listeners = new Set<Listener>();
   #status: "loading" | "ready" | "error" = "loading";
   #ready: Promise<void>;
+  #stopWatching: (() => void) | null = null;
+  #timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: VersionHistoryOptions<State, Op>) {
     this.#options = options;
     this.#ready = this.reload();
+    if (options.autoSave) {
+      this.#stopWatching = options.session.subscribe?.(() => this.#changed()) ?? null;
+      if (options.autoSave.baseline !== false) {
+        void this.#ready.then(() => {
+          if (this.#status === "ready" && this.#versions.length === 0 && this.#mayAutoSave()) void this.save(ORIGINAL_VERSION_NAME, { automatic: true }).catch(() => {});
+        });
+      }
+    }
+  }
+
+  /** Stops the automatic saving. */
+  dispose(): void {
+    this.#stopWatching?.();
+    this.#stopWatching = null;
+    if (this.#timer) clearTimeout(this.#timer);
+    this.#timer = null;
+  }
+
+  #mayAutoSave(): boolean {
+    const users = this.#options.users;
+    return !!users.current && users.role === "editor";
+  }
+
+  /** A change was made: keep a version once things have been quiet for the time asked, unless it would be the same as the last one. */
+  #changed(): void {
+    if (this.#timer || !this.#mayAutoSave()) return;
+    const every = this.#options.autoSave?.every ?? 5 * 60_000;
+    this.#timer = setTimeout(() => {
+      this.#timer = null;
+      void this.#autoSave().catch(() => {});
+    }, every);
+    // A timer must not keep a server or a test run alive.
+    (this.#timer as { unref?: () => void }).unref?.();
+  }
+
+  async #autoSave(): Promise<void> {
+    if (this.#status !== "ready" || !this.#mayAutoSave()) return;
+    const latest = this.#versions[0];
+    if (latest && latest.hash === this.#options.hash(this.#options.session.state)) return;
+    await this.save(AUTO_VERSION_NAME, { automatic: true });
+    const keep = this.#options.autoSave?.keep ?? 40;
+    const autos = this.#versions.filter((v) => v.automatic && v.name === AUTO_VERSION_NAME);
+    for (const old of autos.slice(keep)) {
+      await this.#options.storage.remove(this.#options.file, old.id);
+      this.#versions = this.#versions.filter((v) => v.id !== old.id);
+    }
+    this.#emit();
   }
 
   /** Who is using the file: the directory that names the authors of versions. */
@@ -202,6 +280,7 @@ export class VersionHistory<State, Op> {
     }
     const ops = this.#options.support.restoreOps(clone(this.#options.session.state), clone(target.state));
     if (ops.length > 0) this.#options.session.transact(ops);
+    if (ops.length > 0 && this.#options.keepAfterRestore !== false) await this.save(`Restored "${target.name}"`, { automatic: true, note: `Went back to the version "${target.name}"` });
     return target;
   }
 

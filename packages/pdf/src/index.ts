@@ -20,7 +20,7 @@ export { ContentCommands } from "./commands/content";
 export { CommentCommands } from "./commands/comments";
 export { pdfSyncModel, transformPdfOps, hashPdfDoc } from "./sync";
 export { pdfEditorSession } from "./editor-session";
-export { pdfVersionSupport, pdfVersionHistory, restorePdfOps, summarizePdfOps, summarizePdfDiff, selectionAfterRestore, type PdfVersionHistoryOptions } from "./versions";
+export { pdfVersionSupport, pdfVersionHistory, missingVersionSources, restorePdfOps, summarizePdfOps, summarizePdfDiff, selectionAfterRestore, type PdfVersionHistoryOptions } from "./versions";
 export { documentCommentStore, anchorPoint, type PdfCommentsOptions } from "./commands/comments";
 export * from "./annots/index";
 export * from "./forms/index";

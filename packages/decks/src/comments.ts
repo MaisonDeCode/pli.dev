@@ -25,6 +25,8 @@ export interface DeckCommentsOptions {
   store?: CommentStore<DeckAnchor> | "document";
   permissions?: CommentClientOptions<DeckAnchor>["permissions"];
   onError?: CommentClientOptions<DeckAnchor>["onError"];
+  /** Hook in your own notifications: called once for each comment action of this person, with who to tell and why. See `CommentNotice`. */
+  onNotify?: CommentClientOptions<DeckAnchor>["onNotify"];
 }
 
 /** Where a thread is attached now: what is left of the slide, element and words it was made on. */
@@ -148,6 +150,7 @@ export class CommentCommands {
       store: inDeck ? documentStore : (options.store as CommentStore<DeckAnchor>),
       initial: Object.values(session.deck.comments ?? {}),
       permissions: options.permissions,
+      onNotify: options.onNotify,
       onError: (error, change) => {
         if (change.type === "thread.create") this.#detach(change.thread.id);
         options.onError?.(error, change);

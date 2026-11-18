@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dialog, keepFocus } from "@pli.dev/react";
+import { Dialog, keepFocus, FileInput } from "@pli.dev/react";
 import { MAX_NOTE_LENGTH, NOTE_DASHES, NOTE_FILL, NOTE_FONT, NOTE_FONT_SIZE, NOTE_LINE_WEIGHT, editNoteRuns, linkInText, noteLookOf, noteRunsAllHave, noteRunsOf, spliceNoteRuns, styleNoteRuns, type NoteBox, type NoteDash, type NoteInfo, type NoteRun, type NoteRunStyle } from "@pli.dev/sheets";
 import { imageFromFile } from "./imageFile";
 import { insertText, readRuns, renderRuns, runsFromHtml, selectOffsets, selectionOffsets } from "./noteDom";
@@ -360,7 +360,7 @@ export function NoteDialog({ open, note, cell, author, onClose, onSave, onDelete
             <label>Transparency (%) <input type="number" aria-label="Transparency" min={0} max={100} step={5} value={boxLook.transparency ?? 0} onChange={(e) => setBox("transparency", Math.min(100, Math.max(0, Math.round(Number(e.target.value) || 0))) || undefined)} /></label>
             <label className="pli-note-picturefield">
               Picture
-              <input type="file" aria-label="Fill picture" accept="image/png,image/jpeg,image/gif" onChange={(e) => { void chooseFile(e.target.files?.[0]); e.target.value = ""; }} />
+              <FileInput purpose="image" label="Fill picture" accept="image/png,image/jpeg,image/gif" onFiles={([file]) => void chooseFile(file)} />
             </label>
             {boxLook.picture && (
               <span className="pli-note-picturefield">

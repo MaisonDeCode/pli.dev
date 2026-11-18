@@ -23,8 +23,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .pli-surface,
-  :root:not([data-theme="light"]) .pli-toast-region {
+  :root:not([data-theme="light"]) .pli-surface:not([data-theme="light"], [data-theme="light"] *),
+  :root:not([data-theme="light"]) .pli-toast-region:not([data-theme="light"], [data-theme="light"] *) {
     --pli-bg: #14161a;
     --pli-chrome: #1d2026;
     --pli-fg: #e8eaee;
@@ -37,8 +37,12 @@
   }
 }
 
-:root[data-theme="dark"] .pli-surface,
-:root[data-theme="dark"] .pli-toast-region {
+:root[data-theme="dark"] .pli-surface:not([data-theme="light"], [data-theme="light"] *),
+.pli-surface[data-theme="dark"],
+[data-theme="dark"] .pli-surface:not([data-theme="light"], [data-theme="light"] *),
+:root[data-theme="dark"] .pli-toast-region:not([data-theme="light"], [data-theme="light"] *),
+.pli-toast-region[data-theme="dark"],
+[data-theme="dark"] .pli-toast-region:not([data-theme="light"], [data-theme="light"] *) {
   --pli-bg: #14161a;
   --pli-chrome: #1d2026;
   --pli-fg: #e8eaee;
@@ -185,11 +189,15 @@
 .pli-share-button:focus-visible { outline: 2px solid var(--pli-accent); outline-offset: 2px; }
 .pli-share-button-icon { display: inline-flex; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .pli-share-button { background: #a8c7fa; color: #062e6f; }
-  :root:not([data-theme="light"]) .pli-share-button:hover { background: #bfd5fb; }
+  :root:not([data-theme="light"]) .pli-share-button:not([data-theme="light"], [data-theme="light"] *) { background: #a8c7fa; color: #062e6f; }
+  :root:not([data-theme="light"]) .pli-share-button:hover:not([data-theme="light"], [data-theme="light"] *) { background: #bfd5fb; }
 }
-:root[data-theme="dark"] .pli-share-button { background: #a8c7fa; color: #062e6f; }
-:root[data-theme="dark"] .pli-share-button:hover { background: #bfd5fb; }
+:root[data-theme="dark"] .pli-share-button:not([data-theme="light"], [data-theme="light"] *),
+[data-theme="dark"] .pli-share-button:not([data-theme="light"], [data-theme="light"] *),
+.pli-share-button[data-theme="dark"] { background: #a8c7fa; color: #062e6f; }
+:root[data-theme="dark"] .pli-share-button:hover:not([data-theme="light"], [data-theme="light"] *),
+[data-theme="dark"] .pli-share-button:hover:not([data-theme="light"], [data-theme="light"] *),
+.pli-share-button:hover[data-theme="dark"] { background: #bfd5fb; }
 
 .pli-role-select {
   max-width: 100%;
@@ -308,6 +316,26 @@
 .pli-version-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0 0.7rem 0.5rem; font-size: 0.8rem; }
 .pli-version-actions .pli-link-button { display: inline-flex; align-items: center; gap: 0.25rem; }
 .pli-version-actions svg { width: 14px; height: 14px; }
+.pli-version-current .pli-version-name-text { font-weight: 600; }
+
+/* The bar above an older version that an editor is showing. */
+.pli-version-bar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--pli-accent);
+  background: var(--pli-accent-soft);
+  color: var(--pli-fg);
+  font-size: 0.85rem;
+}
+.pli-version-bar-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.15rem 0.6rem; min-width: 0; }
+.pli-version-bar-meta { color: var(--pli-muted); }
+.pli-version-bar-error { color: #d93025; }
+.pli-version-bar-actions { display: flex; gap: 0.5rem; }
 
 .pli-activity-list { display: flex; flex-direction: column; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
 .pli-activity-item { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.85rem; }
@@ -343,9 +371,11 @@
 .pli-offline-icon { display: inline-flex; color: #b06000; }
 .pli-offline-banner .pli-link-button { margin-left: auto; color: inherit; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .pli-offline-banner { background-color: #3a3000; color: #fbe9a8; border-bottom-color: #6b5a10; }
+  :root:not([data-theme="light"]) .pli-offline-banner:not([data-theme="light"], [data-theme="light"] *) { background-color: #3a3000; color: #fbe9a8; border-bottom-color: #6b5a10; }
 }
-:root[data-theme="dark"] .pli-offline-banner { background-color: #3a3000; color: #fbe9a8; border-bottom-color: #6b5a10; }
+:root[data-theme="dark"] .pli-offline-banner:not([data-theme="light"], [data-theme="light"] *),
+[data-theme="dark"] .pli-offline-banner:not([data-theme="light"], [data-theme="light"] *),
+.pli-offline-banner[data-theme="dark"] { background-color: #3a3000; color: #fbe9a8; border-bottom-color: #6b5a10; }
 
 /* ---------------------------------------------------------------- Toasts */
 

@@ -113,4 +113,15 @@ describe.each(cases)("the editor session contract: $name", (c) => {
       expect(editor.enableComments({ users })).toBeTruthy();
     }
   });
+
+  it("hands each comment action to the app's own notifications (onNotify), once", async () => {
+    const { editor } = c.make();
+    if (!editor.supportsComments) return;
+    const seen: { type: string; actor: string; to: string[] }[] = [];
+    const users = new Users({ current: { id: "ana", name: "Ana" }, lookup: (ids) => ids.map((id) => ({ id, name: id })) });
+    const client = editor.enableComments({ users, onNotify: (n) => void seen.push({ type: n.type, actor: n.actor.id, to: n.recipients.map((r) => r.user.id) }) });
+    client.createThread("Hi @ben", undefined, undefined, ["ben"]);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(seen).toEqual([{ type: "comment.created", actor: "ana", to: ["ben"] }]);
+  });
 });

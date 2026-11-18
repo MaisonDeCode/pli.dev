@@ -23,6 +23,8 @@ export interface PdfCommentsOptions {
   store?: CommentStore<PdfAnchor> | "document";
   permissions?: CommentClientOptions<PdfAnchor>["permissions"];
   onError?: CommentClientOptions<PdfAnchor>["onError"];
+  /** Hook in your own notifications: called once for each comment action of this person, with who to tell and why. See `CommentNotice`. */
+  onNotify?: CommentClientOptions<PdfAnchor>["onNotify"];
 }
 
 /** Keeps comment threads inside the document (`PdfDoc.comments`). `write` applies ops without making an undo step. */
@@ -66,6 +68,7 @@ export class CommentCommands {
       store: inDocument ? documentStore : (options.store as CommentStore<PdfAnchor>),
       initial: Object.values(session.doc.comments ?? {}),
       permissions: options.permissions,
+      onNotify: options.onNotify,
       onError: (error, change) => {
         if (change.type === "thread.create") this.#detach(change.thread.id);
         options.onError?.(error, change);

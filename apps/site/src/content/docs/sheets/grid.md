@@ -28,6 +28,12 @@ The workbook lives in the session. Save it with `serializeWorkbook(session.state
 | `session` | The `SheetSession` (required) |
 | `readOnly` | Move around and copy, but no editing |
 | `author` | Who writes new notes, as it should be written on them (your signed-in user's name, say). Without it notes have no author; Pli never fills it in itself |
+| `theme` | `"auto"`, `"light"` or `"dark"`: match your app. See [Theme and your own buttons](/platform/theme-and-buttons/) |
+| `extraMenus` | Items for the menus and menus of your own: `{ File: [{ label: "Share…", onSelect }], AI: [...] }`. See [Your own menus and file chooser](/platform/menus-and-file-pickers/) |
+| `filePicker` | Your own way of choosing a file (File > Import, Insert > Image, picture fields in dialogs) instead of the browser's. Return the chosen `File`. See [Your own menus and file chooser](/platform/menus-and-file-pickers/) |
+| `history` | Adds **View > Version history** and its side panel: look at older versions (the sheet shows them, read-only) and restore one. Restoring adds a new version and keeps every earlier one. See [Versions and activity](/platform/versions/) |
+| `versions`, `autoSaveVersions` | A shortcut for `history`: say where versions are kept (and give `users`) and the editor makes the history for you, keeping a version by itself now and then. `autoSaveVersions={false}` turns that off |
+| `startActions`, `actions`, `endActions` | Your own buttons in the title row: at the far left before the name, beside the built-in buttons, and at the far right |
 | `menu`, `toolbar`, `formulaBar`, `tabs`, `statusBar` | Set to `false` to hide a part. `menu` is the title and the menu bar; the View menu also lets people hide the toolbar, formula bar and status bar |
 | `fonts` | The fonts the toolbar offers and how they load: `fonts={createFonts({ only: [...] })}`. Default: every font, from a CDN. See [Fonts](/platform/fonts/#giving-the-registry-to-the-editors) |
 | `onDownload` | Called with each file File > Download makes (`{ name, type, data }`), instead of the browser downloading it. A web view inside a native app can't download a file, so pass a function that saves or shares it |

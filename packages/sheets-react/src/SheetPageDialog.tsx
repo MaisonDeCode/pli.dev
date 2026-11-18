@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dialog } from "@pli.dev/react";
+import { Dialog, FileInput } from "@pli.dev/react";
 import { DEFAULT_MARGINS, PAPER_SIZES, headerPictureFrom, scaleHeaderPicture, withPictureCode, type HeaderFooterParts, type HeaderFooterPicture, type HeaderFooterPictures, type HeaderFooterSection, type PageSetup, type PaperSize } from "@pli.dev/sheets";
 import { imageFromFile } from "./imageFile";
 
@@ -311,7 +311,7 @@ export function SheetPageDialog({ open, sheetName, page, titles, onClose, onSave
             </label>
             <label>
               Picture
-              <input type="file" aria-label="Picture file" accept="image/*" onChange={(e) => { void addPicture(e.target.files?.[0]); e.target.value = ""; }} />
+              <FileInput purpose="image" label="Picture file" accept="image/*" onFiles={([file]) => void addPicture(file)} />
             </label>
           </div>
         </fieldset>

@@ -2,6 +2,8 @@
 
 The Pli slide editor for React, laid out like Google Slides: filmstrip, canvas, toolbar, speaker notes and present mode (`PliDeck`), driven by the `@pli.dev/decks` engine.
 
+Website and documentation: [pli.dev](https://pli.dev)
+
 ## Install
 
 ```sh
@@ -36,4 +38,4 @@ export function Deck() {
 
 Apache-2.0.
 
-Part of [Pli](https://github.com/MaisonDeCode/pli.dev), an open-source editor SDK. All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).
+Part of [Pli](https://pli.dev), an open-source editor SDK ([source on GitHub](https://github.com/MaisonDeCode/pli.dev)). All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).

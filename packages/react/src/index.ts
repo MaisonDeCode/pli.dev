@@ -10,6 +10,8 @@ export { exportPdf, type PdfExport, type PdfExportOptions } from "./pdf";
 export { paginate, type BlockMetric, type Geometry, type Layout, type LineInfo, type Split } from "./layout/paginate";
 
 export { MenuBar, type MenuDefinition } from "./ui/MenuBar";
+export { extendMenus, type ExtraMenuItems, type ExtraMenus } from "./ui/extensions";
+export { FileInput, FilePickerContext, FilePickerProvider, browseFiles, pickWith, useFilePicker, type FileInputProps, type FilePickPurpose, type FilePickRequest, type FilePicker, type PickOptions } from "./ui/file-picker";
 export { Bar, barKey, scrollIntoBar, useBarScroll, type BarOverflow, type BarProps } from "./ui/bar";
 export { ColorPicker, type ColorPickerProps } from "./ui/ColorPicker";
 export { Dialog, Dropdown, MenuList, keepFocus, useDismiss, type DialogProps, type DropdownProps, type MenuEntry, type MenuItem } from "./ui/primitives";
@@ -38,6 +40,7 @@ export {
   ShareDialog,
   ToastProvider,
   VersionHistoryPanel,
+  VersionPreviewBar,
   useActivity,
   usePresentUsers,
   useRoomPeers,
@@ -54,6 +57,8 @@ export {
   type ShareDialogProps,
   type ToastSpec,
   type VersionHistoryPanelProps,
+  type VersionPreviewBarProps,
 } from "./ui/collab/index";
 export { Icons } from "./ui/icons";
+export { ThemeContext, ThemedDiv, forcedTheme, useThemeAttr, type PliTheme } from "./theme";
 export { FontPicker, FontsProvider, useDocumentFonts, useFonts, useFontsVersion, type FontPickerProps } from "./ui/fonts";

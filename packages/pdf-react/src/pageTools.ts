@@ -7,7 +7,8 @@
  */
 import { PliError } from "@pli.dev/core";
 import { parseRanges, sniffImage, type Page, type PdfSession, type SplitSpec } from "@pli.dev/pdf";
-import { documentName, downloadBytes, downloadFiles, fileStem, pickFiles, safeName, type NamedFile } from "./download";
+import { pickWith, type FilePicker } from "@pli.dev/react";
+import { documentName, downloadBytes, downloadFiles, fileStem, safeName, type NamedFile } from "./download";
 import { getPageSelection, setPageSelection, setSelection } from "./hooks";
 import { withFonts } from "./saving";
 import { Notices, Store, plainMessage } from "./store";
@@ -27,6 +28,8 @@ export type PageDialog =
 export interface PageToolsOptions {
   /** Hands a file to the person (default: a browser download). */
   download?: (bytes: Uint8Array, name: string, mime: string) => void | Promise<void>;
+  /** Replaces the browser's file chooser (the editor's `filePicker`). */
+  picker?: FilePicker;
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -275,7 +278,7 @@ export class PageTools extends Store {
   /** Chooses PDF and picture files with the browser's file chooser and inserts them before position `at`. */
   async chooseAndInsert(at: number): Promise<void> {
     if (!this.editable()) return;
-    const files = await pickFiles({ accept: "application/pdf,.pdf,image/png,image/jpeg,.png,.jpg,.jpeg", multiple: true });
+    const files = await pickWith(this.options.picker, { purpose: "import", accept: "application/pdf,.pdf,image/png,image/jpeg,.png,.jpg,.jpeg", multiple: true, label: "Insert pages from PDF files or pictures" });
     if (files.length) await this.insertFiles(files, at);
   }
 

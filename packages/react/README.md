@@ -2,6 +2,8 @@
 
 The Pli document editor for React: pages with headers, footers and page numbers, tables, comments, suggestions and DOCX export, as one component (`PliDocument`) and as the parts to build your own (`PliEditor`, toolbar, menus, dialogs). It also holds the toolbar, menus and styles that the other React editors share.
 
+Website and documentation: [pli.dev](https://pli.dev)
+
 ## Install
 
 ```sh
@@ -36,4 +38,4 @@ export function Editor() {
 
 Apache-2.0.
 
-Part of [Pli](https://github.com/MaisonDeCode/pli.dev), an open-source editor SDK. All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).
+Part of [Pli](https://pli.dev), an open-source editor SDK ([source on GitHub](https://github.com/MaisonDeCode/pli.dev)). All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).

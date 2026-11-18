@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Dialog, MenuList, keepFocus, useDismiss, type MenuEntry } from "@pli.dev/react";
+import { Dialog, MenuList, keepFocus, useDismiss, type MenuEntry, ThemedDiv } from "@pli.dev/react";
 import { ICON_SETS, cellChoices, colName, describeRule, groupKey, leavesOf, parseRange, type CellControl, type ChipOption, type IconRef, type SheetSession } from "@pli.dev/sheets";
 import { PALETTE, textOn, type ChipKind } from "./chips";
 import { DateTreeList } from "./DateTreeList";
@@ -41,9 +41,9 @@ export function ContextMenu({ x, y, items, onClose, container }: ContextMenuProp
     };
   }, [onClose]);
   return createPortal(
-    <div ref={ref} className="pli-panel pli-panel-fixed pli-grid-menu" style={style} onMouseDown={keepFocus} onContextMenu={(e) => e.preventDefault()}>
+    <ThemedDiv ref={ref} className="pli-panel pli-panel-fixed pli-grid-menu" style={style} onMouseDown={keepFocus} onContextMenu={(e) => e.preventDefault()}>
       <MenuList items={items} close={onClose} label="Cell menu" />
-    </div>,
+    </ThemedDiv>,
     container ?? document.body,
   );
 }
@@ -143,7 +143,7 @@ export function FilterMenu({ session, sheetId, col, x, y, table, onClose, onCond
   const sorted = tbl?.sort && tbl.sort.column === name && !tbl.sort.by ? (tbl.sort.descending ? "descending" : "ascending") : undefined;
 
   return createPortal(
-    <div ref={ref} className="pli-panel pli-panel-fixed pli-grid-filtermenu" style={style} role="dialog" aria-label={`Filter column ${tbl ? name : colName(col)}`} onKeyDown={(e) => e.key === "Escape" && onClose()}>
+    <ThemedDiv ref={ref} className="pli-panel pli-panel-fixed pli-grid-filtermenu" style={style} role="dialog" aria-label={`Filter column ${tbl ? name : colName(col)}`} onKeyDown={(e) => e.key === "Escape" && onClose()}>
       <button type="button" className="pli-menu-item" data-active={sorted === "ascending" ? "" : undefined} onMouseDown={keepFocus} onClick={() => sort(false)}>Sort A to Z</button>
       <button type="button" className="pli-menu-item" data-active={sorted === "descending" ? "" : undefined} onMouseDown={keepFocus} onClick={() => sort(true)}>Sort Z to A</button>
       {hasColors && (
@@ -221,7 +221,7 @@ export function FilterMenu({ session, sheetId, col, x, y, table, onClose, onCond
         <button type="button" className="pli-button" onClick={onClose}>Cancel</button>
         <button type="button" className="pli-button pli-button-primary" onClick={apply}>OK</button>
       </div>
-    </div>,
+    </ThemedDiv>,
     container ?? document.body,
   );
 }
@@ -292,7 +292,7 @@ export function ChoiceMenu({ session, sheetId, row, col, x, y, chips, onClose, c
 
   if (control?.type === "checkbox" || (!control && fromRule.length === 0 && !external)) return null;
   return createPortal(
-    <div
+    <ThemedDiv
       ref={ref}
       className="pli-panel pli-panel-fixed pli-grid-choicemenu"
       style={style}
@@ -343,7 +343,7 @@ export function ChoiceMenu({ session, sheetId, row, col, x, y, chips, onClose, c
           )}
         </div>
       )}
-    </div>,
+    </ThemedDiv>,
     container ?? document.body,
   );
 }

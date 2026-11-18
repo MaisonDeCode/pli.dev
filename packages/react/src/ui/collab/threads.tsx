@@ -23,6 +23,10 @@ export function CommentBody({ comment, users }: { comment: Comment; users: Users
       {splitMentions(comment.body, mentioned).map((part, i) =>
         "text" in part ? (
           part.text
+        ) : users.canOpen ? (
+          <button key={i} type="button" className="pli-mention pli-mention-button" data-self={part.mention.id === me || undefined} title={`Open ${part.mention.name}`} onClick={() => users.open(part.mention)}>
+            @{part.mention.name}
+          </button>
         ) : (
           <span key={i} className="pli-mention" data-self={part.mention.id === me || undefined}>
             @{part.mention.name}
@@ -43,6 +47,7 @@ export function Composer({
   initial = "",
   initialMentions = [],
   users,
+  file,
   onSubmit,
   onCancel,
   autoFocus,
@@ -52,6 +57,8 @@ export function Composer({
   initial?: string;
   initialMentions?: readonly string[];
   users: Users;
+  /** The file the comment is for, told to the directory's `search` so it can offer only the people who can open it. */
+  file?: string;
   onSubmit: (body: string, mentions: string[]) => void;
   onCancel?: () => void;
   autoFocus?: boolean;
@@ -80,7 +87,7 @@ export function Composer({
     }
     let current = true;
     users
-      .search(query)
+      .search(query, file === undefined ? undefined : { file })
       .then((found) => {
         if (!current) return;
         setMatches(found.filter((user) => user.id !== users.current?.id).slice(0, 6));
@@ -90,7 +97,7 @@ export function Composer({
     return () => {
       current = false;
     };
-  }, [users, query]);
+  }, [users, query, file]);
 
   const choose = (user: PliUser) => {
     if (!typing) return;
@@ -255,7 +262,11 @@ export function ThreadCard<A>({
           <div key={comment.id} className="pli-comment-item">
             <div className="pli-comment-head">
               <Avatar user={author} size={22} />
-              <span className="pli-comment-author">{author.name}</span>
+              {client.users.canOpen ? (
+                <button type="button" className="pli-comment-author pli-comment-author-button" title={`Open ${author.name}`} onClick={() => client.users.open(author)}>{author.name}</button>
+              ) : (
+                <span className="pli-comment-author">{author.name}</span>
+              )}
               <time className="pli-comment-time" dateTime={new Date(comment.createdAt).toISOString()} title={new Date(comment.createdAt).toLocaleString()}>
                 {timeAgo(comment.createdAt)}
               </time>
@@ -281,6 +292,7 @@ export function ThreadCard<A>({
                 initial={comment.body}
                 initialMentions={comment.mentions}
                 users={client.users}
+                file={client.file}
                 placeholder="Edit comment"
                 submit="Save"
                 onCancel={() => setEditing(null)}
@@ -312,7 +324,7 @@ export function ThreadCard<A>({
         </p>
       )}
       {active && !thread.resolved && can("reply") && (
-        <Composer placeholder="Reply" submit="Reply" users={client.users} onSubmit={(body, mentions) => attempt(() => void client.reply(thread.id, body, mentions))} />
+        <Composer placeholder="Reply" submit="Reply" users={client.users} file={client.file} onSubmit={(body, mentions) => attempt(() => void client.reply(thread.id, body, mentions))} />
       )}
       {can("resolve") && (
         <div className="pli-thread-actions">
@@ -471,7 +483,7 @@ export function CommentThreads<A>({
       {draft && (
         <div className="pli-thread pli-thread-draft" data-active>
           <p className="pli-thread-quote">{draft.quote}</p>
-          <Composer autoFocus placeholder="Add a comment" submit="Comment" users={client.users} onCancel={draft.onCancel} onSubmit={draft.onSubmit} />
+          <Composer autoFocus placeholder="Add a comment" submit="Comment" users={client.users} file={client.file} onCancel={draft.onCancel} onSubmit={draft.onSubmit} />
         </div>
       )}
       <ul className="pli-thread-list">

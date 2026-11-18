@@ -14,6 +14,8 @@ export interface EditorCommentsOptions {
   store?: CommentStore<any> | "document";
   permissions?: CommentClientOptions<any>["permissions"];
   onError?: CommentClientOptions<any>["onError"];
+  /** Hook in your own notifications: called once for each comment action of this person, with who to tell and why. See `CommentNotice`. */
+  onNotify?: CommentClientOptions<any>["onNotify"];
 }
 
 /**

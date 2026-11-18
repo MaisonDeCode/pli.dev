@@ -6,7 +6,8 @@
  */
 import { PliError } from "@pli.dev/core";
 import { MAIN_SOURCE, pdfFromImages, type PdfSession, type SaveOptions, type SaveResult } from "@pli.dev/pdf";
-import { documentName, downloadBytes, fileStem, makeZip, pickFiles, safeName, type NamedFile } from "./download";
+import { pickWith, type FilePicker } from "@pli.dev/react";
+import { documentName, downloadBytes, fileStem, makeZip, safeName, type NamedFile } from "./download";
 import { exportPageImages, IMAGE_MIME } from "./exportImages";
 import { setSelection } from "./hooks";
 import { rangeText, sniffFile } from "./pageTools";
@@ -26,6 +27,8 @@ export interface FileHooks {
   onPrint?: () => void | Promise<void>;
   /** Replaces the browser download. */
   download?: (bytes: Uint8Array, name: string, mime: string) => void | Promise<void>;
+  /** Replaces the browser's file chooser (the editor's `filePicker`). */
+  picker?: FilePicker;
 }
 
 export type FileDialog =
@@ -313,7 +316,7 @@ export class FileActions extends Store {
   /** Chooses a PDF with the file chooser and hands it to the host (`onOpen`). */
   async chooseAndOpen(): Promise<void> {
     if (!this.hooks.onOpen) return;
-    const [file] = await pickFiles({ accept: "application/pdf,.pdf" });
+    const [file] = await pickWith(this.hooks.picker, { purpose: "open", accept: "application/pdf,.pdf", label: "Open a PDF file" });
     if (file) await this.openFile(file);
   }
 
@@ -337,7 +340,7 @@ export class FileActions extends Store {
   /** Chooses pictures and makes a new PDF with a page for each, handed to the host (`onOpen`). */
   async chooseAndCreate(): Promise<void> {
     if (!this.hooks.onOpen) return;
-    const files = await pickFiles({ accept: "image/png,image/jpeg,.png,.jpg,.jpeg", multiple: true });
+    const files = await pickWith(this.hooks.picker, { purpose: "open", accept: "image/png,image/jpeg,.png,.jpg,.jpeg", multiple: true, label: "Create a PDF from pictures" });
     if (files.length) await this.createFromImages(files);
   }
 

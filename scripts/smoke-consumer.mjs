@@ -54,7 +54,7 @@ try {
       name: `pli-smoke-${pm}`,
       private: true,
       type: "module",
-      dependencies: { ...direct, react: "^19.0.0", "react-dom": "^19.0.0", "pdfjs-dist": "^5.0.0" },
+      dependencies: { ...direct, react: "^19.0.0", "react-dom": "^19.0.0", "pdfjs-dist": "^6.2.108" },
       devDependencies: { "@types/node": "^22.0.0", "@types/react": "^19.0.0", "@types/react-dom": "^19.0.0", "@vitejs/plugin-react": "^5.0.0", jsdom: "^26.0.0", typescript: "^5.6.0", vite: "^7.0.0" },
       // The Pli packages depend on each other with ^1.0.0; point those at the tarballs too so nothing is looked up in the registry.
       overrides: direct,

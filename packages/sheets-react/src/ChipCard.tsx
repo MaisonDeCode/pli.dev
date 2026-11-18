@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { keepFocus, useDismiss } from "@pli.dev/react";
+import { keepFocus, useDismiss, ThemedDiv } from "@pli.dev/react";
 import type { ChipOption } from "@pli.dev/sheets";
 import type { ChipKind } from "./chips";
 
@@ -52,7 +52,7 @@ export function ChipCard({ info, kind, item, container, onClose }: ChipCardProps
     return () => window.removeEventListener("resize", onClose);
   }, [onClose]);
   return createPortal(
-    <div
+    <ThemedDiv
       ref={ref}
       className="pli-panel pli-panel-fixed pli-chipcard"
       role="dialog"
@@ -68,7 +68,7 @@ export function ChipCard({ info, kind, item, container, onClose }: ChipCardProps
       }}
     >
       {kind.card!(item, { close: onClose })}
-    </div>,
+    </ThemedDiv>,
     container ?? document.body,
   );
 }

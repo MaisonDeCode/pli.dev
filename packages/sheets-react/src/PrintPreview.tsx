@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useFonts } from "@pli.dev/react";
+import { ThemedDiv, useFonts } from "@pli.dev/react";
 import { columnPixels, printToPdf, usedFonts, rowPixelsOf, type HeaderFooterRun, type PrintedPage, type PrintLayout, type PrintPage, type PrintPdfResult, type Sheet, type SheetImage, type SheetSession } from "@pli.dev/sheets";
 import { ChartView } from "./ChartView";
 import { NoteContent } from "./NoteContent";
@@ -249,7 +249,7 @@ export function PrintPreview({ session, sheetId, revision, onClose, onSetup, con
   const shown = single ? [at - 1] : layout.pages.map((_, i) => i);
 
   return createPortal(
-    <div
+    <ThemedDiv
       ref={overlay}
       className="pli-print-overlay"
       role="dialog"
@@ -316,7 +316,7 @@ export function PrintPreview({ session, sheetId, revision, onClose, onSetup, con
           </div>
         )}
       </div>
-    </div>,
+    </ThemedDiv>,
     container ?? document.body,
   );
 }

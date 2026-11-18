@@ -1,7 +1,8 @@
-import { VersionHistory, canonicalJson, type DiffSummary, type Users, type VersionStorage, type VersionSupport } from "@pli.dev/core";
+import { VersionHistory, canonicalJson, type AutoSaveOptions, type DiffSummary, type Users, type VersionStorage, type VersionSupport } from "@pli.dev/core";
 import type { Annotation, FormField, Page, PdfDoc, Source } from "./model";
 import { pdfReducer, type PagePatch, type PdfOp } from "./ops";
 import type { PdfSelection, PdfSession } from "./session";
+import type { SourceStore } from "./sources";
 import { hashPdfDoc } from "./sync";
 
 /**
@@ -359,6 +360,13 @@ export interface PdfVersionHistoryOptions {
   version?: () => number | null;
   /** Keep the state before a restore as a version of its own (default true). */
   keepBeforeRestore?: boolean;
+  /** Keep a version after a restore, named `Restored "..."`, so the restore shows in the list in its place in time (default true). */
+  keepAfterRestore?: boolean;
+  /**
+   * Keep an "Autosaved" version now and then after changes, and an "Original" one when the file has none yet (`AutoSaveOptions`:
+   * `every`, `keep`, `baseline`). Left out, only versions people save are kept. Call `history.dispose()` when the editor goes away.
+   */
+  autoSave?: AutoSaveOptions;
   now?: () => number;
 }
 
@@ -378,6 +386,7 @@ export function pdfVersionHistory(session: PdfSession, options: PdfVersionHistor
       get state() {
         return session.doc;
       },
+      subscribe: (listener) => session.subscribe(listener),
       transact(ops) {
         const before = session.doc;
         const after = ops.reduce((doc, op) => pdfReducer.apply(doc, op).state, before);
@@ -390,6 +399,31 @@ export function pdfVersionHistory(session: PdfSession, options: PdfVersionHistor
     hash: hashPdfDoc,
     version: options.version,
     keepBeforeRestore: options.keepBeforeRestore,
+    keepAfterRestore: options.keepAfterRestore,
+    autoSave: options.autoSave,
     now: options.now,
   });
+}
+
+/**
+ * The source files a version's pages are drawn from that `sources` cannot give now. A version keeps the list of sources (name, hash,
+ * size) but never the bytes, which the session's `SourceStore` holds; the in-memory store keeps every file it was given, so for it
+ * the list is empty. A store that lets go of files (or never had one a peer added) makes the pages of that file wait. Use it to
+ * tell a person that a preview or a restore of such a version cannot show everything yet.
+ */
+export async function missingVersionSources(doc: PdfDoc, sources: SourceStore): Promise<Source[]> {
+  const used = new Set<string>();
+  for (const page of doc.pages) if (page.from) used.add(page.from.source);
+  const missing: Source[] = [];
+  for (const source of doc.sources) {
+    if (!used.has(source.id)) continue;
+    let bytes: Uint8Array | undefined;
+    try {
+      bytes = await sources.get(source);
+    } catch {
+      bytes = undefined;
+    }
+    if (!bytes) missing.push(source);
+  }
+  return missing;
 }

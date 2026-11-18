@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { PliDeck, useDeckSession } from "@pli.dev/decks-react";
 import { BUILTIN_THEMES, DeckSession, SIZE_GOOGLE, builtinTheme, createDeck, paragraphsFromText, type Deck, type Paragraph } from "@pli.dev/decks";
+import { Users, memoryVersionStorage } from "@pli.dev/docs";
 import { BackToDemos } from "../BackToDemos";
+
+/** A version is kept automatically 15 seconds after changes, so that the history fills up while you try it. */
+const AUTO_SAVE = { every: 15_000 };
 
 const bullets = (...lines: string[]): Paragraph[] => paragraphsFromText(lines.join("\n"));
 
@@ -61,12 +65,20 @@ export function sampleDeck(): Deck {
 export function DecksDemo() {
   const session = useDeckSession(() => sampleDeck());
   const [readOnly, setReadOnly] = useState(false);
+  // Comments need to know who is signed in: right-click an object, or Insert > Comment.
+  const [users] = useState(() => new Users({ id: "you", name: "You" }));
+  // View > Version history: named versions, kept in memory for the demo, with an automatic one after 15 seconds of changes.
+  const [versions] = useState(() => memoryVersionStorage<Deck>());
   const [themes] = useState(BUILTIN_THEMES.slice(0, 4));
   return (
     <div className="decks-demo">
       <PliDeck
         session={session}
         readOnly={readOnly}
+        users={users}
+        comments
+        versions={versions}
+        autoSaveVersions={AUTO_SAVE}
         actions={
           <>
             <label className="decks-theme-pick">

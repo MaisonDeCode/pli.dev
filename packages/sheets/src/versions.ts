@@ -1,7 +1,9 @@
-import type { DiffSummary, VersionSupport } from "@pli.dev/core";
+import { VersionHistory, type AutoSaveOptions, type DiffSummary, type Users, type VersionStorage, type VersionSupport } from "@pli.dev/core";
 import type { Workbook } from "./model";
 import { deepEqual, diffWorkbooks } from "./ops-diff";
 import type { SheetOp } from "./ops";
+import type { SheetSession } from "./session";
+import { sheetSyncModel } from "./sync";
 
 /**
  * The operations that turn `current` into `target`, for `VersionHistory.restore`: sheets that were added or deleted since,
@@ -67,3 +69,51 @@ export function summarizeSheetDiff(from: Workbook, to: Workbook): DiffSummary {
 
 /** What `VersionHistory` needs of Sheets: `new VersionHistory({ ..., support: sheetVersionSupport, hash: sheetSyncModel.hash })`. */
 export const sheetVersionSupport: VersionSupport<Workbook, SheetOp> = { restoreOps: restoreSheetOps, summarize: summarizeSheetDiff };
+
+export interface SheetVersionHistoryOptions {
+  /** Where versions are kept. */
+  storage: VersionStorage<Workbook>;
+  /** Who is signed in and what they may do: saving and restoring need the `editor` role. */
+  users: Users;
+  /** The id the versions are kept under. Default: the workbook's id. */
+  file?: string;
+  /** The position in the shared log, for a shared file: `() => sync.version`. */
+  version?: () => number | null;
+  /** Keep the workbook as it was before each restore as a version of its own (default true). */
+  keepBeforeRestore?: boolean;
+  /** Keep the restore itself as a version, so it shows in the list in its place in time (default true). */
+  keepAfterRestore?: boolean;
+  /** Keep a version now and then without anyone asking, so the history shows how the workbook changed. */
+  autoSave?: AutoSaveOptions;
+  now?: () => number;
+}
+
+/**
+ * A `VersionHistory` for a sheet session, with `sheetVersionSupport`. A restore is one undoable step, and with live editing it
+ * reaches everyone as an ordinary change.
+ *
+ *     const history = sheetVersionHistory(session, { storage, users });
+ *     await history.save("Sent to the board");
+ *     await history.restore(history.versions[0].id);
+ */
+export function sheetVersionHistory(session: SheetSession, options: SheetVersionHistoryOptions): VersionHistory<Workbook, SheetOp> {
+  return new VersionHistory<Workbook, SheetOp>({
+    file: options.file ?? session.state.id,
+    session: {
+      get state() {
+        return session.state;
+      },
+      transact: (ops) => session.transact(ops),
+      subscribe: (listener) => session.subscribe(listener),
+    },
+    storage: options.storage,
+    users: options.users,
+    support: sheetVersionSupport,
+    hash: sheetSyncModel.hash,
+    version: options.version,
+    keepBeforeRestore: options.keepBeforeRestore,
+    keepAfterRestore: options.keepAfterRestore,
+    autoSave: options.autoSave,
+    now: options.now,
+  });
+}

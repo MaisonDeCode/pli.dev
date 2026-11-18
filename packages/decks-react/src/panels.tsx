@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ColorPicker, FontPicker, keepFocus } from "@pli.dev/react";
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ColorPicker, FilePickerContext, FontPicker, keepFocus, pickWith } from "@pli.dev/react";
 import {
   THEME_SLOTS,
   createDeck,
@@ -54,6 +54,8 @@ export function masterScene(master: Master, size: SlideSize, layoutKind?: string
   return resolveSlide(deck, slide);
 }
 
+const THEME_ACCEPT = ".pptx,.potx,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.presentationml.template";
+
 const SLOT_LABEL: Record<ThemeSlot, string> = {
   dk1: "Text (dark 1)",
   lt1: "Background (light 1)",
@@ -77,6 +79,7 @@ export function ThemePanel({ session, onClose, onEditTheme, readOnly, masterId }
   const [imported, setImported] = useState<ImportedTemplate | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const picker = useContext(FilePickerContext);
   const burst = useRef(false);
   useEffect(() => {
     burst.current = false;
@@ -136,10 +139,16 @@ export function ThemePanel({ session, onClose, onEditTheme, readOnly, masterId }
         )}
       </Section>
       <Section title="Import theme">
-        <label className="pli-button pli-deck-file-button" aria-disabled={readOnly || !canImportTemplate}>
-          Import theme…
-          <input type="file" accept=".pptx,.potx,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.presentationml.template" aria-label="Import theme from a PowerPoint or Google Slides file" disabled={readOnly || busy} onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
-        </label>
+        {picker ? (
+          <button type="button" className="pli-button" disabled={readOnly || busy || !canImportTemplate} onClick={() => void pickWith(picker, { purpose: "import", accept: THEME_ACCEPT, multiple: false, label: "Import a theme from a PowerPoint or Google Slides file" }).then((files) => onFile(files[0]), (e) => setError((e as Error).message))}>
+            Import theme…
+          </button>
+        ) : (
+          <label className="pli-button pli-deck-file-button" aria-disabled={readOnly || !canImportTemplate}>
+            Import theme…
+            <input type="file" accept={THEME_ACCEPT} aria-label="Import theme from a PowerPoint or Google Slides file" disabled={readOnly || busy} onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
+          </label>
+        )}
         {!canImportTemplate && <p className="pli-deck-empty">Importing themes isn't available in this build.</p>}
         {busy && <p role="status">Reading the file…</p>}
         {error && <p role="alert" className="pli-deck-error">{error}</p>}

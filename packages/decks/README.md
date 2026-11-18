@@ -2,6 +2,8 @@
 
 Pli Decks, headless: a slide-deck model with masters, layouts and themes, invertible operations with undo, charts and animations, and PPTX, template and PDF files.
 
+Website and documentation: [pli.dev](https://pli.dev)
+
 ## Install
 
 ```sh
@@ -37,4 +39,4 @@ s.undo();                                                          // takes the 
 
 Apache-2.0.
 
-Part of [Pli](https://github.com/MaisonDeCode/pli.dev), an open-source editor SDK. All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).
+Part of [Pli](https://pli.dev), an open-source editor SDK ([source on GitHub](https://github.com/MaisonDeCode/pli.dev)). All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).

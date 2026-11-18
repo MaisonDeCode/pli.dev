@@ -7,7 +7,7 @@ export { Avatar, AvatarStack, PresenceBar, type AvatarStackProps } from "./peopl
 export { PeerCursor, PeerLayer, PeerOutline, type Rect } from "./presence";
 export { CommentBody, CommentThreads, Composer, ThreadCard, timeAgo, type CommentFilter, type CommentThreadsProps } from "./threads";
 export { RoleSelect, ShareButton, ShareDialog, type ShareDialogProps } from "./share";
-export { ActivityList, VersionHistoryPanel, type VersionHistoryPanelProps } from "./versions";
+export { ActivityList, VersionHistoryPanel, VersionPreviewBar, type VersionHistoryPanelProps, type VersionPreviewBarProps } from "./versions";
 export { OfflineBanner, SyncIndicator, useSyncStatus, type SyncIndicatorProps, type SyncState } from "./status";
 export { ActivityToasts, ToastProvider, useToasts, type ToastSpec } from "./toasts";
 export { Popover, type PopoverProps } from "./popover";

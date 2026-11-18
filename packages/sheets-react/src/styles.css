@@ -2919,10 +2919,13 @@
 .pli-accessbar-where { font-weight: 600; }
 .pli-accessbar-hint { opacity: 0.75; }
 @media (prefers-color-scheme: dark) {
-  .pli-accessbar-group[data-severity="error"] h3 { color: #ff8a9b; }
-  .pli-accessbar-group[data-severity="warning"] h3 { color: #f0c060; }
-  .pli-spell-context mark { color: #ff8a9b; text-decoration-color: #ff8a9b; }
+  :root:not([data-theme="light"]) .pli-accessbar-group[data-severity="error"] h3:not([data-theme="light"], [data-theme="light"] *) { color: #ff8a9b; }
+  :root:not([data-theme="light"]) .pli-accessbar-group[data-severity="warning"] h3:not([data-theme="light"], [data-theme="light"] *) { color: #f0c060; }
+  :root:not([data-theme="light"]) .pli-spell-context mark:not([data-theme="light"], [data-theme="light"] *) { color: #ff8a9b; text-decoration-color: #ff8a9b; }
 }
+[data-theme="dark"] .pli-accessbar-group[data-severity="error"] h3:not([data-theme="light"], [data-theme="light"] *) { color: #ff8a9b; }
+[data-theme="dark"] .pli-accessbar-group[data-severity="warning"] h3:not([data-theme="light"], [data-theme="light"] *) { color: #f0c060; }
+[data-theme="dark"] .pli-spell-context mark:not([data-theme="light"], [data-theme="light"] *) { color: #ff8a9b; text-decoration-color: #ff8a9b; }
 
 /* ---- yellow adjustment handles of a shaped picture ---- */
 
@@ -2972,3 +2975,17 @@
 /* A dot on a sheet tab for each person who is on that sheet. */
 .pli-sheet-tab-people { display: inline-flex; margin-left: 0.3rem; gap: 2px; }
 .pli-sheet-tab-person { width: 8px; height: 8px; border-radius: 50%; background: var(--pli-peer, #1c7ed6); box-shadow: 0 0 0 1px var(--pli-bg); }
+
+/* An older version shown in place of the grid (View > Version history): the bar, then the sheet, which nobody can change. */
+.pli-sheet-version-preview {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.pli-sheet-version-preview > .pli-spreadsheet {
+  flex: 1;
+  min-height: 0;
+}

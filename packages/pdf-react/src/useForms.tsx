@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useMemo, type KeyboardEvent, type ReactNode } from "react";
+import { forwardRef, useEffect, useMemo, type ForwardRefExoticComponent, type KeyboardEvent, type ReactNode, type RefAttributes } from "react";
 import type { FormField, PdfSession } from "@pli.dev/pdf";
 import { PliPdf, type PliPdfHandle, type PliPdfProps } from "./PliPdf";
 import { FieldProperties } from "./FieldProperties";
@@ -153,7 +153,7 @@ const both = (a: ((ctx: PageContext) => ReactNode) | undefined, b: ((ctx: PageCo
  * - `ref`: a `PliPdfHandle` (`goToPage`, `setZoom`, `setViewMode`, `rotateView`, `find`, `scroller`).
  * `PdfEditor` is the same component under the name to use for "the editor".
  */
-export const FormsPdf = forwardRef<PliPdfHandle, FormsPdfProps>(function FormsPdf(props, ref) {
+export const FormsPdf: ForwardRefExoticComponent<FormsPdfProps & RefAttributes<PliPdfHandle>> = forwardRef<PliPdfHandle, FormsPdfProps>(function FormsPdfView(props, ref) {
   const { forms: formOptions, annotations, edit: editOptions, ...rest } = props;
   const withAnnotations = annotations !== false;
   const withEdit = editOptions !== false;
@@ -203,6 +203,28 @@ export const FormsPdf = forwardRef<PliPdfHandle, FormsPdfProps>(function FormsPd
       menus={menus}
       menusChanged={menusChanged}
       replace={props.replace ?? (withEdit && !readOnly)}
+      renderVersionPreview={
+        props.renderVersionPreview ??
+        ((preview, view) => (
+          <FormsPdf
+            session={preview}
+            renderer={props.renderer}
+            readOnly
+            menu={false}
+            topToolbar={false}
+            pageTools={false}
+            defaultSidebar={null}
+            theme={view.theme}
+            defaultZoom={view.zoom}
+            password={props.password}
+            fonts={props.fonts}
+            annotations={annotations}
+            edit={editOptions}
+            banner={false}
+            className="pli-pdf-preview"
+          />
+        ))
+      }
       formatBar={props.formatBar ?? (readOnly ? undefined : () => <FormatBar annot={ac} edit={ec} />)}
       tools={[...(a?.tools ?? []), ...f.tools, ...(e?.tools ?? []), ...(props.tools ?? [])]}
       tool={props.tool !== undefined ? props.tool : a ? a.tool : undefined}

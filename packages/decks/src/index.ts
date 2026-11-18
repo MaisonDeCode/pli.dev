@@ -42,6 +42,7 @@ export { deckToPdf, toPdf, type DeckPdfOptions, type DeckPdfResult } from "./pdf
 export { customIsOpen, customPath, customPdfPath, customTextRect, guideResolver, unresolvedGuides } from "./custgeom";
 export { CHART_TYPE_LABELS, sampleChartData } from "./charts";
 export { chartScene, circlePath, defaultSeriesColor, formatNumber, generalNumber, niceScale, pathData, sectorPath, smoothPathCmds, stackValues, type ChartItem, type ChartPaint, type ChartScene, type ChartStroke, type PathCmd, type Scale } from "./chartscene";
+export { deckVersionHistory, deckVersionSupport, restoreDeckOps, summarizeDeckDiff, type DeckVersionHistoryOptions } from "./versions";
 export { deckSyncModel, hashDeck, mapDeckPresence, mapDeckSelection, transformDeckOps, type DeckPresence } from "./sync";
 export { deckEditorSession } from "./editor-session";
 export { normalizeOps } from "./normalize";

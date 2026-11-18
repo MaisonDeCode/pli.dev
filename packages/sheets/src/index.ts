@@ -98,6 +98,6 @@ export { stampOps } from "./ops-stamp";
 export { diffWorkbooks } from "./ops-diff";
 export type { CellAnchor } from "./model";
 export { CommentCommands, placeOfThread, threadPlaces, withoutDuplicateThreads, type SheetCommentsOptions, type ThreadPlace } from "./comments";
-export { restoreSheetOps, summarizeSheetDiff, sheetVersionSupport } from "./versions";
+export { restoreSheetOps, summarizeSheetDiff, sheetVersionSupport, sheetVersionHistory, type SheetVersionHistoryOptions } from "./versions";
 export { sheetEditorSession, sheetEditor } from "./editor-session";
 export { STORED_TYPE, loadWorkbook, mapPictureSources, pictureSources, pictureStore, saveWorkbook, storageData, type FileFailure, type LoadedWorkbook, type PictureStore, type SavedWorkbook } from "./storage";

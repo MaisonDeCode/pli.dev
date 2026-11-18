@@ -23,6 +23,8 @@ export interface SheetCommentsOptions {
   store?: CommentStore<CellAnchor> | "document";
   permissions?: CommentClientOptions<CellAnchor>["permissions"];
   onError?: CommentClientOptions<CellAnchor>["onError"];
+  /** Hook in your own notifications: called once for each comment action of this person, with who to tell and why. See `CommentNotice`. */
+  onNotify?: CommentClientOptions<CellAnchor>["onNotify"];
 }
 
 /** Where a thread is now: the cell that carries it. */
@@ -160,6 +162,7 @@ export class CommentCommands {
       store: inBook ? documentStore : (options.store as CommentStore<CellAnchor>),
       initial: Object.values(session.state.comments ?? {}),
       permissions: options.permissions,
+      onNotify: options.onNotify,
       onError: (error, change) => {
         if (change.type === "thread.create") this.#detach(change.thread.id);
         options.onError?.(error, change);

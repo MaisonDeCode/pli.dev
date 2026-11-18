@@ -25,8 +25,22 @@ export interface UserDirectory {
   role?: Role;
   /** Looks up users by id, for the authors of comments written by other people. */
   lookup?(ids: string[]): PliUser[] | Promise<PliUser[]>;
-  /** Finds users by name, for @mentions. */
-  search?(query: string): PliUser[] | Promise<PliUser[]>;
+  /**
+   * Finds users by name, for @mentions. `context.file` is the file the comment is in (its id, as given to the comments), so you can
+   * offer only the people who can open it. Whoever you return can be mentioned; leave someone out to keep them from being tagged.
+   */
+  search?(query: string, context?: UserSearchContext): PliUser[] | Promise<PliUser[]>;
+  /**
+   * Called when someone clicks a person's name in a comment or an @mention in one: open your profile card, start a chat. Without it,
+   * names are plain text.
+   */
+  open?(user: PliUser): void;
+}
+
+/** What `UserDirectory.search` is told about where the @mention is being typed. */
+export interface UserSearchContext {
+  /** The file the comment is in. */
+  file?: string;
 }
 
 const COLORS = ["#d9480f", "#1c7ed6", "#2f9e44", "#9c36b5", "#c2255c", "#0c8599", "#e67700", "#5f3dc4"];
@@ -122,14 +136,24 @@ export class Users {
   }
 
   /** Finds users by name, for @mentions. Empty when the directory has no `search`. */
-  async search(query: string): Promise<PliUser[]> {
-    const found = (await this.#directory.search?.(query)) ?? [];
+  async search(query: string, context?: UserSearchContext): Promise<PliUser[]> {
+    const found = (await this.#directory.search?.(query, context)) ?? [];
     this.add(found);
     return found.map((user) => this.#complete(user));
   }
 
   get canSearch(): boolean {
     return !!this.#directory.search;
+  }
+
+  /** Whether the app handles a click on a person (`UserDirectory.open`), so a name can be shown as a button. */
+  get canOpen(): boolean {
+    return !!this.#directory.open;
+  }
+
+  /** Tells the app a person was clicked. */
+  open(user: PliUser): void {
+    this.#directory.open?.(user);
   }
 
   subscribe(listener: () => void): () => void {

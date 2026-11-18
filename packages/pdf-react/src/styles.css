@@ -112,6 +112,9 @@
 .pli-pdf .pli-pdf-chrome { flex: none; min-width: 0; padding-bottom: 0; border-bottom: 0; }
 .pli-pdf .pli-pdf-titlebar { flex-wrap: wrap; row-gap: 0.25rem; padding: 0.4rem 0.75rem 0; min-width: 0; }
 .pli-pdf .pli-pdf-titlebar .pli-pdf-title { flex: 0 1 24rem; min-width: 0; max-width: 24rem; margin-left: -0.3rem; }
+.pli-pdf .pli-pdf-titlebar .pli-actions.pli-actions-start,
+.pli-pdf .pli-pdf-titlebar .pli-actions.pli-actions-end { margin-left: 0; }
+.pli-pdf .pli-pdf-titlebar .pli-actions-start + .pli-pdf-title { margin-left: 0; }
 .pli-pdf .pli-pdf-titlebar .pli-actions { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; min-width: 0; max-width: 100%; }
 .pli-pdf-comments-button, .pli-pdf-share { display: inline-flex; align-items: center; gap: 0.35rem; }
 .pli-pdf-comments-button[aria-pressed="true"] { background: var(--pli-pdf-blue-soft); color: var(--pli-pdf-blue); }
@@ -655,3 +658,10 @@
 .pli-pdf-facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; margin: 0.5rem 0 0; font-size: 13px; }
 .pli-pdf-facts dt { color: var(--pli-muted); }
 .pli-pdf-facts dd { margin: 0; overflow-wrap: anywhere; }
+
+/* ---- looking at an older version (the View > Version history preview) ---- */
+.pli-pdf-version-preview { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; min-height: 0; background: var(--pli-pdf-app, var(--pli-chrome)); }
+.pli-pdf-version-preview > .pli-version-bar { flex: none; }
+.pli-pdf-version-note { flex: none; margin: 0; padding: 0.4rem 0.75rem; font-size: 0.85rem; color: var(--pli-muted, inherit); border-bottom: 1px solid var(--pli-border); }
+.pli-pdf-version-viewer { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.pli-pdf.pli-pdf-preview { flex: 1 1 0; min-height: 0; border: 0; border-radius: 0; }

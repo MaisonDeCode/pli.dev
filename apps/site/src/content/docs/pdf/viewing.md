@@ -31,17 +31,17 @@ pdf.js is also the oracle in Pli's tests: files the engine saves are drawn with 
 
 ### Size and offline
 
-Measured on `pdfjs-dist` 5.7.284, the files a viewer ships:
+Measured on `pdfjs-dist` 6.5.438, the files a viewer ships:
 
 | File | Size | Gzipped | Loaded |
 |---|---|---|---|
-| `build/pdf.min.mjs`, the library | 435 KB | 124 KB | when the first file opens |
-| `build/pdf.worker.min.mjs`, the worker | 1.2 MB | 362 KB | when the first file opens |
-| `cmaps/`, 168 character maps | 1.6 MB in all | | one file when a font needs it |
-| `standard_fonts/`, 14 fonts | 800 KB in all | | one file when a file names a font it does not embed |
-| `wasm/` decoders for JPEG 2000 (252 KB), JBIG2 (105 KB) and colour profiles (89 KB) | 446 KB | | when a page uses one |
+| `build/pdf.min.mjs`, the library | 474 KB | 136 KB | when the first file opens |
+| `build/pdf.worker.min.mjs`, the worker | 1.3 MB | 378 KB | when the first file opens |
+| `cmaps/`, 168 character maps | 1.2 MB in all | | one file when a font needs it |
+| `standard_fonts/`, 14 fonts | 798 KB in all | | one file when a file names a font it does not embed |
+| `wasm/` decoders for JPEG 2000 (221 KB), JBIG2 (104 KB) and colour profiles (97 KB) | 421 KB | | when a page uses one |
 
-(`wasm/` also holds `quickjs-eval.wasm`, 432 KB, which runs scripts inside PDFs. Pli does not turn scripting on, so you can leave it out.) For comparison, `@pli.dev/pdf` as a whole is 381 KB minified and 138 KB gzipped, and `@pli.dev/pdf-react` with the parts of the engine and `@pli.dev/react` it uses is 260 KB and 89 KB gzipped, without React and pdf.js.
+(`wasm/` also holds `quickjs-eval.wasm`, 469 KB, which runs scripts inside PDFs. Pli does not turn scripting on, so you can leave it out.) For comparison, `@pli.dev/pdf` as a whole is 381 KB minified and 138 KB gzipped, and `@pli.dev/pdf-react` with the parts of the engine and `@pli.dev/react` it uses is 260 KB and 89 KB gzipped, without React and pdf.js.
 
 Nothing is loaded until a PDF is opened, because Pli imports `pdfjs-dist` only then. A page that never shows a PDF does not pay for it.
 
@@ -140,7 +140,7 @@ import { PliPdf } from "@pli.dev/pdf-react";
 | `onPageChange`, `onPagesSelected` | The page shown, and the pages selected in the thumbnails |
 | `user`, `users`, `comments`, `room`, `sync`, `storage`, `fonts`, `sourceRetryMs` | People, comments, live editing, your file storage and fonts: see [The PDF editor](/pdf/ready-made-ui/#props) |
 | `tools`, `toolbar`, `sidebar`, `rightPanel`, `ribbon`, `formatBar`, `banner`, `pageOverlay` | Places to add your own tools and panels; `AnnotatedPdf` fills them with the annotation tools |
-| `menu`, `menus`, `menusChanged`, `actions`, `onShare`, `replace`, `onThemeChange` | The title row, the menu bar (File, Edit, View, Insert, Format, Tools, Help), the Share button and find and replace: see [Toolbar and menus](/pdf/toolbar/) |
+| `menu`, `menus`, `menusChanged`, `startActions`, `actions`, `endActions`, `onShare`, `replace`, `onThemeChange` | The title row, the menu bar (File, Edit, View, Insert, Format, Tools, Help), the Share button and find and replace: see [Toolbar and menus](/pdf/toolbar/) |
 | `rightPanelKey` | What `rightPanel` would show now, as a string, or `null` for nothing: the panel opens when it appears. Leave it out for a panel that is always open. See [Layout and panels](/pdf/ready-made-ui/#layout-and-panels) |
 | `hostWidth` | The width to lay out for where the browser reports none (tests). Default 1280 |
 

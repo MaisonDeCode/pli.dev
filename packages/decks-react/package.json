@@ -1,6 +1,6 @@
 {
   "name": "@pli.dev/decks-react",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "React slide editor for Pli: filmstrip, canvas, toolbar, speaker notes and present mode driven by the @pli.dev/decks engine.",
   "keywords": [
     "pli",

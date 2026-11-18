@@ -21,6 +21,10 @@ class CanvasFactory {
     pair.canvas.width = 0;
     pair.canvas.height = 0;
   }
+  // pdf.js 6 asks the factory for a context without an alpha channel when it draws a page.
+  getNoAlphaContext(canvas: { getContext(kind: "2d", o?: object): unknown }) {
+    return canvas.getContext("2d", { alpha: false });
+  }
 }
 
 export interface PageSeen {
@@ -70,7 +74,7 @@ export async function seen(bytes: Uint8Array, withOutline = false): Promise<File
     }
     return { pages, labels, outline };
   } finally {
-    await doc.destroy();
+    await doc.loadingTask.destroy();
   }
 }
 

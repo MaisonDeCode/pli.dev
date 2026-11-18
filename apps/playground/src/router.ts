@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
 /** The screens the playground can show. The landing page is the one without an id. */
-export type DemoId = "basics" | "collaboration" | "sheets" | "decks" | "pdf";
+export type DemoId = "basics" | "collaboration" | "sheets" | "decks" | "pdf" | "embed";
 
-const IDS: readonly DemoId[] = ["basics", "collaboration", "sheets", "decks", "pdf"];
+const IDS: readonly DemoId[] = ["basics", "collaboration", "sheets", "decks", "pdf", "embed"];
 
 /** The hash that opens a screen (`#/basics`), or the landing page for `null`. */
 export function routePath(demo: DemoId | null): string {

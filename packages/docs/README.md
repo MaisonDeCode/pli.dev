@@ -2,6 +2,8 @@
 
 Pli Documents, headless: a rich-text document model with pages, tables, comments and suggestions, invertible operations with undo, and files in and out (Markdown, HTML and DOCX).
 
+Website and documentation: [pli.dev](https://pli.dev)
+
 ## Install
 
 ```sh
@@ -36,4 +38,4 @@ writeFileSync("hello.docx", toDocx(session.state));  // a ready-to-save .docx
 
 Apache-2.0.
 
-Part of [Pli](https://github.com/MaisonDeCode/pli.dev), an open-source editor SDK. All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).
+Part of [Pli](https://pli.dev), an open-source editor SDK ([source on GitHub](https://github.com/MaisonDeCode/pli.dev)). All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).

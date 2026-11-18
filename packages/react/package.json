@@ -1,6 +1,6 @@
 {
   "name": "@pli.dev/react",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "React editor for Pli documents: a contenteditable view driven by the @pli.dev/docs engine.",
   "keywords": [
     "pli",

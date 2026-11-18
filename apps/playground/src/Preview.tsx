@@ -16,6 +16,7 @@ const BLOCKS = 12;
 
 const PREVIEWS: Record<Exclude<DemoId, "sheets" | "decks" | "pdf">, { doc: () => Doc; people?: PliUser[] }> = {
   basics: { doc: starter },
+  embed: { doc: starter },
   collaboration: { doc: labDocument, people: TEAM },
 };
 

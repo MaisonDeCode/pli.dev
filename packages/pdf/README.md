@@ -2,6 +2,8 @@
 
 Pli PDF, headless: reads and writes real PDF files, keeps pages, annotations and form values as plain JSON with invertible operations, and saves the changes back into the file. Includes text search and redaction.
 
+Website and documentation: [pli.dev](https://pli.dev)
+
 ## Install
 
 ```sh
@@ -36,4 +38,4 @@ const bytes = await session.save();   // a Uint8Array: the file plus the highlig
 
 Apache-2.0.
 
-Part of [Pli](https://github.com/MaisonDeCode/pli.dev), an open-source editor SDK. All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).
+Part of [Pli](https://pli.dev), an open-source editor SDK ([source on GitHub](https://github.com/MaisonDeCode/pli.dev)). All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).

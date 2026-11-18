@@ -53,7 +53,7 @@ describe("PdfFile.encryptor and incremental updates of encrypted files", () => {
       expect(f.pageCount()).toBe(1);
       const doc = await pdfjs.getDocument({ data: out.slice(), password: pw, verbosity: 0, isEvalSupported: false, useWorkerFetch: false } as never).promise;
       expect(doc.numPages).toBe(1);
-      await doc.destroy();
+      await doc.loadingTask.destroy();
     });
   }
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { FontsProvider, LinkDialog, MenuBar, downloadFile, useDocumentFonts, useFonts, type MenuDefinition, type MenuEntry } from "@pli.dev/react";
+import { FilePickerProvider, FontsProvider, LinkDialog, MenuBar, ThemeContext, downloadFile, extendMenus, forcedTheme, pickWith, useDocumentFonts, useFonts, type ExtraMenus, type FilePicker, type MenuDefinition, type MenuEntry, type PliTheme } from "@pli.dev/react";
 import type { FontRegistry } from "@pli.dev/core";
 import {
   CHART_TYPES,
@@ -60,8 +60,9 @@ import {
 import { makePdf, makePotx, makePptx, openPptx, presetGroups } from "./engine";
 import { PeopleBar, RemoteLayer, caretOf, peersBySlide, presentersOf, publishPresence, useDeckCollab, type CommentsProp, type SyncProp } from "./collab";
 import { CommentPins, DeckCommentsPanel, commentHighlights, openCounts, useThreads, type CommentDraft } from "./comments";
-import type { CollabRoom, Users } from "@pli.dev/core";
-import type { DeckAnchor } from "@pli.dev/decks";
+import type { AutoSaveOptions, CollabRoom, NamedVersion, Users, VersionHistory, VersionStorage } from "@pli.dev/core";
+import { DeckSession as DeckSessionClass, deckVersionHistory, type Deck, type DeckAnchor, type DeckOp } from "@pli.dev/decks";
+import { VersionHistoryPanel, VersionPreviewBar, useVersions } from "@pli.dev/react/collab";
 
 /** A file made by File > Download. */
 export interface PliDeckDownload {
@@ -95,8 +96,17 @@ export interface PliDeckProps {
   fonts?: FontRegistry;
   /** Called by the presenter view's "open in a new window" button; give hosts that can open a window the chance to. */
   onOpenPresenterWindow?: () => void;
-  /** Extra controls at the right end of the title row, such as a Share button. */
+  /** Extra controls in the title row, next to the Slideshow button, such as a Share button. */
   actions?: ReactNode;
+  /** Controls at the far left of the title row, before the presentation's name: a back button, your logo, a breadcrumb. */
+  startActions?: ReactNode;
+  /** Controls at the far right of the title row, after the Slideshow button: a profile menu, a close button. */
+  endActions?: ReactNode;
+  /**
+   * `"light"`, `"dark"` or `"auto"` (default). Pass the theme your app is using so the editor matches it. `"auto"` follows
+   * `data-theme="light" | "dark"` on `<html>` if your page sets it, and otherwise the system's setting.
+   */
+  theme?: PliTheme;
   /**
    * The room that carries who is here and what they are doing (and, with `comments`, the comments), over a `Transport` you
    * choose (Socket.io, a WebSocket, Redis behind either). The editor connects it and says `{ slide, selection, caret, present }`.
@@ -113,6 +123,34 @@ export interface PliDeckProps {
   comments?: CommentsProp;
   /** Live editing through `room`: your changes go to everyone and theirs to you. See `deckSyncModel` and `createAuthority`. */
   sync?: boolean | SyncProp;
+  /**
+   * A `VersionHistory` from `@pli.dev/core` (see `deckVersionHistory`): adds View > Version history and its panel in the right-hand
+   * side area. Choosing a version shows it, read only, in the editor (the slideshow button is off meanwhile) and a bar offers to
+   * restore it, which adds a new version and keeps every earlier one.
+   */
+  history?: VersionHistory<Deck, DeckOp>;
+  /**
+   * Where named versions are kept (a `VersionStorage` from `@pli.dev/core`; `memoryVersionStorage()` for a demo). The editor then
+   * makes the `VersionHistory` itself, from `users` and the live-editing position, so a restore is one undoable step that reaches
+   * everyone. Needs `users`; `history` wins when both are given. Saving and restoring need the `editor` role in `users`.
+   */
+  versions?: VersionStorage<Deck>;
+  /**
+   * With `versions`: keep a version now and then by itself (an "Original" first, then "Autosaved" after changes). `true` is the
+   * default; `false` keeps only the versions people save; or give options (`{ every, keep, baseline }`).
+   */
+  autoSaveVersions?: boolean | AutoSaveOptions;
+  /**
+   * Items for the menus the editor has (`File`, `Edit`, `View`, `Insert`, `Slide`, `Format`, `Arrange`, `Tools`) and menus of your own:
+   * a key that is not one of those adds a menu, last on the bar. The editor's own items keep their read-only handling; yours are yours to
+   * disable. See [Menus and file pickers](/platform/menus-and-file-pickers/).
+   */
+  extraMenus?: ExtraMenus;
+  /**
+   * Your own way of choosing a file, used for opening a presentation, inserting pictures, a background picture and importing a theme.
+   * Left out, the editor opens the browser's file chooser. Dropping and pasting files work as before.
+   */
+  filePicker?: FilePicker;
   className?: string;
 }
 
@@ -124,8 +162,18 @@ const safeName = (t: string) => (t.trim() || "Untitled").replace(/[\\/:*?"<>|]+/
 
 /** A context menu: its items are listed now, or (for the canvas, where the click itself changes the selection, so the items must follow it) made each time it is drawn. */
 type ContextMenuState = Omit<ContextMenuBase, "items"> & { items: MenuEntry[] | "canvas" };
-type Panel = "theme" | "transition" | "format" | "motion" | "comments" | null;
+type Panel = "theme" | "transition" | "format" | "motion" | "comments" | "history" | null;
 type Dialogs = null | "link" | "background" | "pagesetup" | "imageurl" | "wordcount" | "chart";
+
+/** The bar over an older version. It waits until the history lists that version (a history that was just made loads its list first), and goes back if the version is gone. */
+function PreviewBar({ history, version, onBack }: { history: VersionHistory<Deck, DeckOp>; version: NamedVersion<Deck>; onBack: () => void }) {
+  const versions = useVersions(history);
+  const listed = versions.some((v) => v.id === version.id);
+  useEffect(() => {
+    if (!listed && history.status === "ready") onBack();
+  }, [listed, history.status, onBack]);
+  return listed ? <VersionPreviewBar history={history} version={version} onBack={onBack} onRestored={onBack} /> : null;
+}
 
 /** What went wrong, in words for a person: a failed lookup of an object or slide has no ids in it. */
 export function plainError(e: unknown): string {
@@ -138,11 +186,41 @@ export function plainError(e: unknown): string {
  * A slide editor that looks and works like Google Slides: filmstrip, canvas, toolbar, speaker notes, side panels, theme editor
  * and slideshow, driven by a `DeckSession`. The deck lives in the session; read it from `session.deck` to save it.
  */
-export function PliDeck({ session, readOnly = false, menu = true, toolbar = true, notes = true, onDownload, uploadImage, pdf, fonts: fontsProp, onOpenPresenterWindow, actions, room, users, comments, sync, className }: PliDeckProps) {
+const OPEN_ACCEPT = ".json,.pli,.pptx,.potx,application/json";
+
+export function PliDeck({ session, readOnly = false, menu = true, toolbar = true, notes = true, onDownload, uploadImage, pdf, fonts: fontsProp, onOpenPresenterWindow, actions, startActions, endActions, theme, room, users, comments, sync, history, versions, autoSaveVersions, extraMenus, filePicker, className }: PliDeckProps) {
   useDeckRevision(session);
   const deck = session.deck;
   const collab = useDeckCollab(session, { room, users, comments, sync });
   const commentClient = collab.comments;
+  // ---- Version history: given, or made from `versions` and `users`
+  const syncVersion = useRef<() => number | null>(() => null);
+  syncVersion.current = () => collab.sync?.version ?? null;
+  // options given as an object are compared by what they say, so a new object on every render does not remake the history
+  const autoSaveKey = autoSaveVersions && autoSaveVersions !== true ? JSON.stringify(autoSaveVersions) : String(autoSaveVersions);
+  // Made after mounting and disposed on unmounting. It waits a tick so that a development double mount (React's strict mode) makes
+  // one history, not two (each would keep an "Original" version of its own).
+  const [ownHistory, setOwnHistory] = useState<VersionHistory<Deck, DeckOp> | null>(null);
+  useEffect(() => {
+    if (history || !versions || !users) return setOwnHistory(null);
+    let made: VersionHistory<Deck, DeckOp> | null = null;
+    const timer = setTimeout(() => {
+      made = deckVersionHistory(session, { storage: versions, users, version: () => syncVersion.current(), ...(autoSaveVersions === false ? {} : { autoSave: autoSaveVersions && autoSaveVersions !== true ? autoSaveVersions : {} }) });
+      setOwnHistory(made);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      made?.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, history, versions, users, autoSaveKey]);
+  const versionHistory = history ?? ownHistory ?? undefined;
+  const [previewing, setPreviewing] = useState<NamedVersion<Deck> | null>(null);
+  const previewSession = useMemo(() => (previewing ? new DeckSessionClass(JSON.parse(JSON.stringify(previewing.state)) as Deck) : null), [previewing]);
+  // a history that goes away takes the preview with it
+  useEffect(() => {
+    setPreviewing(null);
+  }, [versionHistory]);
   const threads = useThreads(commentClient);
   const fonts = useFonts(fontsProp);
   // The fonts the deck names are fetched when it is shown, and the slides are drawn again as each arrives.
@@ -480,6 +558,17 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
       setNotice(plainError(e));
     }
   };
+  /** Asks for pictures (into `target`, a picture placeholder, when given): the host's picker, or the hidden file input. */
+  const chooseImages = (target: string | null = null) => {
+    pickRef.current = target;
+    if (!filePicker) return void imageRef.current?.click();
+    void pickWith(filePicker, { purpose: "image", accept: "image/*", multiple: true, label: "Insert a picture" }).then((files) => (files.length ? addFiles(files) : undefined), (e) => setNotice(plainError(e)));
+  };
+  /** Asks for a presentation to open. */
+  const chooseOpen = () => {
+    if (!filePicker) return void fileRef.current?.click();
+    void pickWith(filePicker, { purpose: "open", accept: OPEN_ACCEPT, multiple: false, label: "Open a presentation" }).then((files) => (files[0] ? openFile(files[0]) : undefined), (e) => setNotice(plainError(e)));
+  };
   const openFile = async (file: File | undefined) => {
     if (!file || readOnly) return;
     try {
@@ -514,7 +603,15 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
   const layouts = (deck.masters.find((m) => m.layouts.some((l) => l.id === slides.find((s) => s.id === slideId)?.layout)) ?? deck.masters[0]!).layouts;
   const currentLayout = slides.find((s) => s.id === slideId)?.layout ?? null;
   const currentSlide = slides.find((s) => s.id === slideId);
-  const startPresent = (fromStart: boolean, presenter = false) => setPresent({ start: fromStart ? 0 : Math.max(0, slides.findIndex((s) => s.id === slideId)), presenter });
+  const toggleHistory = () => {
+    if (panel === "history") return setPanel(null);
+    setPanel("history");
+  };
+  // Looking at an older version only makes sense with the history panel open: closing it (or opening another panel) goes back.
+  useEffect(() => {
+    if (panel !== "history") setPreviewing(null);
+  }, [panel]);
+  const startPresent = (fromStart: boolean, presenter = false) => previewing ? undefined : setPresent({ start: fromStart ? 0 : Math.max(0, slides.findIndex((s) => s.id === slideId)), presenter });
 
   // ---- People and comments -----------------------------------------------------------------------------------------
 
@@ -651,7 +748,7 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
     ? [
         { label: "File", items: [
           { label: "New presentation", onSelect: newPresentation },
-          { label: "Open…", shortcut: `${MOD}O`, onSelect: () => fileRef.current?.click() },
+          { label: "Open…", shortcut: `${MOD}O`, onSelect: () => chooseOpen() },
           "separator",
           { label: "Download", items: [
             { label: "Microsoft PowerPoint (.pptx)", onSelect: () => void download("pptx") },
@@ -688,10 +785,11 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
           { label: "Snap to guides", checked: snapOn, onSelect: () => setSnapOn((v) => !v) },
           "separator",
           themeEdit ? { label: "Close master view", onSelect: () => leaveTheme() } : { label: "Edit master", disabled: readOnly, onSelect: () => enterTheme() },
+          ...(versionHistory ? [{ label: "Version history", checked: panel === "history", onSelect: () => toggleHistory() } as MenuEntry] : []),
         ] },
         { label: "Insert", items: [
           { label: "Image", items: [
-            { label: "Upload from computer…", onSelect: () => { pickRef.current = null; imageRef.current?.click(); } },
+            { label: "Upload from computer…", onSelect: () => chooseImages() },
             { label: "By URL…", onSelect: () => setDialog("imageurl") },
           ] },
           { label: "Text box", onSelect: () => setTool({ type: "text" }) },
@@ -760,8 +858,8 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
     : [];
 
   const guard = (items: MenuEntry[]): MenuEntry[] =>
-    readOnly
-      ? items.map((it) => (it === "separator" ? it : it.items ? { ...it, items: guard(it.items) } : { ...it, disabled: it.disabled || !/^(Copy|Select all|Find|Present|Presenter|Zoom|Fit|\d+%|Show |Motion|Microsoft|PDF|Pli JSON|Word count|Download|Save as theme)/.test(it.label) }))
+    readOnly || previewing
+      ? items.map((it) => (it === "separator" ? it : it.items ? { ...it, items: guard(it.items) } : { ...it, disabled: it.disabled || !/^(Copy|Select all|Find|Present|Presenter|Zoom|Fit|\d+%|Show |Motion|Microsoft|PDF|Pli JSON|Word count|Download|Save as theme|Version history)/.test(it.label) }))
       : items;
 
   // ---- Theme editor ---------------------------------------------------------------------------------------------------
@@ -817,6 +915,14 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
 
   const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.defaultPrevented) return;
+    // an older version is on show: nothing to edit, and Escape goes back to the deck as it is
+    if (previewing) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setPreviewing(null);
+      }
+      return;
+    }
     const t = e.target as HTMLElement;
     const inField = !!t.closest?.("input, select, textarea");
     const inText = !!t.closest?.("[contenteditable='true'], [contenteditable='plaintext-only']");
@@ -909,7 +1015,7 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
       }
       return;
     }
-    if (selectedEls.length === 1 && isPicturePlaceholder(selectedEls[0]!) && e.key === "Enter" && !readOnly) return (stop(), void (pickRef.current = selectedEls[0]!.id, imageRef.current?.click()));
+    if (selectedEls.length === 1 && isPicturePlaceholder(selectedEls[0]!) && e.key === "Enter" && !readOnly) return (stop(), chooseImages(selectedEls[0]!.id));
     if (selectedEls.length === 1 && editable(selectedEls[0]!)) {
       const el = selectedEls[0]!;
       if (e.key === "Enter") return (stop(), startEdit({ element: el.id, cell: el.kind === "table" ? [cellRange?.r1 ?? 0, cellRange?.c1 ?? 0] : undefined }));
@@ -929,7 +1035,7 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
     <input ref={imageRef} type="file" accept="image/*" multiple hidden aria-label="Upload picture" onChange={(e) => { void addFiles([...(e.target.files ?? [])]); e.target.value = ""; }} />
   );
   const openInput = (
-    <input ref={fileRef} type="file" accept=".json,.pli,.pptx,.potx,application/json" hidden aria-label="Open presentation" onChange={(e) => { void openFile(e.target.files?.[0]); e.target.value = ""; }} />
+    <input ref={fileRef} type="file" accept={OPEN_ACCEPT} hidden aria-label="Open presentation" onChange={(e) => { void openFile(e.target.files?.[0]); e.target.value = ""; }} />
   );
 
   const goto = (hit: FindHit) => {
@@ -941,9 +1047,12 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
 
   return (
     <FontsProvider fonts={fonts}>
+     <FilePickerProvider picker={filePicker}>
+     <ThemeContext.Provider value={forcedTheme(theme)}>
       <div
         ref={rootRef}
         className={className ? `pli-deck pli-deck-root ${className}` : "pli-deck pli-deck-root"}
+        data-theme={forcedTheme(theme)}
         data-readonly={readOnly ? "" : undefined}
         tabIndex={-1}
         onKeyDown={onKeyDown}
@@ -994,6 +1103,7 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
         {menu && (
           <div className="pli-chrome pli-deck-chrome">
             <div className="pli-titlebar">
+              {startActions && <div className="pli-actions pli-actions-start">{startActions}</div>}
               <input
                 className="pli-doc-title"
                 aria-label="Presentation title"
@@ -1012,11 +1122,12 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
                   </button>
                 )}
                 {actions}
-                <button type="button" className="pli-button pli-button-primary pli-deck-slideshow" onClick={() => startPresent(false)}>{I.present} Slideshow</button>
+                <button type="button" className="pli-button pli-button-primary pli-deck-slideshow" disabled={!!previewing} title={previewing ? "Go back to the current version to present" : undefined} onClick={() => startPresent(false)}>{I.present} Slideshow</button>
+                {endActions}
               </div>
             </div>
-            <MenuBar menus={menus.map((m) => ({ ...m, items: guard(m.items) }))} />
-            {toolbar && ctx && (
+            <MenuBar menus={extendMenus(menus.map((m) => ({ ...m, items: guard(m.items) })), extraMenus)} />
+            {toolbar && ctx && !previewing && (
               <DeckToolbar
                 session={session}
                 readOnly={readOnly}
@@ -1029,7 +1140,7 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
                 onZoom={setZoom}
                 tool={tool}
                 onTool={setTool}
-                onImage={() => { pickRef.current = null; imageRef.current?.click(); }}
+                onImage={() => chooseImages()}
                 onNewSlide={newSlide}
                 layouts={themeEdit ? (deck.masters.find((m) => m.id === themeEdit || m.layouts.some((l) => l.id === themeEdit)) ?? deck.masters[0]!).layouts : layouts}
                 currentLayout={themeEdit ?? currentLayout}
@@ -1085,7 +1196,14 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
           </div>
         )}
 
+        {previewing && versionHistory && <PreviewBar history={versionHistory} version={previewing} onBack={() => setPreviewing(null)} />}
         <div className="pli-deck-workspace">
+          {previewing && previewSession ? (
+            <div className="pli-deck-main pli-deck-preview">
+              <PliDeck session={previewSession} readOnly menu={false} toolbar={false} theme={theme} fonts={fontsProp} className="pli-deck-preview-editor" />
+            </div>
+          ) : (
+          <>
           {showFilmstrip && !themeEdit && (
             <aside className="pli-deck-side" aria-label="Slides">
               <Filmstrip
@@ -1138,7 +1256,7 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
                     onTextState={setTextState}
                     onFiles={(files, at) => void addFiles(files, at)}
                     onChartOptions={(id) => { select([id]); setDialog("chart"); }}
-                onPickPicture={(id) => { pickRef.current = id; imageRef.current?.click(); }}
+                onPickPicture={(id) => chooseImages(id)}
                     poses={preview.poses}
                     overlay={
                       themeEdit || !slideId ? undefined : (
@@ -1156,10 +1274,15 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
             </div>
             {showNotes && !themeEdit && <NotesPane session={session} slideId={slideId} readOnly={readOnly} height={notesHeight} onResize={setNotesHeight} />}
           </div>
+          </>
+          )}
           {panel === "theme" && <ThemePanel session={session} readOnly={readOnly} masterId={(editedMaster ?? deck.masters.find((m) => m.layouts.some((l) => l.id === currentLayout)))?.id} onClose={() => setPanel(null)} onEditTheme={() => { setPanel(null); enterTheme(); }} />}
           {panel === "transition" && <TransitionPanel session={session} readOnly={readOnly} slideIds={slideTargets()} onClose={() => setPanel(null)} onPlay={() => startPresent(false)} />}
           {panel === "motion" && !themeEdit && <MotionPanel session={session} slideId={slideId} scene={scene} selection={selectedIds} readOnly={readOnly} active={animSel} onActive={setAnimSel} playing={preview.playing} onPlay={preview.play} onStop={preview.stop} onTransition={() => setPanel("transition")} onClose={() => setPanel(null)} />}
           {panel === "comments" && commentClient && <DeckCommentsPanel session={session} client={commentClient} slideId={slideId} activeId={activeThread} onActivate={activateThread} draft={commentDraft} onDraftDone={() => setCommentDraft(null)} onClose={() => { setPanel(null); setCommentDraft(null); }} readOnly={readOnly && !commentClient.can("comment")} />}
+          {panel === "history" && versionHistory && (
+            <VersionHistoryPanel history={versionHistory} activeId={previewing?.id ?? null} onPreview={setPreviewing} onRestored={() => setPreviewing(null)} onClose={() => setPanel(null)} />
+          )}
           {panel === "format" && ctx && <FormatPanel session={session} owner={owner} ctx={ctx} selection={selectedEls} readOnly={readOnly} onClose={() => setPanel(null)} onChartOptions={() => setDialog("chart")} />}
         </div>
 
@@ -1207,6 +1330,8 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
         {imageFileInput}
         {openInput}
       </div>
+     </ThemeContext.Provider>
+     </FilePickerProvider>
     </FontsProvider>
   );
 

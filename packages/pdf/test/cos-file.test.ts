@@ -28,7 +28,7 @@ async function pdfjsSees(bytes: Uint8Array, password?: string): Promise<Seen> {
     }
     return { pages };
   } finally {
-    await doc.destroy();
+    await doc.loadingTask.destroy();
   }
 }
 

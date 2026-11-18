@@ -30,6 +30,7 @@ import {
   SyncIndicator,
   ToastProvider,
   VersionHistoryPanel,
+  VersionPreviewBar,
   useToasts,
 } from "../src/collab";
 
@@ -289,7 +290,7 @@ describe("sharing", () => {
 });
 
 describe("version history and activity", () => {
-  it("names a version, lists it with its author, and restores after a confirmation", async () => {
+  it("names a version, lists it with its author, and restores it as a new version", async () => {
     const session = new Session<string, { t: "set"; to: string }>("one", { apply: (s, op) => ({ state: op.to, inverse: { t: "set", to: s } }) });
     const users = new Users({ current: ana, role: "editor" });
     const history = new VersionHistory({
@@ -310,13 +311,65 @@ describe("version history and activity", () => {
     expect(host.querySelector(".pli-version-name-text")?.textContent).toBe("First");
     expect(host.querySelector(".pli-version-meta")?.textContent).toContain("Ana Reyes");
     session.transact([{ t: "set", to: "two" }]);
-    click(buttonNamed("Restore this version")!);
-    expect(host.querySelector('[role="alert"]')?.textContent).toContain("Replace the current file");
     await act(async () => {
-      click(buttonNamed("Restore"));
+      click(buttonNamed("Restore this version"));
       await new Promise((r) => setTimeout(r, 0));
     });
     expect(session.state).toBe("one");
+    // The restore is a version of its own, and nothing that was there is gone.
+    const names = [...host.querySelectorAll(".pli-version-name-text")].map((n) => n.textContent);
+    expect(names).toEqual(expect.arrayContaining(["First", 'Before restoring "First"', 'Restored "First"']));
+  });
+
+  it("lists the current version first, and previews a version when it is chosen", async () => {
+    const session = new Session<string, { t: "set"; to: string }>("one", { apply: (s, op) => ({ state: op.to, inverse: { t: "set", to: s } }) });
+    const users = new Users({ current: ana, role: "editor" });
+    const history = new VersionHistory({ file: "f", session, storage: memoryVersionStorage<string>(), users, hash: (s) => s, support: { restoreOps: (_c, target) => [{ t: "set", to: target }] } });
+    await history.ready;
+    await history.save("First");
+    const previews: (string | null)[] = [];
+    render(<VersionHistoryPanel history={history} onPreview={(v) => previews.push(v?.name ?? null)} />);
+    const rows = [...host.querySelectorAll(".pli-version-name-text")].map((n) => n.textContent);
+    expect(rows[0]).toBe("Current version");
+    click(host.querySelectorAll<HTMLElement>(".pli-version-main")[1]);
+    click(host.querySelectorAll<HTMLElement>(".pli-version-main")[0]);
+    expect(previews).toEqual(["First", null]);
+  });
+
+  it("shows what a previewed version is, restores it, or goes back", async () => {
+    const session = new Session<string, { t: "set"; to: string }>("one", { apply: (s, op) => ({ state: op.to, inverse: { t: "set", to: s } }) });
+    const users = new Users({ current: ana, role: "editor" });
+    const history = new VersionHistory({ file: "f", session, storage: memoryVersionStorage<string>(), users, hash: (s) => s, support: { restoreOps: (_c, target) => [{ t: "set", to: target }], summarize: (a, b) => ({ added: 0, removed: 0, changed: 1, lines: [`"${a}" became "${b}"`] }) } });
+    await history.ready;
+    const first = await history.save("First");
+    session.transact([{ t: "set", to: "two" }]);
+    const back = vi.fn();
+    const restored = vi.fn();
+    render(<VersionPreviewBar history={history} version={first} onBack={back} onRestored={restored} />);
+    const bar = host.querySelector(".pli-version-bar")!;
+    expect(bar.textContent).toContain("First");
+    expect(bar.textContent).toContain("Ana Reyes");
+    expect(bar.textContent).toContain('"one" became "two"');
+    click(buttonNamed("Back to current"));
+    expect(back).toHaveBeenCalled();
+    await act(async () => {
+      click(buttonNamed("Restore this version"));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(session.state).toBe("one");
+    expect(restored).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers no restore on the preview bar to a viewer", async () => {
+    const users = new Users({ current: ana, role: "viewer" });
+    const v = { id: "v", name: "Old", at: 1, by: "ana", hash: "x", state: "x" };
+    const storage = memoryVersionStorage<string>();
+    await storage.save("f", v);
+    const history = new VersionHistory({ file: "f", session: { state: "x", transact: () => {} }, storage, users, hash: (s) => s, support: { restoreOps: () => [] } });
+    await history.ready;
+    render(<VersionPreviewBar history={history} version={v} onBack={() => {}} />);
+    expect(buttonNamed("Restore this version")).toBeUndefined();
+    expect(buttonNamed("Back to current")).toBeTruthy();
   });
 
   it("shows nothing to change to a viewer", async () => {

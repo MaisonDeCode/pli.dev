@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { keepFocus } from "@pli.dev/react";
+import { keepFocus, ThemedDiv } from "@pli.dev/react";
 import { isOpenable, isPlace, type CellLink, type NoteInfo } from "@pli.dev/sheets";
 import { NoteContent } from "./NoteContent";
 import { NoteFill, hasFill, noteFrameCss } from "./noteLook";
@@ -50,7 +50,7 @@ export function CellCard({ info, link, note, readOnly, container, onOpen, onEdit
   const place_ = link && isPlace(link.to);
   const followable = link && (place_ || isOpenable(link.to));
   return createPortal(
-    <div
+    <ThemedDiv
       ref={ref}
       className="pli-panel pli-panel-fixed pli-cellcard"
       role={info.active ? "group" : "tooltip"}
@@ -99,7 +99,7 @@ export function CellCard({ info, link, note, readOnly, container, onOpen, onEdit
           )}
         </div>
       )}
-    </div>,
+    </ThemedDiv>,
     container ?? document.body,
   );
 }

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Dropdown, MenuList, keepFocus, type MenuEntry } from "@pli.dev/react";
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Dropdown, FilePickerContext, MenuList, keepFocus, pickWith, type MenuEntry } from "@pli.dev/react";
 import type { PdfViewContext } from "./extensions";
 import { useSessionRevision } from "./hooks";
 import { AnnotIcons as I } from "./annotIcons";
@@ -57,6 +57,9 @@ export function AnnotRibbon({ c, view, readOnly = false, extra }: { c: AnnotCont
   useController(c);
   useTextSelectionBar(c, view);
   const fileInput = useRef<HTMLInputElement>(null);
+  const picker = useContext(FilePickerContext);
+  const pageId = useRef(view.pageId);
+  pageId.current = view.pageId;
   const [shape, setShape] = useState<ToolId>("rectangle");
   const selectedCount = c.selectedIds.length;
   useEffect(() => {
@@ -64,11 +67,14 @@ export function AnnotRibbon({ c, view, readOnly = false, extra }: { c: AnnotCont
     view.scroller()?.closest(".pli-pdf")?.toggleAttribute("data-annot-selected", selectedCount > 0);
   });
   useEffect(() => {
-    c.actions.pickImage = () => fileInput.current?.click();
+    // With the editor's `filePicker` the file comes from it; without one the hidden input below opens the browser's chooser.
+    c.actions.pickImage = picker
+      ? () => void pickWith(picker, { purpose: "image", accept: "image/png,image/jpeg", label: "Choose a picture" }).then(([file]) => (file ? c.insertImage(file, pageId.current) : undefined))
+      : () => fileInput.current?.click();
     return () => {
       c.actions.pickImage = undefined;
     };
-  }, [c]);
+  }, [c, picker]);
   if (readOnly)
     // No tools to show: only the live region and the comment box a click on a note opens (the style sheet hides the empty bar).
     return (
@@ -133,18 +139,20 @@ export function AnnotRibbon({ c, view, readOnly = false, extra }: { c: AnnotCont
             <button type="button" className="pli-tool pli-pdf-tool" aria-label={k.picture!.label} title={commandTitle(k.picture!)} aria-keyshortcuts={TOOL_INFO.image.shortcut} onMouseDown={keepFocus} onClick={k.picture!.run}>
               {I.image}
             </button>
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/png,image/jpeg"
-              aria-label="Choose a picture"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) void c.insertImage(file, view.pageId);
-              }}
-            />
+            {!picker && (
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/png,image/jpeg"
+                aria-label="Choose a picture"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) void c.insertImage(file, view.pageId);
+                }}
+              />
+            )}
           </>
         )}
         <ToolButton c={c} id="link" />

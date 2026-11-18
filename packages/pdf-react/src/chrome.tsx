@@ -8,7 +8,7 @@
  */
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { ShareButton } from "@pli.dev/react/collab";
-import { MenuBar, keepFocus, type MenuDefinition, type MenuEntry } from "@pli.dev/react";
+import { MenuBar, extendMenus, keepFocus, type ExtraMenus, type MenuDefinition, type MenuEntry } from "@pli.dev/react";
 import type { PdfSession } from "@pli.dev/pdf";
 import { ZOOM_MENU, stepZoom, type Zoom } from "./geometry";
 import type { ViewMode } from "./layout";
@@ -127,13 +127,12 @@ export function buildMenus(c: PdfCommands, d: ChromeDeps): PdfMenus {
       files ? [d.canSave && !d.readOnly ? it("save") : null, it("saveCopy"), { label: "Download", items: menuGroups([it("download.pdf"), it("download.optimised"), it("download.flattened"), it("download.forms"), it("download.pictures")], [it("download.more")]) }] : null,
       [it("properties")],
       files ? [it("print", "Print…")] : null,
-      [it("history")],
     ),
     Edit: menuGroups([it("undo"), it("redo")], [it("find", "Find…"), it("replace")]),
     View: menuGroups(
       [it("zoomIn"), it("zoomOut"), it("zoomActual"), { label: "Zoom", items: [...zooms, "separator", commandItem(c.fitWidth!), commandItem(c.fitPage!)] }],
       [{ label: "Page layout", items: LAYOUTS.map((l) => commandItem(c[`layout.${l.id}`]!)) }, it("rotate", "Rotate view clockwise"), { label: "Go to", items: [it("go.to"), it("go.first"), it("go.previous"), it("go.next"), it("go.last")].filter(Boolean) as MenuEntry[] }],
-      [it("sidebar", "Show sidebar"), it("properties.panel", "Show properties panel"), it("organise")],
+      [it("sidebar", "Show sidebar"), it("history"), it("properties.panel", "Show properties panel"), it("organise")],
       [it("fullscreen"), { label: "Theme", items: ["theme.auto", "theme.light", "theme.dark"].map((id) => commandItem(c[id]!)) }],
     ),
     Insert: menuGroups([it("insert.blank"), it("insert.pages")]),
@@ -143,7 +142,7 @@ export function buildMenus(c: PdfCommands, d: ChromeDeps): PdfMenus {
 }
 
 /** The menu bar, rebuilt when the stores it reads (the file commands, the page tools) change. */
-export function LiveMenuBar({ build, stores, changed }: { build: () => PdfMenus; stores: readonly Store[]; changed?: (listener: () => void) => () => void }) {
+export function LiveMenuBar({ build, stores, changed, extra }: { build: () => PdfMenus; stores: readonly Store[]; changed?: (listener: () => void) => () => void; extra?: ExtraMenus }) {
   // Hooks run in the same order on every render: the stores are fixed for a viewer.
   for (const s of stores) useStore(s); // eslint-disable-line react-hooks/rules-of-hooks
   // What the kits tell: the clipboard, the tool in hand... Each change is a new number, so the menus are read again.
@@ -155,14 +154,24 @@ export function LiveMenuBar({ build, stores, changed }: { build: () => PdfMenus;
   );
   const menus = build();
   const defs: MenuDefinition[] = MENU_NAMES.filter((name) => menus[name]?.length).map((name) => ({ label: name, items: menus[name]! }));
-  return <MenuBar menus={defs} className="pli-pdf-menubar" />;
+  return <MenuBar menus={extendMenus(defs, extra)} className="pli-pdf-menubar" />;
 }
 
-/** The row above the menus: the name of the document, who is here, Comments, Share, and what the host added. */
-export function TitleBar({ title, people, comments, share, actions }: { title: ReactNode; people?: ReactNode; comments?: PdfCommand; share?: PdfCommand; actions?: ReactNode }) {
+/** The File menu's entries with the host's `extraMenus.File` added (for the File button of the toolbar, when there is no menu bar). */
+export function fileMenuItems(items: MenuEntry[] | undefined, extra: ExtraMenus | undefined): MenuEntry[] | undefined {
+  if (!extra || !("File" in extra)) return items;
+  return extendMenus([{ label: "File", items: items ?? [] }], { File: extra.File! }).find((m) => m.label === "File")?.items;
+}
+
+/**
+ * The row above the menus: the name of the document, who is here, Comments, Share, and what the host added: `startActions`
+ * before the name (at the left edge), `actions` after Comments and before Share, and `endActions` last, after Share (the same places as in Documents).
+ */
+export function TitleBar({ title, people, comments, share, actions, startActions, endActions }: { title: ReactNode; people?: ReactNode; comments?: PdfCommand; share?: PdfCommand; actions?: ReactNode; startActions?: ReactNode; endActions?: ReactNode }) {
   const pressed = comments?.checked;
   return (
     <div className="pli-titlebar pli-pdf-titlebar">
+      {startActions && <div className="pli-actions pli-actions-start">{startActions}</div>}
       {title}
       <div className="pli-actions">
         {people}
@@ -175,6 +184,7 @@ export function TitleBar({ title, people, comments, share, actions }: { title: R
         {actions}
         {share && <ShareButton onClick={share.run} />}
       </div>
+      {endActions && <div className="pli-actions pli-actions-end">{endActions}</div>}
     </div>
   );
 }

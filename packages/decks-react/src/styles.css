@@ -33,8 +33,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .pli-deck,
-  :root:not([data-theme="light"]) .pli-deck-present {
+  :root:not([data-theme="light"]) .pli-deck:not([data-theme="light"], [data-theme="light"] *),
+  :root:not([data-theme="light"]) .pli-deck-present:not([data-theme="light"], [data-theme="light"] *) {
     --pli-deck-blue: #8ab4f8;
     --pli-deck-blue-soft: #28354a;
     --pli-deck-app: #202124;
@@ -50,8 +50,12 @@
   }
 }
 
-:root[data-theme="dark"] .pli-deck,
-:root[data-theme="dark"] .pli-deck-present {
+:root[data-theme="dark"] .pli-deck:not([data-theme="light"], [data-theme="light"] *),
+.pli-deck[data-theme="dark"],
+[data-theme="dark"] .pli-deck:not([data-theme="light"], [data-theme="light"] *),
+:root[data-theme="dark"] .pli-deck-present:not([data-theme="light"], [data-theme="light"] *),
+.pli-deck-present[data-theme="dark"],
+[data-theme="dark"] .pli-deck-present:not([data-theme="light"], [data-theme="light"] *) {
   --pli-deck-blue: #8ab4f8;
   --pli-deck-blue-soft: #28354a;
   --pli-deck-app: #202124;
@@ -368,7 +372,7 @@
 @media (max-width: 800px) {
   .pli-deck-side { width: 96px; }
   .pli-deck-film-number { display: none; }
-  .pli-deck-panel { position: absolute; z-index: 30; right: 0; top: 0; bottom: 0; width: min(320px, 92%); box-shadow: var(--pli-deck-shadow); }
+  .pli-deck-panel, .pli-deck-workspace > .pli-versions { position: absolute; z-index: 30; right: 0; top: 0; bottom: 0; width: min(320px, 92%); box-shadow: var(--pli-deck-shadow); }
   .pli-deck-presenter-main { flex-direction: column; }
   .pli-deck-label-tool span { display: none; }
 }
@@ -478,3 +482,9 @@
 .pli-deck-comments-button { display: inline-flex; align-items: center; gap: 4px; }
 .pli-deck-comments-button[aria-pressed="true"] { background: var(--pli-deck-blue-soft); }
 .pli-deck-follow-banner { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* ---- version history: the panel, and an older version on show ---- */
+.pli-deck-workspace > .pli-versions { box-sizing: border-box; width: 300px; max-width: none; padding: 0.5rem 1rem 1rem; background: var(--pli-deck-app); border-left-color: var(--pli-deck-line); }
+.pli-deck-preview { display: flex; }
+.pli-deck-preview-editor { flex: 1; min-width: 0; }
+.pli-deck-slideshow:disabled { opacity: 0.5; cursor: default; }

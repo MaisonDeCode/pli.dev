@@ -2,6 +2,8 @@
 
 The pieces every Pli editor shares: operation sessions with undo and redo, ids and errors, people, comments, live editing over your own transport, file storage, version history and fonts. It has no screen and no DOM.
 
+Website and documentation: [pli.dev](https://pli.dev)
+
 ## Install
 
 ```sh
@@ -43,4 +45,4 @@ createId("note_");                // a new unique id, "note_..."
 
 Apache-2.0.
 
-Part of [Pli](https://github.com/MaisonDeCode/pli.dev), an open-source editor SDK. All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).
+Part of [Pli](https://pli.dev), an open-source editor SDK ([source on GitHub](https://github.com/MaisonDeCode/pli.dev)). All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).

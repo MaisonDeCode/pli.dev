@@ -6,7 +6,7 @@ description: "The title row, menu bar, tools row, status bar, optional toolbar a
 `PdfEditor` is laid out like the other Pli editors. It has a title row, a menu bar (File, Edit, View, Insert, Format, Tools, Help), a tools row of the annotation tools, a text bar under it like the formatting row of Documents, and a slim status bar at the bottom of the pages. There is no top toolbar by default: the menus carry the same commands with their keys, and `topToolbar` brings the toolbar back. The pieces are the shared ones from `@pli.dev/react`: `MenuBar`, `Dropdown`, `MenuList`, `Dialog`, `FontPicker`, `ColorPicker`, `PresenceBar`, `SyncIndicator`, `ShareButton`, `ShareDialog`, `VersionHistoryPanel`, `Icons`.
 
 ```
-Title row    name of the file | who is here | Comments | your actions | Share
+Title row    your startActions | name of the file | who is here | Comments | your actions | Share | your endActions
 Menu bar     File  Edit  View  Insert  Format  Tools  Help
 Tools row    the annotation tools, and Edit text and pictures
 Text bar     font, size, bold, italic, colours, alignment, border (only while there is text to format)
@@ -32,9 +32,9 @@ A button and its menu entry come from the same description (a `PdfCommand`: name
 
 | Menu | What is in it |
 |---|---|
-| **File** | Open PDF and Create PDF from pictures (with `onOpen`), Save (with `onSave`), Save a copy, **Download** (PDF document, Optimised PDF, Flattened PDF, Form data (.json), Pages as pictures, More download options), Document properties, Print, Version history (with `history`) |
+| **File** | Open PDF and Create PDF from pictures (with `onOpen`), Save (with `onSave`), Save a copy, **Download** (PDF document, Optimised PDF, Flattened PDF, Form data (.json), Pages as pictures, More download options), Document properties, Print |
 | **Edit** | Undo, Redo; Cut, Copy, Paste, Duplicate, Delete and Select all annotations; Find, Find and replace |
-| **View** | Zoom in, Zoom out, Actual size, a Zoom list; Page layout (continuous, single page, two pages), Rotate view, Go to (first, previous, next, last page); Show sidebar, Show properties panel, Organise pages, Show links, Highlight form fields; Full screen, Theme (match the system, light, dark) |
+| **View** | Zoom in, Zoom out, Actual size, a Zoom list; Page layout (continuous, single page, two pages), Rotate view, Go to (first, previous, next, last page); Show sidebar, Version history (with `history` or `versions`), Show properties panel, Organise pages, Show links, Highlight form fields; Full screen, Theme (match the system, light, dark) |
 | **Insert** | Text box, Image, Shape (rectangle, ellipse, line, arrow, polyline, polygon), Drawing, Signature, Stamp, Note, Comment, Link, Mark up text (highlight, underline, strikethrough, squiggly); Form field; Blank page, Pages from a file |
 | **Format** | Text (bold, italic, bigger, smaller), Align text, Border width: for the text box or the text of the page that is selected; Arrange (order, align, distribute, lock) |
 | **Tools** | Redact (mark an area, mark selected text, apply), Edit text and pictures, Prepare form, Form (highlight, clear, export, import, flatten), Organise pages, Find, Find and replace, Word count |
@@ -47,9 +47,27 @@ A tool you leave out (`annotations={false}`, `edit={false}`, `tools: [...]`) lea
 - The name of the document, with a dot while there are unsaved changes. Click it to rename.
 - Who is here and whether the shared document is saved, when there is a `room` (the shared `PresenceBar` and `SyncIndicator`). While the connection is down the shared `OfflineBanner` says how many changes are waiting to be sent.
 - **Comments** (when `comments` is on) opens the Comments tab and counts the unresolved threads. Press it again to fold the sidebar.
-- `actions` adds more controls, as in the other editors.
+- `startActions` adds controls at the left end, before the name (a back button, a logo). `actions` adds controls before Share and `endActions` after everything else, at the far right edge. `startActions` and `endActions` each sit in their own small group (`pli-actions pli-actions-start` and `pli-actions pli-actions-end`), and nothing is drawn for an empty one. With both `actions` and `endActions`, `actions` comes first. They are the same props Documents, Sheets and Decks have, and take any React nodes. They show with the menu bar; with `menu={false}` there is no title row.
 - **Share** is the shared `ShareButton` ([Shared interface](/platform/shared-ui/#sharing)). Give a `shareClient` (a `ShareClient` from `@pli.dev/core`) and it opens the shared `ShareDialog` (people, roles, link access). Give `onShare` and it also calls that, for a dialog of your own.
-- Version history: give `history` (a `VersionHistory` from `@pli.dev/core`) and the sidebar gets a History tab with the shared `VersionHistoryPanel`, also in File > Version history. Or give `versions` (a `VersionStorage`) and `users`, and the editor makes the history itself. **Restore** asks first (*Replace the current file with this version?*) and applies the version as one undo step. Undo brings back the document as it was just before, and with live editing the restore reaches everyone as an ordinary change. See [Version history](/pdf/collaboration/#version-history).
+- Version history: give `history` (a `VersionHistory` from `@pli.dev/core`) and the sidebar gets a History tab with the shared `VersionHistoryPanel`, and **View > Version history** opens it (ticked while it is open). Or give `versions` (a `VersionStorage`) and `users`, and the editor makes the history itself and keeps an *Autosaved* version now and then (`autoSaveVersions`). Choosing a version in the list shows it in the viewer, read-only, with a bar to **Restore this version** or go **Back to current** (Escape does the same). **Restore** applies the version as one undo step and adds a `Restored "..."` version, so every earlier version stays in the list. Undo brings back the document as it was just before, and with live editing the restore reaches everyone as an ordinary change. See [Version history](/pdf/collaboration/#version-history).
+
+## Your own menus and file chooser
+
+`extraMenus` adds items to a menu or a whole menu of your own. The key is the menu's name: `File`, `Edit`, `View`, `Insert`, `Format`, `Tools` or `Help` adds the items at the end of that menu, after a divider. Any other name, such as `AI`, makes a new menu before Help. The items are yours, so the read-only state of the file does not disable them. `menus` still works and is the way to change or remove the viewer's own entries.
+
+```tsx
+<PdfEditor
+  session={session}
+  renderer={renderer}
+  extraMenus={{
+    File: [{ label: "Share with the team…", onSelect: openShare }],
+    AI: [{ label: "Summarize", onSelect: summarize }],
+  }}
+  filePicker={async ({ purpose, accept, browse }) => (await myFileDialog({ purpose, accept })) ?? null}
+/>
+```
+
+`filePicker` replaces the browser's file chooser everywhere the editor asks for a file. It gets the purpose (`"open"`, `"image"` or `"import"`), the accepted types and a `browse()` for the browser's own chooser, and returns the chosen `File`s or `null`. [Menus and file pickers](/platform/menus-and-file-pickers/) has both on one page for all the editors.
 
 ## The status bar and the toolbar
 
@@ -200,7 +218,7 @@ File > Document properties shows the title, author, subject and keywords (editab
 | Page setup | All three | Not applicable: the pages are the file's. Blank pages take the size of the page before |
 | Share | `actions` slot with your Share button; the shared `ShareButton` and `ShareDialog` | Shared: `ShareButton` in the title row, `shareClient` opens the shared `ShareDialog`, `onShare` for your own; `actions` too |
 | People, cursors, sync state | `PresenceBar`, `RemoteCursors`, `SyncIndicator` (now `@pli.dev/react/collab`) | Shared: title row, other people's selections and pointers on the pages |
-| Version history | The shared `VersionHistoryPanel` (see [Versions](/platform/versions/)) | Shared: a `history` prop (or `versions` with `users`) adds the History tab and File > Version history; `pdfVersionSupport` restores a version as one undoable step |
+| Version history | The shared `VersionHistoryPanel` (see [Versions](/platform/versions/)) | Shared: a `history` prop (or `versions` with `users`) adds the History tab and View > Version history, with a preview of an older version; `pdfVersionSupport` restores a version as one undoable step |
 | Keyboard shortcuts help | None of the three has one | Added: Help > Keyboard shortcuts, `?` and `Ctrl+/`, from the shortcut registry |
 | Help menu | None of the three has one | Added, with the shortcuts |
 | Document properties | None of the three has one beyond the title | Added: title, author, subject, keywords, pages, size, version, protection |

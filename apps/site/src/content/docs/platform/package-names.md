@@ -44,7 +44,7 @@ The engines have no peer dependencies. Their only runtime dependencies are each 
 | `@pli.dev/decks-react` | The slide editor, and `@pli.dev/decks-react/styles.css`. |
 | `@pli.dev/pdf-react` | The PDF viewer and editor, with `@pli.dev/pdf-react/styles.css`, `@pli.dev/pdf-react/pdfjs` (the pdf.js renderer) and `@pli.dev/pdf-react/testing` (a fake renderer for your tests). |
 
-The React packages need `react` and `react-dom`, version 18 or 19, in your app. `@pli.dev/pdf-react` also uses `pdfjs-dist` (version 5) to draw pages. It is an optional peer dependency, so install it when your app shows PDFs.
+The React packages need `react` and `react-dom`, version 18 or 19, in your app. `@pli.dev/pdf-react` also uses `pdfjs-dist` (version 6.2.108 or later) to draw pages. It is an optional peer dependency, so install it when your app shows PDFs.
 
 Each React package ships a `styles.css`. The one for the spreadsheet, slide and PDF editors already contains the shared toolbar, menus and colour pickers from `@pli.dev/react`, so import only the stylesheet of the editor you use.
 

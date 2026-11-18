@@ -686,7 +686,8 @@ describe("restoring a version while the file is shared", () => {
     b.session.undo();
     await settle();
     for (const client of [a, b, c]) expect(canonical(client.session.doc)).toBe(canonical(beforeRestore));
-    expect(storage.count("f")).toBe(2);
+    // The one A named, what B had before restoring it, and the restore itself.
+    expect(storage.count("f")).toBe(3);
   });
 
   it("restores a version that the server saved with no editor open", async () => {

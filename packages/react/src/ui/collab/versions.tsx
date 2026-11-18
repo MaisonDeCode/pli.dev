@@ -26,7 +26,6 @@ export function VersionHistoryPanel<S, O>({ history, activeId, onPreview, onRest
   const versions = useVersions(history);
   const users = history.users;
   const [name, setName] = useState("");
-  const [confirming, setConfirming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const canEdit = history.canEdit;
 
@@ -68,6 +67,7 @@ export function VersionHistoryPanel<S, O>({ history, activeId, onPreview, onRest
           </button>
         </form>
       )}
+      {canEdit && versions.length > 0 && <p className="pli-comments-note">Restoring a version adds a new version. Every earlier version stays in this list.</p>}
       {error && (
         <p className="pli-comments-note" role="alert">
           {error}
@@ -82,6 +82,14 @@ export function VersionHistoryPanel<S, O>({ history, activeId, onPreview, onRest
         </p>
       )}
       <ul className="pli-version-list">
+        {onPreview && (
+          <li className="pli-version pli-version-current" data-active={!activeId || undefined}>
+            <button type="button" className="pli-version-main" aria-pressed={!activeId} onClick={() => onPreview(null)}>
+              <span className="pli-version-name-text">Current version</span>
+              <span className="pli-version-meta">The file as it is now</span>
+            </button>
+          </li>
+        )}
         {versions.map((version) => {
           const who = users?.get(version.by);
           const changed = activeId === version.id ? history.compare(version.id).lines : [];
@@ -107,37 +115,22 @@ export function VersionHistoryPanel<S, O>({ history, activeId, onPreview, onRest
               )}
               {canEdit && (
                 <div className="pli-version-actions">
-                  {confirming === version.id ? (
-                    <>
-                      <span role="alert">Replace the current file with this version?</span>
-                      <button
-                        type="button"
-                        className="pli-link-button"
-                        onClick={() =>
-                          void attempt(async () => {
-                            const restored = await history.restore(version.id);
-                            setConfirming(null);
-                            onRestored?.(restored);
-                          })
-                        }
-                      >
-                        Restore
-                      </button>
-                      <button type="button" className="pli-link-button" onClick={() => setConfirming(null)}>
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button type="button" className="pli-link-button" onClick={() => setConfirming(version.id)}>
-                        <span aria-hidden="true">{CollabIcons.restore}</span> Restore this version
-                      </button>
-                      {!version.automatic && (
-                        <button type="button" className="pli-link-button pli-danger" aria-label={`Delete ${version.name}`} onClick={() => void attempt(() => history.remove(version.id))}>
-                          Delete
-                        </button>
-                      )}
-                    </>
+                  <button
+                    type="button"
+                    className="pli-link-button"
+                    onClick={() =>
+                      void attempt(async () => {
+                        const restored = await history.restore(version.id);
+                        onRestored?.(restored);
+                      })
+                    }
+                  >
+                    <span aria-hidden="true">{CollabIcons.restore}</span> Restore this version
+                  </button>
+                  {!version.automatic && (
+                    <button type="button" className="pli-link-button pli-danger" aria-label={`Delete ${version.name}`} onClick={() => void attempt(() => history.remove(version.id))}>
+                      Delete
+                    </button>
                   )}
                 </div>
               )}
@@ -147,6 +140,61 @@ export function VersionHistoryPanel<S, O>({ history, activeId, onPreview, onRest
       </ul>
       {versions.length === 0 && history.status === "ready" && <p className="pli-comments-note">No named versions yet. Name the current version to keep a copy you can come back to.</p>}
     </aside>
+  );
+}
+
+export interface VersionPreviewBarProps<S, O> {
+  history: VersionHistory<S, O>;
+  /** The version being looked at. */
+  version: NamedVersion<S>;
+  /** Called to go back to the file as it is now. */
+  onBack: () => void;
+  /** Called after a restore, with the version that was restored. The editor leaves the preview. */
+  onRestored?: (version: NamedVersion<S>) => void;
+}
+
+/**
+ * The bar an editor shows above the file while it displays an older version: whose version it is, what differs from the file now,
+ * and the two things to do next: restore it (which adds a new version, and keeps every earlier one) or go back to the current file.
+ */
+export function VersionPreviewBar<S, O>({ history, version, onBack, onRestored }: VersionPreviewBarProps<S, O>) {
+  const [error, setError] = useState<string | null>(null);
+  const who = history.users.get(version.by);
+  const lines = history.compare(version.id).lines;
+  return (
+    <div className="pli-version-bar" role="region" aria-label="Viewing an earlier version">
+      <div className="pli-version-bar-text">
+        <strong>{version.name}</strong>
+        <span className="pli-version-bar-meta">
+          {new Date(version.at).toLocaleString()}
+          {who?.name ? ` · ${who.name}` : ""}
+          {lines.length > 0 ? ` · ${lines.join(", ")} since` : " · the same as now"}
+        </span>
+        {error && <span role="alert" className="pli-version-bar-error">{error}</span>}
+      </div>
+      <div className="pli-version-bar-actions">
+        {history.canEdit && (
+          <button
+            type="button"
+            className="pli-button pli-button-primary"
+            onClick={() => {
+              history
+                .restore(version.id)
+                .then((restored) => {
+                  setError(null);
+                  onRestored?.(restored);
+                })
+                .catch((e: unknown) => setError(e instanceof Error ? e.message : "That didn't work"));
+            }}
+          >
+            Restore this version
+          </button>
+        )}
+        <button type="button" className="pli-button" onClick={onBack}>
+          Back to current
+        </button>
+      </div>
+    </div>
   );
 }
 

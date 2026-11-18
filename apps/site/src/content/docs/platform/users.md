@@ -50,9 +50,18 @@ const users = new Users({
 | `current` | The signed-in user, or `null` for an anonymous visitor, who can read comments but not write them |
 | `role` | What the current user may do (below). Default `editor` |
 | `lookup(ids)` | Returns the users with these ids. May be synchronous or return a promise |
-| `search(query)` | Finds users by name, for [@mentions](/documents/features/comments/#mentions). Without it, typing `@` offers nothing |
+| `search(query, context)` | Finds users by name, for [@mentions](/documents/features/comments/#mentions). Without it, typing `@` offers nothing. `context.file` says which file the comment is in |
+| `open(user)` | Called when someone clicks a person's name in a comment, or an @mention. Open your profile card or start a chat. Without it, names are plain text |
 
 Until `lookup` answers, a person is shown by their id. If it fails, they stay that way; comments keep working.
+
+**Who can be mentioned.** Whoever `search` returns can be mentioned, so leave out anyone who shouldn't be tagged. It is told the file, so you can offer only the people who can open it:
+
+```ts
+search: async (query, { file } = {}) => (await fetch(`/api/files/${file}/people?q=${query}`)).json(),
+```
+
+To tell those people, see [Notifying people](/platform/comments/#notifying-people).
 
 People in the same room (see [Realtime](/platform/realtime/)) are added automatically from what they announce, so you do not need to look them up.
 

@@ -92,7 +92,7 @@ A change that people who use the packages would notice comes with a changeset: r
 
 When changesets reach `main`, the Release workflow (`.github/workflows/release.yml`) runs the type check and the tests and then Changesets' action. With changesets waiting, it opens a pull request called "Version packages" that raises the version of all nine packages, writes the notes into each package's `CHANGELOG.md`, and updates the lockfile (`pnpm version-packages`). Merging that pull request runs `pnpm release`, which builds the packages, runs the check below, and publishes with `changeset publish`. It publishes only the versions that are not on npm yet, tags each one (`@pli.dev/docs@1.4.0`), and creates the GitHub Release. The workflow publishes with npm provenance (`NPM_CONFIG_PROVENANCE`, and `id-token: write` on the job), which links each package on npm to the commit and the build that made it.
 
-The first release, 1.0.0, has no changesets: the versions in the repository are already 1.0.0, so the first run publishes all nine.
+The first release, 1.0.0, had no changesets: the versions in the repository were already 1.0.0, so the first run published all nine. Releases after that are made from changesets, as above.
 
 ### Try it first
 
@@ -128,6 +128,6 @@ Before a release also look through the changesets that went into it: is each one
 | **TypeScript** | The types are written and checked with TypeScript 5.6, with `strict` on. Use a `moduleResolution` of `bundler`, `node16` or `nodenext`, so that TypeScript reads each package's `exports`. The engine packages need only the ES2022 library; the React packages also use the DOM library. |
 | **Module format** | ESM only, with no CommonJS build. In Node, use `import` (or `await import()` from CommonJS code). Every bundler reads ESM. |
 | **Side effects** | The packages are side-effect free, so a bundler can drop what you do not use. The one exception is CSS: the `styles.css` files are marked as having side effects, so import them as `import "@pli.dev/react/styles.css"` and they are kept. |
-| **pdf.js** | `pdfjs-dist` 5, as an optional peer dependency of `@pli.dev/pdf-react`. |
+| **pdf.js** | `pdfjs-dist` 6.2.108 or later in the 6.x line, as an optional peer dependency of `@pli.dev/pdf-react`. Version 5 is not supported: 5.6.83 and later 5.x have a high-severity security advisory that only 6.2.108 fixes, and the 5.x before that were not tried with this release. pdf.js 6 itself needs Node 22.13 or later when it runs in Node (tests, servers that render pages); in a browser, nothing changes. |
 
 For the fonts, files and platforms of each editor, see its own section: [Documents](/documents/), [Sheets](/sheets/), [Decks](/decks/) and [PDF](/pdf/).

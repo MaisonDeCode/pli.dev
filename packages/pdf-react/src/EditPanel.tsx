@@ -1,5 +1,5 @@
-import { useRef, type ReactNode } from "react";
-import { keepFocus } from "@pli.dev/react";
+import { useContext, useRef, type ReactNode } from "react";
+import { FilePickerContext, keepFocus, pickWith } from "@pli.dev/react";
 import { EDIT_KEY, styleOfEdit, type EditController } from "./editController";
 import { EditIcons as I } from "./editIcons";
 import type { PdfViewContext } from "./extensions";
@@ -34,6 +34,7 @@ export function EditPanel({ c, view }: { c: EditController; view: PdfViewContext
   useStore(c);
   useSessionRevision(c.session);
   const fileInput = useRef<HTMLInputElement>(null);
+  const picker = useContext(FilePickerContext);
   const sel = c.selected;
   const run = sel?.kind === "run" ? c.run(sel.page, sel.id) : undefined;
   const image = sel?.kind === "image" ? c.image(sel.page, sel.id) : undefined;
@@ -48,21 +49,30 @@ export function EditPanel({ c, view }: { c: EditController; view: PdfViewContext
           {edit ? (edit.picture ? " · will be replaced" : " · will be removed") : ""}
         </p>
         <div className="pli-pdf-actions" role="group" aria-label="Picture actions">
-          <button type="button" className="pli-button" onClick={() => fileInput.current?.click()}>
+          <button
+            type="button"
+            className="pli-button"
+            onClick={() => {
+              if (!picker) return fileInput.current?.click();
+              void pickWith(picker, { purpose: "image", accept: "image/png,image/jpeg", label: "Choose a picture to replace this one" }).then(([file]) => (file ? c.replacePicture(file) : undefined));
+            }}
+          >
             {I.picture} Replace picture…
           </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/png,image/jpeg"
-            aria-label="Choose a picture"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (file) void c.replacePicture(file);
-            }}
-          />
+          {!picker && (
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/png,image/jpeg"
+              aria-label="Choose a picture"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void c.replacePicture(file);
+              }}
+            />
+          )}
           <button type="button" className="pli-button pli-button-danger" disabled={edit?.picture === null} onClick={() => void c.deletePicture()}>
             {I.trash} Delete picture
           </button>

@@ -58,6 +58,12 @@ Every shortcut is listed in [Keyboard shortcuts](/documents/features/keyboard-sh
 | `menu`, `toolbar`, `statusBar` | `boolean` | Set any to `false` to hide it. All default to `true`. |
 | `defaultOutlineOpen` | `boolean` | Start with the outline panel open. |
 | `paper` | `"auto" \| "light"` | `"light"` keeps the pages white in dark mode. Default `"auto"`. |
+| `theme` | `"auto" \| "light" \| "dark"` | The look of the editor. `"auto"` follows `<html data-theme>` or the system. See [Theme and your own buttons](/platform/theme-and-buttons/). |
+| `extraMenus` | `ExtraMenus` | Items for the menus and menus of your own: `{ File: [{ label: "Share…", onSelect }], AI: [...] }`. See [Your own menus and file chooser](/platform/menus-and-file-pickers/). |
+| `filePicker` | `FilePicker` | Your own way of choosing a file, for Insert > Image and File > Import DOCX, instead of the browser's. Return the chosen `File`. See [Your own menus and file chooser](/platform/menus-and-file-pickers/). |
+| `history` | `VersionHistory` | Adds **View > Version history** and its side panel: look at older versions (the page shows them, read-only) and restore one. Restoring adds a new version and keeps every earlier one. See [Versions and activity](/platform/versions/). |
+| `versions`, `autoSaveVersions`, `users` | `VersionStorage`, `boolean \| { every, keep }`, `Users` | A shortcut for `history`: say where versions are kept (and who is signed in) and the editor makes the history for you, keeping a version by itself now and then. `autoSaveVersions={false}` turns that off. |
+| `startActions`, `actions`, `endActions` | `ReactNode` | Your own buttons in the title row: at the far left before the name, beside Comments and Share, and at the far right after Share. |
 | `sync` | `SyncClient` | Live editing: keeps the session in step with a shared document and shows whether it is saved. See [Live editing](/platform/live-editing/#4-in-the-editor). |
 | `room` | `CollabRoom` | Who else is here, and their cursors, and shared comments. Connected for you. With `sync`, its room is used if you leave this out. |
 | `defaultCommentsOpen` | `boolean` | Start with the comments panel open. |
@@ -106,7 +112,7 @@ Colors, fonts and the page are driven by CSS custom properties. Override them on
 | `--pli-doc-font`, `--pli-mono` | Default font of the text, and code |
 | `--pli-link`, `--pli-code-bg` | Links, code |
 
-Force a theme with `data-theme="light"` or `data-theme="dark"` on `<html>`.
+Set the `theme` prop to match your app, or force a theme for the whole page with `data-theme="light"` or `data-theme="dark"` on `<html>`.
 
 ## Replacing parts
 

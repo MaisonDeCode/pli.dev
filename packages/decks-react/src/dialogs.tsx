@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog } from "@pli.dev/react";
+import { Dialog, FileInput } from "@pli.dev/react";
 import { SLIDE_SIZES, plainText, type Deck, type Fill, type SlideSize } from "@pli.dev/decks";
 import { readDataUri } from "./actions";
 
@@ -65,7 +65,7 @@ export function BackgroundDialog({ current, onApply, onClose }: BackgroundDialog
       </div>
       <label className="pli-field-row">
         <span>Image</span>
-        <input type="file" accept="image/*" aria-label="Background image" onChange={(e) => void pickImage(e.target.files?.[0])} />
+        <FileInput purpose="image" accept="image/*" label="Background image" buttonText="Choose a picture…" onFiles={(files) => void pickImage(files[0])} />
       </label>
       {error && <p className="pli-dialog-error" role="alert">{error}</p>}
     </Dialog>

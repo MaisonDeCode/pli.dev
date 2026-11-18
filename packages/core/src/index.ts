@@ -22,7 +22,8 @@ export {
   type UploadResult,
 } from "./storage-client";
 export { activeMention, insertMention, mentionText, mentionsIn, splitMentions, type MentionPart, type MentionQuery } from "./mentions";
-export { Users, userColor, userInitials, type PliUser, type Role, type UserDirectory } from "./users";
+export { Users, userColor, userInitials, type PliUser, type Role, type UserDirectory, type UserSearchContext } from "./users";
+export { commentNotices, type CommentNotice, type CommentNoticeType, type NoticeReason } from "./comment-notices";
 export {
   CommentClient,
   applyCommentChange,
@@ -109,12 +110,15 @@ export { EditorRegistry, parseRoom, roomName, type EditorDefinition } from "./ed
 export { ScriptHost, type ScriptCapability, type ScriptContext, type ScriptOptions, type ScriptableSession } from "./scripting";
 export { AnchorTracker, textRangeResolver, type AnchorResolver, type AnchorTrackerOptions, type TextRangeAnchor } from "./anchors";
 export {
+  AUTO_VERSION_NAME,
+  ORIGINAL_VERSION_NAME,
   VersionHistory,
   currentFromStore,
   memoryVersionStorage,
   stateAtVersion,
   versionFromStore,
   versionJson,
+  type AutoSaveOptions,
   type DiffSummary,
   type NamedVersion,
   type VersionHistoryOptions,

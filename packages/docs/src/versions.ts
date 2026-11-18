@@ -1,8 +1,10 @@
-import type { DiffSummary, VersionSupport } from "@pli.dev/core";
+import { VersionHistory, type AutoSaveOptions, type DiffSummary, type Users, type VersionStorage, type VersionSupport } from "@pli.dev/core";
 import type { Block, Doc } from "./model";
 import { isTextBlock } from "./model";
 import type { DocOp } from "./ops";
 import { plainText } from "./runs";
+import type { DocumentSession } from "./session";
+import { docSyncModel } from "./sync";
 
 const json = (value: unknown) => JSON.stringify(value ?? null);
 
@@ -68,3 +70,45 @@ export function summarizeDocDiff(from: Doc, to: Doc): DiffSummary {
 
 /** What `VersionHistory` needs to know about documents: how to restore one, and how to say what changed. */
 export const docVersionSupport: VersionSupport<Doc, DocOp> = { restoreOps: restoreDocOps, summarize: summarizeDocDiff };
+
+export interface DocumentVersionHistoryOptions {
+  /** Where versions are kept. */
+  storage: VersionStorage<Doc>;
+  /** Who is signed in and what they may do: saving and restoring need the `editor` role. */
+  users: Users;
+  /** The id the versions are kept under. Default: the document's id. */
+  file?: string;
+  /** The position in the shared log, for a shared file: `() => sync.version`. */
+  version?: () => number | null;
+  /** Keep the document as it was before each restore as a version of its own (default true). */
+  keepBeforeRestore?: boolean;
+  /** Keep the restore itself as a version, so it shows in the list in its place in time (default true). */
+  keepAfterRestore?: boolean;
+  /** Keep a version now and then without anyone asking, so the history shows how the document changed. */
+  autoSave?: AutoSaveOptions;
+  now?: () => number;
+}
+
+/**
+ * A `VersionHistory` for a document session, with `docVersionSupport`. A restore is one undoable step, and with live editing it
+ * reaches everyone as an ordinary change.
+ *
+ *     const history = documentVersionHistory(session, { storage, users });
+ *     await history.save("Sent to the board");
+ *     await history.restore(history.versions[0].id);
+ */
+export function documentVersionHistory(session: DocumentSession, options: DocumentVersionHistoryOptions): VersionHistory<Doc, DocOp> {
+  return new VersionHistory<Doc, DocOp>({
+    file: options.file ?? session.state.id,
+    session,
+    storage: options.storage,
+    users: options.users,
+    support: docVersionSupport,
+    hash: docSyncModel.hash,
+    version: options.version,
+    keepBeforeRestore: options.keepBeforeRestore,
+    keepAfterRestore: options.keepAfterRestore,
+    autoSave: options.autoSave,
+    now: options.now,
+  });
+}

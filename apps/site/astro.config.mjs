@@ -89,6 +89,8 @@ export default defineConfig({
               "platform/architecture",
               "platform/collaboration",
               "platform/shared-ui",
+              "platform/theme-and-buttons",
+              "platform/menus-and-file-pickers",
               "platform/users",
               "platform/comments",
               "platform/realtime",

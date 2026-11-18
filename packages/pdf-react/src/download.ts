@@ -1,5 +1,6 @@
 /** Saving bytes as files: a download, several downloads, or one ZIP of them. No dependencies. */
 import { PliError } from "@pli.dev/core";
+import { browseFiles } from "@pli.dev/react";
 
 /** A file name that is safe on every system: no slashes or control characters, no leading dots, not empty. */
 export function safeName(name: string, fallback = "document"): string {
@@ -155,19 +156,5 @@ export function documentName(doc: { name?: string; sources: readonly { id: strin
 
 /** Shows the browser's file chooser and resolves with the chosen files (none when it is cancelled). Call it from a click. */
 export function pickFiles(options: { accept: string; multiple?: boolean }): Promise<File[]> {
-  return new Promise((resolve) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = options.accept;
-    input.multiple = options.multiple === true;
-    input.style.display = "none";
-    const done = (files: File[]) => {
-      input.remove();
-      resolve(files);
-    };
-    input.addEventListener("change", () => done(Array.from(input.files ?? [])));
-    input.addEventListener("cancel", () => done([]));
-    document.body.append(input);
-    input.click();
-  });
+  return browseFiles(options);
 }

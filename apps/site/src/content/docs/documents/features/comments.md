@@ -31,7 +31,7 @@ Comments can be added to a read-only document (`readOnly`). That is how review w
 
 Typing `@` in a comment, reply or edit offers the people your [`search`](/platform/users/) finds, as a list under the box. The arrow keys move through the list, **Enter** or **Tab** (or a click) picks, and **Esc** closes it. The comment keeps the name as text (`@Ben Ito`) and the person's id in the comment's `mentions`. The name is shown highlighted, and a mention of the current user is highlighted more strongly. Delete the name from the text and the person is dropped from the list.
 
-Pli doesn't notify anyone. Your store sees each comment with its `mentions` (see [what your store receives](/platform/comments/#what-your-store-receives)), and sending the email or push notification is your app's job. If you don't give your users a `search`, nothing is offered. From code:
+Pli doesn't notify anyone, but it tells your app who should hear about each comment: pass `onNotify` (see [Notifying people](/platform/comments/#notifying-people)) and send the email or push notification from there. Your store also sees each comment with its `mentions` (see [what your store receives](/platform/comments/#what-your-store-receives)). To keep people out of the list, or to open your own profile card when a name is clicked, see [Users](/platform/users/). If you don't give your users a `search`, nothing is offered. From code:
 
 ```ts
 session.comment("@Ben Ito can you check?", undefined, ["u_ben"]);  // mentions are the last argument

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { userInitials } from "@pli.dev/core";
-import { Dialog, useDocumentFonts, useFonts } from "@pli.dev/react";
+import { Dialog, FileInput, useDocumentFonts, useFonts } from "@pli.dev/react";
 import type { PdfPicture, Pt } from "@pli.dev/pdf";
 import { finishStroke, smoothPathData, thinPoints } from "./annotGeometry";
 import type { AnnotController } from "./annotController";
@@ -189,15 +189,14 @@ export function SignatureDialog({ c }: { c: AnnotController }) {
             <>
               <label className="pli-pdf-field">
                 <span className="pli-pdf-field-label">A picture of your {label} (PNG or JPEG)</span>
-                <input
-                  type="file"
+                <FileInput
+                  purpose="image"
                   accept="image/png,image/jpeg"
-                  aria-label="Picture file"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
+                  label="Picture file"
+                  buttonText="Choose a picture…"
+                  onFiles={async ([file]) => {
                     try {
-                      setRaw(await fileToPicture(file));
+                      setRaw(await fileToPicture(file!));
                       setError("");
                     } catch {
                       setError("That file could not be read");

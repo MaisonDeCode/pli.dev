@@ -210,7 +210,7 @@ export async function nameAndRestore(bytes: Uint8Array) {
 }
 ```
 
-Add `version: () => sync.version` when the file is live, so each version records its place in the shared log. Saving and restoring need the `editor` role in `users`; anyone can read the list.
+Pass `autoSave` (`{ every, keep, baseline }`) to keep an *Autosaved* version after changes and an *Original* one when the file has none yet, and call `history.dispose()` when the editor goes away (`PdfEditor` does both for the history it makes from `versions`; see `autoSaveVersions`). Add `version: () => sync.version` when the file is live, so each version records its place in the shared log. Saving and restoring need the `editor` role in `users`; anyone can read the list.
 
 ### Restoring is an ordinary edit
 
@@ -220,7 +220,7 @@ Add `version: () => sync.version` when the file is live, so each version records
 - changes only what differs: a page, annotation or form field that is the same in both is not touched, and an annotation that kept its place keeps it;
 - puts pages and annotations back in the order of the version, with the fewest moves (each thing is placed after the one before it, so it merges with other people's changes like any edit);
 - is sent to everyone like any other change, and is merged with what they are doing at that moment;
-- first saves the current document as an automatic version named *Before restoring "Name"*, so undo is not the only way back. Pass `keepBeforeRestore: false` to turn that off.
+- first saves the current document as an automatic version named *Before restoring "Name"*, so undo is not the only way back, and saves the result as *Restored "Name"*, so the restore shows in the list in its place in time. Nothing is taken out of the list. Pass `keepBeforeRestore: false` or `keepAfterRestore: false` to turn either off.
 
 It brings back pages (and their rotation, size and label), annotations of every type, form fields and their values, the bookmarks, staged text, picture and redaction edits, the document properties and name, and the comment threads kept in the document. It does not change the document's `id`, which names the file, not what is in it.
 
@@ -236,6 +236,12 @@ export function whatRestoreDoes(now: PdfDoc, version: PdfDoc) {
 ```
 
 The panel's "changes since this version" uses the same line: "Rotated 2 pages, filled 5 form fields". Pages are numbered by where they were when the change came up.
+
+### Looking at a version first
+
+In `PdfEditor`, choosing a version in the History tab shows it in the viewer before anything changes: its pages in their order and turn, its annotations and its form values, read-only, under a bar with **Restore this version** and **Back to current**. The real document, its selection and its undo steps are not touched, and the editor's keys (undo, delete a page) leave it alone while a version is shown. **Current version** at the top of the list, **Back to current** and Escape return to the document. Someone who may not edit sees the preview and no Restore button.
+
+A version keeps the list of its source files (name, size, hash) and never their bytes. The preview draws from the bytes the session's `SourceStore` holds, and the in-memory store keeps every file it was given, so a version with pages of a file that was removed later still shows them and restores. A store that lets go of files cannot show those pages: the preview says which file it is missing (`missingVersionSources(doc, store)` gives the list), and a restore still writes the right operations, with the pages waiting for the file as they do for a page a peer added.
 
 ### Pages from other files
 
@@ -262,13 +268,13 @@ export function Editor(props: { session: PdfSession; renderer: PdfRenderer; user
       users={props.users}
       room={props.room}
       sync={{ version: 0 }}
-      versions={memoryVersionStorage<PdfDoc>()}   // a History tab and File > Version history
+      versions={memoryVersionStorage<PdfDoc>()}   // a History tab and View > Version history
     />
   );
 }
 ```
 
-The editor makes the history with `pdfVersionSupport` and the live-editing position. The History tab is the shared panel: a box to name the current version, the list, a confirmation (*Replace the current file with this version?*) before **Restore**, and the "what changed" line. The restore applies as one undo step, the page shown stays valid (if it is gone, the page now at its place is shown), and with `sync` it reaches everyone as an ordinary change. Who may save and restore is the panel's own rule: the `editor` role in `users`. Give a person who only looks a `users` with role `viewer` and the panel lists the versions without Save or Restore.
+The editor makes the history with `pdfVersionSupport` and the live-editing position, and keeps *Autosaved* versions (turn that off with `autoSaveVersions={false}`). **View > Version history** opens the History tab. It is the shared panel: a box to name the current version, the list (named versions, automatic ones and restores), a **Current version** row, **Restore this version** (no confirmation: it adds a version and the way back stays in the list), and the "what changed" line. Choosing a version previews it, as described above. The restore applies as one undo step, the page shown stays valid (if it is gone, the page now at its place is shown), and with `sync` it reaches everyone as an ordinary change. Who may save and restore is the panel's own rule: the `editor` role in `users`. Give a person who only looks a `users` with role `viewer` and the panel lists the versions without Save or Restore.
 
 ### From the server
 

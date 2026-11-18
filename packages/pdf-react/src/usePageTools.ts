@@ -52,6 +52,7 @@ export function usePageToolsKit(o: PageToolsKitOptions): PageToolsKit {
   // The host's callbacks and the read-only flag are read on every call, so they are kept current on each render.
   kit.tools.readOnly = o.readOnly;
   kit.tools.options.download = o.hooks.download;
+  kit.tools.options.picker = o.hooks.picker;
   kit.files.readOnly = o.readOnly;
   kit.files.hooks = o.hooks;
   useEffect(

@@ -185,7 +185,7 @@ export function DeckCommentsPanel({
       {draft && canComment && (
         <div className="pli-deck-comment-draft">
           <p className="pli-deck-comment-target">{draft.label}</p>
-          <Composer autoFocus placeholder="Comment" submit="Comment" users={client.users} onSubmit={submit} onCancel={onDraftDone} />
+          <Composer autoFocus placeholder="Comment" submit="Comment" users={client.users} file={client.file} onSubmit={submit} onCancel={onDraftDone} />
         </div>
       )}
       {shown.length === 0 && !draft && <p className="pli-deck-comments-empty">{filter === "resolved" ? "No resolved comments." : filter === "slide" ? "No comments on this slide." : "No comments yet."}</p>}

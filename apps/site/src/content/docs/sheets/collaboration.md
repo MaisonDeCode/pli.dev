@@ -181,13 +181,14 @@ The client also sends a fingerprint of the workbook now and then (`hashWorkbook`
 ## Version history
 
 ```ts
-import { VersionHistory } from "@pli.dev/core";
-import { sheetSyncModel, sheetVersionSupport } from "@pli.dev/sheets";
+import { sheetVersionHistory } from "@pli.dev/sheets";
 
-const history = new VersionHistory({ file: "budget", session: { get state() { return session.state; }, transact: (ops) => session.transact(ops) }, storage, users, support: sheetVersionSupport, hash: sheetSyncModel.hash });
+const history = sheetVersionHistory(session, { storage, users, autoSave: {} });
 await history.save("Sent to the board");
-await history.restore(version.id);       // one undoable step, sent to everyone
+await history.restore(version.id);       // one undoable step, sent to everyone; the restore is kept as a version too
 ```
+
+Give it to the editor as `history={history}` (or pass `versions={storage}` and `users` and let `PliSheet` make it) and **View > Version history** opens the panel: choose a version to look at the sheet as it was, read-only, then restore it or go back. See [Versions and activity](/platform/versions/).
 
 `restoreSheetOps(current, target)` turns one workbook into another with ordinary operations (cells, sheets added, deleted, renamed and reordered, objects, sizes), so a restore is undoable, merged with what others do and sent like any edit; comment threads are left as they are. `summarizeSheetDiff(from, to)` says what changed ("Sheet Budget: 12 cells changed"). The panel is the shared `VersionHistoryPanel`.
 

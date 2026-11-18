@@ -69,6 +69,17 @@ export const PRODUCTS: Product[] = [
       },
     ],
   },
+  {
+    name: "In your app",
+    blurb: "What the ready-made editors give a host app: a theme that matches yours, buttons and menus of your own, and your own file chooser.",
+    demos: [
+      {
+        id: "embed",
+        title: "Fitting the editors into your app",
+        summary: "The `theme` prop (auto, light or dark), buttons of your own on either side of the title row, a Share item under File and a menu of your own, and a file chooser that is yours instead of the browser's.",
+      },
+    ],
+  },
   { name: "Boards", blurb: "Freeform canvases and kanban boards.", demos: [] },
   { name: "Forms", blurb: "Forms and surveys, with the answers kept in a table.", demos: [] },
   { name: "Databases", blurb: "Tables, views and relations over your own data.", demos: [] },

@@ -5,7 +5,7 @@
  *     <PliPdf session={session} renderer={pdfjsRenderer({ workerSrc })} />
  *
  * pdf.js (`pdfjs-dist`, Apache-2.0, Mozilla) is an optional peer dependency. It is imported with `import("pdfjs-dist")` the
- * first time a file is opened, so the 435 KB core and the 1.2 MB worker are not downloaded by pages that never show a PDF.
+ * first time a file is opened, so the 474 KB core and the 1.3 MB worker are not downloaded by pages that never show a PDF.
  *
  * SELF-HOSTING (no network needed): the worker, the character maps (`cmaps/`, for Chinese, Japanese, Korean and other
  * non-Latin fonts that are not embedded) and the standard fonts (`standard_fonts/`, for files that name Helvetica or Times

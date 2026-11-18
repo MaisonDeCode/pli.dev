@@ -1,6 +1,7 @@
 import { createId } from "./ids";
 import { PliError } from "./errors";
 import type { Role, Users } from "./users";
+import { commentNotices, type CommentNotice } from "./comment-notices";
 
 /**
  * Comments are shared by every editor. A thread is a conversation about one place in a file; what "place"
@@ -143,6 +144,13 @@ export interface CommentClientOptions<A = unknown> {
   permissions?(action: CommentAction, context: PermissionContext<A>): boolean | undefined;
   /** Called when the store couldn't keep a change. The change has been taken back. */
   onError?(error: PliError, change: CommentChange<A>): void;
+  /**
+   * Where to hook in your own notifications. Called once for each thing the person using this client does (a comment, a reply, an
+   * edit, resolving or reopening a thread), after the store has kept it, with who should be told and why: see `CommentNotice`.
+   * Pli sends nothing itself; hand the notice to your email, push or inbox system. It is not called for other people's actions,
+   * which their own clients announce, so each action is announced once however many people have the file open.
+   */
+  onNotify?(notice: CommentNotice<A>): void | Promise<void>;
 }
 
 type Listener = () => void;
@@ -169,6 +177,7 @@ export class CommentClient<A = unknown> {
   #status: "loading" | "ready" | "error" = "ready";
   #unsubscribe: (() => void) | null = null;
   #unwatchUsers: () => void;
+  #stopNotices: (() => void) | null = null;
   #ready: Promise<void>;
 
   constructor(options: CommentClientOptions<A>) {
@@ -181,6 +190,7 @@ export class CommentClient<A = unknown> {
     this.#ready = this.#store ? this.#load() : Promise.resolve();
     this.#unsubscribe = this.#store?.subscribe?.(this.file, (change) => this.receive(change)) ?? null;
     this.#unwatchUsers = this.users.subscribe(() => this.#emit());
+    if (options.onNotify) this.#stopNotices = commentNotices(this, options.onNotify);
   }
 
   /** The threads now, including changes the store hasn't answered yet. Oldest first. */
@@ -302,6 +312,8 @@ export class CommentClient<A = unknown> {
     this.#unsubscribe?.();
     this.#unsubscribe = null;
     this.#unwatchUsers();
+    this.#stopNotices?.();
+    this.#stopNotices = null;
     this.#listeners.clear();
     this.#changes.clear();
   }

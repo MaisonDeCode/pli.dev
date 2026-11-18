@@ -9,7 +9,7 @@ Install the engine and the React editor, and pdf.js to draw the pages:
 npm install @pli.dev/pdf @pli.dev/pdf-react pdfjs-dist
 ```
 
-With pnpm, Yarn or Bun, use `pnpm add`, `yarn add` or `bun add` and the same names. The editor needs `react` and `react-dom` 18 or 19 in your app. Its stylesheet already includes the shared toolbar and menu styles from `@pli.dev/react`. `pdfjs-dist` (version 5) is an optional peer dependency: you need it to show PDF pages, and can leave it out in code that only uses the engine. The engine, `@pli.dev/pdf`, has no peer dependencies and runs in Node 20 or later and in browsers. Both Pli packages are ESM and ship their own TypeScript types; [Releases and versioning](/platform/contributing/releases/) has the rest. Code on this page that imports `PliError` from `@pli.dev/core` needs `npm install @pli.dev/core` too.
+With pnpm, Yarn or Bun, use `pnpm add`, `yarn add` or `bun add` and the same names. The editor needs `react` and `react-dom` 18 or 19 in your app. Its stylesheet already includes the shared toolbar and menu styles from `@pli.dev/react`. `pdfjs-dist` (version 6.2.108 or later) is an optional peer dependency: you need it to show PDF pages, and can leave it out in code that only uses the engine. The engine, `@pli.dev/pdf`, has no peer dependencies and runs in Node 20 or later and in browsers. Both Pli packages are ESM and ship their own TypeScript types; [Releases and versioning](/platform/contributing/releases/) has the rest. Code on this page that imports `PliError` from `@pli.dev/core` needs `npm install @pli.dev/core` too.
 
 ## Open, change, save
 
@@ -122,7 +122,7 @@ pdf.js (`pdfjs-dist`) is an optional peer dependency. It loads the first time a 
 
 | Option | What it is | Where it is in `pdfjs-dist` |
 |---|---|---|
-| `workerSrc` | The worker that parses and decodes pages (1.2 MB) | `build/pdf.worker.min.mjs` |
+| `workerSrc` | The worker that parses and decodes pages (1.3 MB) | `build/pdf.worker.min.mjs` |
 | `cMapUrl` | Character maps for Chinese, Japanese and Korean fonts that are not embedded | `cmaps/`, a folder |
 | `standardFontDataUrl` | Fonts for files that name Helvetica, Times or Courier without embedding them | `standard_fonts/`, a folder |
 | `wasmUrl` | Decoders for JPEG 2000, JBIG2 and colour profiles | `wasm/`, a folder |

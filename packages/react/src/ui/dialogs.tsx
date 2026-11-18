@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { DEFAULT_PAGE, PAGE_SIZES, type ImageBlock, type PageSetup, type PageSize, type ColumnSetup, type Columns, type ParagraphFormat, type ParagraphFormatPatch } from "@pli.dev/docs";
 import { imageBlockFromFile, imageBlockFromUrl } from "../images";
 import { Dialog } from "./primitives";
+import { FilePickerContext, pickWith } from "./file-picker";
 
 export interface LinkDialogProps {
   open: boolean;
@@ -81,6 +82,7 @@ export function ImageDialog({ open, maxWidth, onInsert, onFile, onClose }: Image
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const picker = useContext(FilePickerContext);
 
   const run = async (make: () => Promise<ImageBlock | void>) => {
     setBusy(true);
@@ -94,6 +96,12 @@ export function ImageDialog({ open, maxWidth, onInsert, onFile, onClose }: Image
     } finally {
       setBusy(false);
     }
+  };
+
+  const insertFile = (file: File) => run(() => (onFile ? Promise.resolve(onFile(file)) : imageBlockFromFile(file, { maxWidth })));
+  const upload = () => {
+    if (!picker) return fileInput.current?.click();
+    void pickWith(picker, { purpose: "image", accept: "image/*", label: "Insert an image" }).then(([file]) => file && insertFile(file));
   };
 
   return (
@@ -113,7 +121,7 @@ export function ImageDialog({ open, maxWidth, onInsert, onFile, onClose }: Image
       }
     >
       <div className="pli-upload">
-        <button type="button" className="pli-button pli-button-primary" disabled={busy} onClick={() => fileInput.current?.click()}>
+        <button type="button" className="pli-button pli-button-primary" disabled={busy} onClick={upload}>
           Upload from computer…
         </button>
         <input
@@ -123,7 +131,7 @@ export function ImageDialog({ open, maxWidth, onInsert, onFile, onClose }: Image
           hidden
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) void run(() => (onFile ? Promise.resolve(onFile(file)) : imageBlockFromFile(file, { maxWidth })));
+            if (file) void insertFile(file);
           }}
         />
       </div>

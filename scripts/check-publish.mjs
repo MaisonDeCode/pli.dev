@@ -75,7 +75,9 @@ for (const { dir, manifest } of publicPackages) {
   const fields = { type: "module", license: "Apache-2.0", homepage: "https://pli.dev" };
   for (const [field, value] of Object.entries(fields)) if (manifest[field] !== value) fail(name, `"${field}" must be ${JSON.stringify(value)}`);
   if (!name.startsWith("@pli.dev/")) fail(name, 'the name must be in the "@pli.dev" scope');
-  if (manifest.version !== VERSION) warn(name, `version is ${manifest.version}, expected ${VERSION} for the first release (Changesets moves it after that)`);
+  // One version for all of them (the Changesets "fixed" group), and never before the first release.
+  if (manifest.version !== publicPackages[0].manifest.version) fail(name, `version is ${manifest.version}, but ${publicPackages[0].manifest.name} is ${publicPackages[0].manifest.version}: all packages are released together under one version`);
+  if (Number(manifest.version.split(".")[0]) < 1) fail(name, `version is ${manifest.version}, expected ${VERSION} or later`);
   if (manifest.repository?.type !== "git" || manifest.repository?.url !== `${REPO}.git` || manifest.repository?.directory !== folder) fail(name, `"repository" must be { type: "git", url: "${REPO}.git", directory: "${folder}" }`);
   if (manifest.bugs?.url !== `${REPO}/issues`) fail(name, `"bugs.url" must be ${REPO}/issues`);
   if (!manifest.description || manifest.description.length < 20) fail(name, '"description" is missing or too short');

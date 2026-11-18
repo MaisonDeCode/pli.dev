@@ -8,7 +8,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExterna
 import { createPortal } from "react-dom";
 import type { CommentClient, Thread } from "@pli.dev/core";
 import { cellAddress, parseCell, type CellAnchor, type SheetSession } from "@pli.dev/sheets";
-import { CommentThreads, ThreadCard, keepFocus } from "@pli.dev/react";
+import { CommentThreads, ThreadCard, keepFocus, ThemedDiv } from "@pli.dev/react";
 
 /** A cell that has a thread, for the grid's corner mark. */
 export interface ThreadMark {
@@ -121,7 +121,7 @@ export function ThreadHover({ client, thread, info, container, onActivate }: Thr
   }, [info.left, info.top, info.bottom, live.comments.length, live.resolved]);
   const author = useMemo(() => client.users.get(live.comments[0]?.author ?? "").name, [client, live]);
   return createPortal(
-    <div
+    <ThemedDiv
       ref={ref}
       className="pli-panel pli-panel-fixed pli-sheet-threadcard"
       role={info.active ? "group" : "tooltip"}
@@ -133,7 +133,7 @@ export function ThreadHover({ client, thread, info, container, onActivate }: Thr
       }}
     >
       <ThreadCard client={client} thread={live} active={info.active} onActivate={onActivate} />
-    </div>,
+    </ThemedDiv>,
     container ?? document.body,
   );
 }

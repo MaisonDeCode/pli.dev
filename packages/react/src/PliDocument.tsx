@@ -3,6 +3,7 @@ import {
   DEFAULT_PAGE,
   DocumentSession,
   anchorFor,
+  documentVersionHistory,
   commentRanges,
   commentsAt,
   type CollabRoom,
@@ -51,6 +52,7 @@ import {
 } from "@pli.dev/docs";
 import type { FontRegistry } from "@pli.dev/core";
 import { FontsProvider, useFonts } from "./ui/fonts";
+import { ThemeContext, forcedTheme, type PliTheme } from "./theme";
 import { EditorToolbar, MODIFIER_ALT, MODIFIER_MOD, MODIFIER_SHIFT } from "./EditorToolbar";
 import { PHONE_QUERY, useKeyboardFrame, useMediaQuery, useSelectionState, useSessionRevision } from "./hooks";
 import type { Layout } from "./layout/paginate";
@@ -62,13 +64,15 @@ import { ColumnsDialog, ImageDialog, LinkDialog, PageSetupDialog, ParagraphDialo
 import { ManageStylesDialog, NewStyleDialog } from "./ui/styles";
 import { Ruler } from "./ui/Ruler";
 import { MenuBar, type MenuDefinition } from "./ui/MenuBar";
+import { extendMenus, type ExtraMenus } from "./ui/extensions";
+import { FilePickerProvider, pickWith, type FilePicker } from "./ui/file-picker";
 import { CommentsPanel, PresenceBar, RemoteCursors } from "./ui/comments";
 import { SuggestionsPanel } from "./ui/suggestions";
 import { SyncIndicator } from "./ui/SyncIndicator";
-import type { ShareClient, VersionHistory } from "@pli.dev/core";
+import type { AutoSaveOptions, NamedVersion, ShareClient, Users, VersionHistory, VersionStorage } from "@pli.dev/core";
 import { OfflineBanner } from "./ui/collab/status";
 import { ShareButton, ShareDialog } from "./ui/collab/share";
-import { VersionHistoryPanel } from "./ui/collab/versions";
+import { VersionHistoryPanel, VersionPreviewBar } from "./ui/collab/versions";
 import { useSyncStatus } from "./sync";
 import { FindPanel, OutlinePanel, StatusBar, outlineOf } from "./ui/panels";
 import { ListStartDialog, listMenuItems } from "./ui/lists";
@@ -103,8 +107,28 @@ export interface PliDocumentProps {
   defaultOutlineOpen?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
-  /** Extra controls at the right end of the title row, such as a Share button. */
+  /** Extra controls in the title row, before the Share button, such as an Export button. */
   actions?: ReactNode;
+  /** Controls at the far left of the title row, before the document's name: a back button, your logo, a breadcrumb. */
+  startActions?: ReactNode;
+  /** Controls at the far right of the title row, after Share: a profile menu, a close button. */
+  endActions?: ReactNode;
+  /**
+   * `"light"`, `"dark"` or `"auto"` (default). Pass the theme your app is using so the editor matches it. `"auto"` follows
+   * `data-theme="light" | "dark"` on `<html>` if your page sets it, and otherwise the system's setting.
+   */
+  theme?: PliTheme;
+  /**
+   * Items for the menus, and menus of your own. `{ File: [{ label: "Share…", onSelect }], AI: [{ label: "Summarize", onSelect }] }`
+   * adds Share to the end of File and an AI menu before the last one. See `ExtraMenus` and
+   * [Menus and file pickers](https://pli.dev/platform/menus-and-file-pickers/).
+   */
+  extraMenus?: ExtraMenus;
+  /**
+   * Your own way of choosing a file, for Insert > Image > Upload and File > Import DOCX: show your own dialog (files in your app,
+   * a drive) and return the chosen `File`. Left out, the browser's file chooser opens. See `FilePicker`.
+   */
+  filePicker?: FilePicker;
   /**
    * Other people in the document: who is here and where their cursor is. Connected when the editor mounts and
    * disconnected when it unmounts. Comments need only the session's `comments` option, not a room.
@@ -121,8 +145,24 @@ export interface PliDocumentProps {
    * (people from your directory, roles, link access).
    */
   share?: ShareClient;
-  /** Named versions of the document (see `VersionHistory`): adds a "Version history" button and the side panel. */
+  /**
+   * The versions of the document (see `VersionHistory`): adds View > Version history, a button in the title row, and the side panel,
+   * where a version can be looked at (the document shows it, read-only) and restored. Restoring adds a new version and keeps every
+   * earlier one.
+   */
   history?: VersionHistory<Doc, DocOp>;
+  /**
+   * Where versions are kept: a shortcut for `history` that makes the `VersionHistory` for you (`documentVersionHistory`). Needs
+   * `users` (or comments, which have them). Saving and restoring need the `editor` role.
+   */
+  versions?: VersionStorage<Doc>;
+  /**
+   * With `versions`: keep a version now and then without anyone asking, so the history shows how the document changed. On by default;
+   * `false` turns it off, or give `{ every, keep }` (see `AutoSaveOptions`).
+   */
+  autoSaveVersions?: boolean | AutoSaveOptions;
+  /** Who is signed in, for `versions`. Defaults to the comments' users. */
+  users?: Users;
   /** Start with the comments panel open. */
   defaultCommentsOpen?: boolean;
   /** The color of the pages. They follow the theme (dark pages in dark mode); `"light"` keeps them white. */
@@ -189,10 +229,18 @@ export function PliDocument({
   placeholder,
   autoFocus,
   actions,
+  startActions,
+  endActions,
+  theme,
+  extraMenus,
+  filePicker,
   room: roomProp,
   sync,
   share,
-  history,
+  history: historyProp,
+  versions,
+  autoSaveVersions,
+  users: usersProp,
   defaultCommentsOpen = false,
   paper = "auto",
   onStorageError,
@@ -209,7 +257,8 @@ export function PliDocument({
   // Live editing: until the first copy of the document has come from the server, what is shown is a placeholder.
   const syncState = useSyncStatus(sync);
   const loading = !!sync && syncState.version === null;
-  const readOnly = readOnlyProp || loading;
+  const [previewVersion, setPreviewVersion] = useState<NamedVersion<Doc> | null>(null);
+  const readOnly = readOnlyProp || loading || !!previewVersion;
   const phone = useMediaQuery(PHONE_QUERY);
   // On a phone the toolbar is at the bottom, above the keyboard, so it stays in reach while you type.
   const dockToolbar = phone && toolbar && !readOnlyProp;
@@ -230,6 +279,32 @@ export function PliDocument({
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const historyUsers = usersProp ?? session.comments?.users;
+  // Made in an effect, so that a history that was stopped when the editor was taken away is made again when it comes back (React
+  // does this in development), instead of a stopped one being kept.
+  const [ownHistory, setOwnHistory] = useState<VersionHistory<Doc, DocOp> | null>(null);
+  useEffect(() => {
+    if (historyProp || !versions || !historyUsers) {
+      setOwnHistory(null);
+      return;
+    }
+    const made = documentVersionHistory(session, {
+      storage: versions,
+      users: historyUsers,
+      version: () => sync?.version ?? null,
+      ...(autoSaveVersions === false ? {} : { autoSave: typeof autoSaveVersions === "object" ? autoSaveVersions : {} }),
+    });
+    setOwnHistory(made);
+    return () => made.dispose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the options are read once, when the history is made
+  }, [session, historyProp, versions, historyUsers, sync]);
+  const history = historyProp ?? ownHistory ?? undefined;
+  /** The version being looked at, as a document of its own that nobody can change. */
+  const previewSession = useMemo(() => (previewVersion ? new DocumentSession(JSON.parse(JSON.stringify(previewVersion.state)) as Doc) : null), [previewVersion]);
+  const showHistory = (open: boolean) => {
+    setHistoryOpen(open);
+    if (!open) setPreviewVersion(null);
+  };
   const [draft, setDraft] = useState<{ selection: NonNullable<DocumentSession["selection"]>; quote: string } | null>(null);
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLDivElement | null>(null);
@@ -706,6 +781,11 @@ export function PliDocument({
     focusTarget();
   };
 
+  const chooseImport = () => {
+    if (!filePicker) return importInput.current?.click();
+    void pickWith(filePicker, { purpose: "import", accept: ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document", label: "Import a DOCX file" }).then(([file]) => file && void importFile(file));
+  };
+
   const menus: MenuDefinition[] = useMemo(
     () => [
       {
@@ -721,7 +801,7 @@ export function PliDocument({
               { label: "Pli document (.json)", onSelect: () => void exportAs("json") },
             ],
           },
-          { label: "Import DOCX…", disabled: readOnly || !!region, onSelect: () => importInput.current?.click() },
+          { label: "Import DOCX…", disabled: readOnly || !!region, onSelect: chooseImport },
           "separator",
           { label: "Page setup…", onSelect: () => setDialog("page"), disabled: readOnly },
           { label: "Print…", shortcut: `${MOD}P`, onSelect: print },
@@ -751,6 +831,7 @@ export function PliDocument({
           "separator",
           { label: "Show outline", checked: outlineOpen, onSelect: () => setOutlineOpen((v) => !v) },
           ...(comments ? [{ label: "Show comments", checked: commentsOpen, onSelect: () => setCommentsOpen((v) => !v) }] : []),
+          ...(history ? [{ label: "Version history", checked: historyOpen, onSelect: () => showHistory(!historyOpen) }] : []),
           ...(session.suggestionsEnabled
             ? [
                 { label: "Show suggestions", checked: suggestionsOpen, onSelect: () => setSuggestionsOpen((v) => !v) },
@@ -924,8 +1005,9 @@ export function PliDocument({
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `state` and `doc` change identity with the session
-    [doc, state, view, zoom, outlineOpen, readOnly, region, collapsed, target, session, focusTarget, beginRegionEdit, print, exportAs, exportAsPdf, comments, commentsOpen, suggestionsOpen, canStartComment],
+    [doc, state, view, zoom, outlineOpen, readOnly, region, collapsed, target, session, focusTarget, beginRegionEdit, print, exportAs, exportAsPdf, comments, commentsOpen, suggestionsOpen, canStartComment, filePicker, history, historyOpen],
   );
+  const allMenus = useMemo(() => extendMenus(menus, extraMenus), [menus, extraMenus]);
 
   const onKeyDown = (event: ReactKeyboardEvent) => {
     if (event.defaultPrevented) return;
@@ -959,7 +1041,7 @@ export function PliDocument({
   const outline = useMemo(() => outlineOf(doc), [doc]);
 
   const toolbarElement =
-    toolbar && !readOnlyProp ? (
+    toolbar && !readOnlyProp && !previewVersion ? (
       <EditorToolbar
         session={target}
         baseFontSize={region && focusedRegion ? 9 : undefined}
@@ -978,12 +1060,15 @@ export function PliDocument({
 
   return (
     <FontsProvider fonts={fontRegistry}>
-      <div ref={rootRef} className={className ? `pli-document ${className}` : "pli-document"} data-paper={paper === "light" ? "light" : undefined} data-view={view} data-readonly={readOnly || undefined} data-suggesting={session.suggesting || undefined} data-loading={loading || undefined} data-keyboard={keyboard ? "" : undefined} style={keyboard ? { position: "fixed", top: keyboard.top, left: 0, right: 0, height: keyboard.height } : undefined} onKeyDown={onKeyDown}>
+     <ThemeContext.Provider value={forcedTheme(theme)}>
+     <FilePickerProvider picker={filePicker}>
+      <div ref={rootRef} className={className ? `pli-document ${className}` : "pli-document"} data-theme={forcedTheme(theme)} data-paper={paper === "light" ? "light" : undefined} data-view={view} data-readonly={readOnly || undefined} data-suggesting={session.suggesting || undefined} data-loading={loading || undefined} data-keyboard={keyboard ? "" : undefined} style={keyboard ? { position: "fixed", top: keyboard.top, left: 0, right: 0, height: keyboard.height } : undefined} onKeyDown={onKeyDown}>
         {(menu || (toolbar && !dockToolbar)) && !(readOnlyProp && !menu) && (
           <div className="pli-chrome">
             {menu && (
               <>
                 <div className="pli-titlebar">
+                  {startActions && <div className="pli-actions pli-actions-start">{startActions}</div>}
                   <input
                     className="pli-doc-title"
                     aria-label="Document title"
@@ -1022,15 +1107,16 @@ export function PliDocument({
                       </button>
                     )}
                     {history && (
-                      <button type="button" className="pli-button" aria-pressed={historyOpen} onClick={() => setHistoryOpen((v) => !v)}>
+                      <button type="button" className="pli-button" aria-pressed={historyOpen} onClick={() => showHistory(!historyOpen)}>
                         Version history
                       </button>
                     )}
                     {actions}
                     {share && <ShareButton onClick={() => setShareOpen(true)} restricted={!share.settings.link.enabled} />}
+                    {endActions}
                   </div>
                 </div>
-                <MenuBar menus={menus} />
+                <MenuBar menus={allMenus} />
               </>
             )}
             {!dockToolbar && toolbarElement}
@@ -1052,7 +1138,7 @@ export function PliDocument({
           {outlineOpen && (
             <OutlinePanel entries={outline} onNavigate={navigateTo} onClose={() => setOutlineOpen(false)} />
           )}
-          <div className="pli-canvas" ref={setCanvasEl} onDoubleClick={openNoteAt} onClick={openCommentAt}>
+          <div className="pli-canvas" ref={setCanvasEl} style={previewVersion ? { display: "none" } : undefined} onDoubleClick={openNoteAt} onClick={openCommentAt}>
             {find && (
               <FindPanel
                 session={session}
@@ -1084,6 +1170,12 @@ export function PliDocument({
             />
             {room && <RemoteCursors peers={peers} you={comments?.users.current} getRoot={() => bodyRef.current?.element ?? null} container={canvasEl} layoutKey={`${layout ? layout.pages : 0}:${zoom}:${doc.blocks.length}:${session.revision}`} />}
           </div>
+          {previewVersion && previewSession && history && (
+            <div className="pli-canvas pli-version-preview" onKeyDown={(e) => e.key === "Escape" && setPreviewVersion(null)}>
+              <VersionPreviewBar history={history} version={previewVersion} onBack={() => setPreviewVersion(null)} onRestored={() => setPreviewVersion(null)} />
+              <PliDocument session={previewSession} readOnly menu={false} toolbar={false} statusBar={false} ruler={false} defaultView={view} defaultZoom={zoom} paper={paper} theme={theme} fonts={fontRegistry} />
+            </div>
+          )}
           {comments && commentsOpen && (
             <CommentsPanel
               session={session}
@@ -1096,7 +1188,7 @@ export function PliDocument({
             />
           )}
           {session.suggestionsEnabled && suggestionsOpen && <SuggestionsPanel session={session} onClose={() => setSuggestionsOpen(false)} />}
-          {history && historyOpen && <VersionHistoryPanel history={history} onClose={() => setHistoryOpen(false)} />}
+          {history && historyOpen && <VersionHistoryPanel history={history} activeId={previewVersion?.id ?? null} onPreview={setPreviewVersion} onRestored={() => setPreviewVersion(null)} onClose={() => showHistory(false)} />}
           {commentStyles && <style>{commentStyles}</style>}
         </div>
 
@@ -1188,6 +1280,8 @@ export function PliDocument({
         />
       </div>
 
+     </FilePickerProvider>
+     </ThemeContext.Provider>
     </FontsProvider>
   );
 }

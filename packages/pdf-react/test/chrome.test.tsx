@@ -458,6 +458,34 @@ describe("share, comments and who is here", () => {
     expect([...q(".pli-titlebar .pli-actions").children].map((e) => e.getAttribute("aria-label") ?? e.textContent)).toEqual(["My action", "Share"]);
   });
 
+  it("puts startActions before the name, actions before Share and endActions after it, in the order Documents has them", async () => {
+    const mark = (label: string) => <button type="button" aria-label={label}>x</button>;
+    const labels = () => [...q(".pli-pdf-titlebar").querySelectorAll("button, .pli-pdf-title")].map((e) => (e.classList.contains("pli-pdf-title") ? "name" : (e.getAttribute("aria-label") ?? e.textContent ?? "")));
+    const onlyTitleRow = () => labels().filter((l) => ["Start", "Mid", "End", "name", "Share"].includes(l));
+    await mount(await openWords(), { onShare: () => {}, startActions: mark("Start"), actions: mark("Mid"), endActions: mark("End") });
+    expect(onlyTitleRow()).toEqual(["Start", "name", "Mid", "Share", "End"]);
+    // the start slot is its own group at the left edge and the end slot its own group at the right edge, after the built-in group
+    const row = q(".pli-pdf-titlebar");
+    expect(row.firstElementChild!.className).toBe("pli-actions pli-actions-start");
+    expect(row.lastElementChild!.className).toBe("pli-actions pli-actions-end");
+    expect(row.lastElementChild!.contains(q("[aria-label='End']"))).toBe(true);
+    expect(q(".pli-pdf-titlebar .pli-actions:not(.pli-actions-start):not(.pli-actions-end)").contains(q(".pli-share-button"))).toBe(true);
+    // each alone
+    await mount(await openWords(), { endActions: mark("End") });
+    expect(document.querySelector(".pli-pdf-titlebar .pli-actions-start")).toBeNull();
+    expect(onlyTitleRow()).toEqual(["name", "End"]);
+    // nothing given, nothing rendered
+    await mount(await openWords());
+    expect(document.querySelector(".pli-actions-start, .pli-actions-end")).toBeNull();
+    await mount(await openWords(), { endActions: mark("End") });
+    await mount(await openWords(), { startActions: mark("Start") });
+    expect(onlyTitleRow()).toEqual(["Start", "name"]);
+    // no menu bar, no title row, so no slots
+    await mount(await openWords(), { menu: false, startActions: mark("Start"), endActions: mark("End") });
+    expect(document.querySelector("[aria-label='Start']")).toBeNull();
+    expect(document.querySelector("[aria-label='End']")).toBeNull();
+  });
+
   it("opens the shared Share dialog when the host gives a ShareClient, and still calls onShare", async () => {
     const users = new Users({ current: { id: "ana", name: "Ana" }, role: "editor", search: () => [] });
     const store = memorySharingStore({ f: { owner: "ana", grants: [], link: { enabled: false, role: "viewer" } } });
@@ -482,10 +510,10 @@ describe("share, comments and who is here", () => {
     await history.ready;
     await mount(session, { history: history as never });
     expect(q("#pli-pdf-tab-history").getAttribute("title")).toBe("History");
-    await chooseMenu("File", "Version history");
+    await chooseMenu("View", "Version history");
     expect(q("#pli-pdf-tab-history").getAttribute("aria-selected")).toBe("true");
     expect(document.querySelector(".pli-versions")).not.toBeNull();
-    await chooseMenu("File", "Version history");
+    await chooseMenu("View", "Version history");
     expect(document.querySelector(".pli-pdf-sidebar")).toBeNull();
   });
 

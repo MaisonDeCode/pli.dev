@@ -45,9 +45,9 @@ pnpm install --frozen-lockfile
 pnpm release
 ```
 
-### The first release (1.0.0)
+### Release history
 
-The versions in the repository are already `1.0.0`, so there is nothing to version: run `pnpm release`, or push to `main` with the `release` workflow in place. `changeset publish` publishes every package whose version is not on npm yet, and tags each one (`@pli.dev/docs@1.0.0`).
+`1.0.0` was the first release: the versions in the repository were already `1.0.0`, so `pnpm release` published all nine packages and tagged each one (`@pli.dev/docs@1.0.0`). Every release after that goes through a changeset, as above. `changeset publish` publishes every package whose version is not on npm yet, so running `pnpm release` again after a failure carries on where it stopped.
 
 ## The check before publishing
 

@@ -2,13 +2,15 @@
 
 The Pli PDF editor for React: a viewer with thumbnails, outline and search, page tools, annotation tools and form filling (`PdfEditor`), driven by the `@pli.dev/pdf` engine and drawn by pdf.js.
 
+Website and documentation: [pli.dev](https://pli.dev)
+
 ## Install
 
 ```sh
 npm install @pli.dev/pdf @pli.dev/pdf-react pdfjs-dist
 ```
 
-Needs `react` and `react-dom` 18 or 19 in your app. ESM only, with TypeScript types. With pnpm, Yarn or Bun, use `pnpm add`, `yarn add` or `bun add` and the same names. `pdfjs-dist` 5 is an optional peer dependency: you need it to show PDF pages. Serve its worker file from your own site: Pli does not fetch the pdf.js files from a CDN. Its `styles.css` already has the shared toolbar, menus and colour pickers from `@pli.dev/react`, so that is the only stylesheet to import. Entry points: `@pli.dev/pdf-react`, `@pli.dev/pdf-react/styles.css`, `@pli.dev/pdf-react/pdfjs` (the pdf.js renderer) and `@pli.dev/pdf-react/testing` (a fake renderer for your tests).
+Needs `react` and `react-dom` 18 or 19 in your app. ESM only, with TypeScript types. With pnpm, Yarn or Bun, use `pnpm add`, `yarn add` or `bun add` and the same names. `pdfjs-dist` 6.2.108 or later (6.x) is an optional peer dependency: you need it to show PDF pages. Serve its worker file from your own site: Pli does not fetch the pdf.js files from a CDN. Its `styles.css` already has the shared toolbar, menus and colour pickers from `@pli.dev/react`, so that is the only stylesheet to import. Entry points: `@pli.dev/pdf-react`, `@pli.dev/pdf-react/styles.css`, `@pli.dev/pdf-react/pdfjs` (the pdf.js renderer) and `@pli.dev/pdf-react/testing` (a fake renderer for your tests).
 
 ## Example
 
@@ -50,4 +52,4 @@ export function Editor({ url }: { url: string }) {
 
 Apache-2.0.
 
-Part of [Pli](https://github.com/MaisonDeCode/pli.dev), an open-source editor SDK. All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).
+Part of [Pli](https://pli.dev), an open-source editor SDK ([source on GitHub](https://github.com/MaisonDeCode/pli.dev)). All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).

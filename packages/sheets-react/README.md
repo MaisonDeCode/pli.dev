@@ -2,6 +2,8 @@
 
 The Pli spreadsheet editor for React: a virtualized grid, formula bar, toolbar, sheet tabs and status bar (`PliSheet`), driven by the `@pli.dev/sheets` engine.
 
+Website and documentation: [pli.dev](https://pli.dev)
+
 ## Install
 
 ```sh
@@ -36,4 +38,4 @@ export function Budget() {
 
 Apache-2.0.
 
-Part of [Pli](https://github.com/MaisonDeCode/pli.dev), an open-source editor SDK. All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).
+Part of [Pli](https://pli.dev), an open-source editor SDK ([source on GitHub](https://github.com/MaisonDeCode/pli.dev)). All Pli packages are released together and share one version number: see [Releases and versioning](https://pli.dev/platform/contributing/releases/).

@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { useThemeAttr } from "../../theme";
 
 export interface PopoverProps {
   open: boolean;
@@ -75,6 +76,7 @@ export function Popover({ open, onClose, anchor, label, align = "start", role = 
     };
   }, [open, onClose, anchor]);
 
+  const themeAttr = useThemeAttr();
   if (!open) return null;
   return createPortal(
     <div
@@ -82,6 +84,7 @@ export function Popover({ open, onClose, anchor, label, align = "start", role = 
       ref={ref}
       role={role}
       aria-label={label}
+      {...themeAttr}
       className={className ? `pli-surface pli-popover ${className}` : "pli-surface pli-popover"}
       style={place ? { top: place.top, left: place.left } : { top: 0, left: 0, visibility: "hidden" }}
     >

@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { useThemeAttr } from "../theme";
 import {
   useEffect,
   useId,
@@ -97,6 +98,7 @@ export function Dropdown({ label, children, panel, className, disabled, align = 
     };
   }, [open]);
 
+  const themeAttr = useThemeAttr();
   return (
     <div className="pli-dropdown" ref={ref}>
       <button
@@ -120,6 +122,7 @@ export function Dropdown({ label, children, panel, className, disabled, align = 
             id={id}
             ref={panelRef}
             className="pli-panel pli-panel-fixed"
+            {...themeAttr}
             style={place ? { top: place.top, left: place.left } : { top: 0, left: 0, visibility: "hidden" }}
             onMouseDown={(e) => {
               // Let text fields inside the panel take focus; everything else keeps the editor's.
@@ -265,6 +268,7 @@ export interface DialogProps {
 export function Dialog({ open, title, onClose, children, actions, onSubmit }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const themeAttr = useThemeAttr();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -274,7 +278,7 @@ export function Dialog({ open, title, onClose, children, actions, onSubmit }: Di
   }, [open]);
 
   return (
-    <dialog ref={ref} className="pli-dialog" aria-labelledby={titleId} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
+    <dialog ref={ref} className="pli-dialog" {...themeAttr} aria-labelledby={titleId} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
       {open && (
         <form
           method="dialog"

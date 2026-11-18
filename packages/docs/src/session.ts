@@ -66,6 +66,8 @@ export interface DocumentCommentsOptions {
   permissions?: CommentClientOptions<DocAnchor>["permissions"];
   /** Called when a comment couldn't be saved. The change has been taken back. */
   onError?: CommentClientOptions<DocAnchor>["onError"];
+  /** Hook in your own notifications: called once for each comment action of this person, with who to tell and why. See `CommentNotice`. */
+  onNotify?: CommentClientOptions<DocAnchor>["onNotify"];
   /**
    * Set this when the document is shared with a `SyncClient`. Highlights are then ordinary changes that go to everyone,
    * so the session no longer puts them back by itself (from a thread's anchor) when a thread arrives from elsewhere,
@@ -864,6 +866,7 @@ export class DocumentSession extends Session<Doc, DocOp, Selection | null> {
       store,
       initial: Object.values(this.state.comments ?? {}),
       permissions: options.permissions,
+      onNotify: options.onNotify,
       onError: (error, change) => {
         // A thread that couldn't be saved has nothing to attach to.
         if (change.type === "thread.create") this.#detach(change.thread.id, options.synced ? "shared" : "remote");
