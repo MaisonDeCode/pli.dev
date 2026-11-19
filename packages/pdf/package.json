@@ -1,6 +1,6 @@
 {
   "name": "@pli.dev/pdf",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Pli PDF: a headless PDF engine. Reads and writes PDF files, keeps annotations, pages and form values as plain JSON with invertible operations, and saves them back as real PDF.",
   "keywords": [
     "pli",

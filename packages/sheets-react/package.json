@@ -1,6 +1,6 @@
 {
   "name": "@pli.dev/sheets-react",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "React spreadsheet editor for Pli: a grid, formula bar, toolbar and sheet tabs driven by the @pli.dev/sheets engine.",
   "keywords": [
     "pli",
