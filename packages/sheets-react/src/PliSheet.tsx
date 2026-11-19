@@ -1,6 +1,6 @@
 import { expectsReference } from "./edit";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { Bar, ColorPicker, Dropdown, FontPicker, FontsProvider, Icons, MenuBar, MenuList, ThemeContext, VersionHistoryPanel, VersionPreviewBar, downloadFile, extendMenus, forcedTheme, keepFocus, pickWith, useDocumentFonts, useFonts, FilePickerProvider, type ExtraMenus, type FilePicker, type MenuDefinition, type MenuEntry, type PickOptions, type PliTheme } from "@pli.dev/react";
+import { Bar, ColorPicker, Dropdown, FontPicker, FontsProvider, Icons, MenuBar, MenuList, ThemeContext, VersionHistoryPanel, VersionPreviewBar, extendMenus, forcedTheme, keepFocus, pickWith, handOver, saveFailure, useDownloadHandler, useDocumentFonts, useFonts, FilePickerProvider, type ExtraMenus, type FilePicker, type MenuLabels, type MenuDefinition, type DownloadFile, type DownloadHandler, type MenuEntry, type PickOptions, type PliTheme } from "@pli.dev/react";
 import type { FontRegistry } from "@pli.dev/core";
 import {
   type Sheet,
@@ -169,10 +169,12 @@ export interface PliSheetProps {
   /** Show the title and the File, Edit, View, Insert, Format, Data and Review menus (default true). */
   menu?: boolean;
   /**
-   * Called with each file File > Download makes, instead of the browser downloading it. A web view inside a native app
-   * can't download a file, so pass a function that saves or shares it.
+   * Called with each file File > Download makes, instead of the browser downloading it: save it in your own storage, or show the
+   * phone's share sheet (a web view inside a native app can't download a file). The second argument has `browserDownload()`, the
+   * default, for the files or places you don't handle. If it throws or rejects the sheet says the file couldn't be saved. Left out,
+   * the nearest `DownloadProvider`'s function is used, and without one the browser downloads the file.
    */
-  onDownload?: (file: PliSheetDownload) => void | Promise<void>;
+  onDownload?: DownloadHandler;
   /**
    * Where File > Print… sends the pages: your own print service. Called with the printout as a PDF file (and the pages laid out,
    * as HTML), when someone presses Print in the print preview. Without it the preview has no Print button but Download PDF, which
@@ -199,6 +201,12 @@ export interface PliSheetProps {
    * [Menus and file pickers](https://pli.dev/platform/menus-and-file-pickers/).
    */
   extraMenus?: ExtraMenus;
+  /**
+   * New text for the built-in menus, or a way to take an item out. `{ "File > Download": "Export", "Insert > Page break": false }`
+   * renames File > Download and removes Page break. A key is the text as it is now, or a path of them; `false` removes. Also for
+   * translating the menus. See `MenuLabels` and [Menus and file pickers](https://pli.dev/platform/menus-and-file-pickers/).
+   */
+  menuLabels?: MenuLabels;
   /**
    * Your own way of choosing a file, for File > Import, Insert > Image and the picture fields in dialogs: show your own dialog (files in
    * your app, a drive) and return the chosen `File`. Left out, the browser's file chooser opens. See `FilePicker`.
@@ -256,13 +264,7 @@ export interface PliSheetProps {
 }
 
 /** A file made by File > Download. */
-export interface PliSheetDownload {
-  /** The file name, with its extension. */
-  name: string;
-  /** The MIME type. */
-  type: string;
-  data: Uint8Array;
-}
+export type PliSheetDownload = DownloadFile;
 
 const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
 const MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -330,7 +332,7 @@ export function PliSheet(props: PliSheetProps) {
   );
 }
 
-function PliSheetView({ session, remoteImages: remoteImagesProp = false, validatePaste, externalLists, readOnly: readOnlyProp = false, toolbar = true, formulaBar = true, tabs = true, statusBar = true, menu = true, onDownload, onPrint, browserPrint = false, actions, startActions, endActions, theme, extraMenus, filePicker, history: historyProp, versions, autoSaveVersions, chips, className, author, user, pivotData, spellDictionary, spellWords, onSpellAddWord, room, users, comments, sync }: PliSheetProps) {
+function PliSheetView({ session, remoteImages: remoteImagesProp = false, validatePaste, externalLists, readOnly: readOnlyProp = false, toolbar = true, formulaBar = true, tabs = true, statusBar = true, menu = true, onDownload: onDownloadProp, onPrint, browserPrint = false, actions, startActions, endActions, theme, extraMenus, menuLabels, filePicker, history: historyProp, versions, autoSaveVersions, chips, className, author, user, pivotData, spellDictionary, spellWords, onSpellAddWord, room, users, comments, sync }: PliSheetProps) {
   const collab = useSheetCollab(session, { room, users, comments, sync });
   const commentClient = collab.comments;
   // An older version being looked at: nothing in the real workbook can be changed meanwhile.
@@ -1741,10 +1743,9 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
 
   const s = cell?.s ?? {};
   // ---- files ----
+  const onDownload = useDownloadHandler(onDownloadProp);
   const deliver = (name: string, data: BlobPart, type: string) => {
-    if (!onDownload) return downloadFile(name, data, type);
-    const bytes = typeof data === "string" ? new TextEncoder().encode(data) : data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer);
-    void Promise.resolve(onDownload({ name, type, data: bytes })).catch((e) => setNotice(`The file couldn't be saved${e instanceof Error && e.message ? `: ${e.message}` : ""}`));
+    void handOver(onDownload, name, data, type).catch((e) => setNotice(saveFailure(e)));
   };
   const exportAs = (kind: "xlsx" | "csv" | "tsv" | "json") => {
     if (edit) commit(null);
@@ -2287,7 +2288,7 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
                   {endActions}
                 </div>
               </div>
-              <MenuBar menus={extendMenus(menus.map((m) => ({ ...m, items: guarded(m.items) })), extraMenus)} />
+              <MenuBar menus={extendMenus(menus.map((m) => ({ ...m, items: guarded(m.items) })), extraMenus, menuLabels)} />
             </>
           )}
           {toolbar && showToolbar && !previewVersion && (

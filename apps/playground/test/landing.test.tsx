@@ -50,7 +50,7 @@ describe("the landing page", () => {
   it("links to every screen, and lists the editors still to come", () => {
     act(() => root.render(<Landing />));
     const links = [...host.querySelectorAll<HTMLAnchorElement>(".landing-card h3 a")].map((a) => a.getAttribute("href"));
-    expect(links).toEqual(["#/basics", "#/collaboration", "#/sheets", "#/decks", "#/pdf", "#/embed"]);
+    expect(links).toEqual(["#/basics", "#/collaboration", "#/generate", "#/builder", "#/sheets", "#/decks", "#/pdf", "#/embed"]);
     const soon = host.querySelector(".landing-soon")!.textContent!;
     for (const name of ["Boards", "Forms", "Databases"]) expect(soon).toContain(name);
     expect(soon).not.toContain("Sheets");

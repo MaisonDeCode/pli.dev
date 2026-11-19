@@ -58,13 +58,17 @@ import { PHONE_QUERY, useKeyboardFrame, useMediaQuery, useSelectionState, useSes
 import type { Layout } from "./layout/paginate";
 import { PageCanvas, regionHasContent, type RegionActions, type RegionEdit, type RegionPlace, type ViewMode } from "./PageCanvas";
 import type { PliEditorHandle } from "./PliEditor";
-import { downloadFile, printDocument } from "./print";
+import { printDocument } from "./print";
+import { handOver, saveFailure, useDownloadHandler, type DownloadFile, type DownloadHandler } from "./ui/downloads";
 import { exportPdf } from "./pdf";
 import { ColumnsDialog, ImageDialog, LinkDialog, PageSetupDialog, ParagraphDialog } from "./ui/dialogs";
 import { ManageStylesDialog, NewStyleDialog } from "./ui/styles";
 import { Ruler } from "./ui/Ruler";
 import { MenuBar, type MenuDefinition } from "./ui/MenuBar";
-import { extendMenus, type ExtraMenus } from "./ui/extensions";
+import { extendMenus, type ExtraMenus, type MenuLabels } from "./ui/extensions";
+import type { MenuEntry } from "./ui/primitives";
+import { placeholderMenu, placeholderMode, type PlaceholderOptions } from "./ui/placeholders";
+import { PlaceholdersContext } from "./session-context";
 import { FilePickerProvider, pickWith, type FilePicker } from "./ui/file-picker";
 import { CommentsPanel, PresenceBar, RemoteCursors } from "./ui/comments";
 import { SuggestionsPanel } from "./ui/suggestions";
@@ -80,13 +84,7 @@ import { pictureMenuItems } from "./ui/pictures";
 import { RowHeightDialog, TableDialog, tableMenuItems } from "./ui/tables";
 
 /** A file made by File > Download. */
-export interface PliDownload {
-  /** The file name, with its extension. */
-  name: string;
-  /** The MIME type, such as `application/pdf`. */
-  type: string;
-  data: Uint8Array;
-}
+export type PliDownload = DownloadFile;
 
 export interface PliDocumentProps {
   session: DocumentSession;
@@ -124,6 +122,20 @@ export interface PliDocumentProps {
    * [Menus and file pickers](https://pli.dev/platform/menus-and-file-pickers/).
    */
   extraMenus?: ExtraMenus;
+  /**
+   * New text for the built-in menus, or a way to take an item out. `{ "File > Download": "Export", "Insert > Page break": false }`
+   * renames File > Download and removes Page break. A key is the text as it is now, or a path of them; `false` removes. Also for
+   * translating the menus. See `MenuLabels` and [Menus and file pickers](https://pli.dev/platform/menus-and-file-pickers/).
+   */
+  menuLabels?: MenuLabels;
+  /**
+   * For editing a template that makes documents from answers (see `generateDocument`): draws each `{{ … }}` as a chip, red when it
+   * can't be read, and adds *Field*, *Only if…* and *Repeat for each…* to the Insert menu. `true` for the chips and the last two;
+   * `{ fields: ["client.name", { path: "start", label: "Start date" }] }` to also list your answers by name, and `labels: true` to
+   * show each tag by its name ("Client name", "Only if Plan is team") and hide the code, for people who aren't developers. Only
+   * drawing: the text, and so the document, is the same with or without it.
+   */
+  placeholders?: boolean | PlaceholderOptions;
   /**
    * Your own way of choosing a file, for Insert > Image > Upload and File > Import DOCX: show your own dialog (files in your app,
    * a drive) and return the chosen `File`. Left out, the browser's file chooser opens. See `FilePicker`.
@@ -193,10 +205,13 @@ export interface PliDocumentProps {
   /** Called for Ctrl/Cmd+S. Without it, the shortcut does nothing. */
   onSave?: (doc: Doc) => void;
   /**
-   * Called with each file File > Download makes (DOCX, PDF, Markdown, HTML, JSON), instead of the browser downloading it.
-   * A web view inside a native app (Capacitor, for instance) can't download a file, so pass a function that saves or shares it.
+   * Called with each file File > Download makes (DOCX, PDF, Markdown, HTML, JSON), instead of the browser downloading it: save it
+   * in your own storage, or show the phone's share sheet (a web view inside a native app, Capacitor for instance, can't download a
+   * file). The second argument has `browserDownload()`, the default, to call for the files or the places you don't handle. If the
+   * function throws or rejects the editor says the file couldn't be saved. Left out, the nearest `DownloadProvider`'s function is
+   * used, and without one the browser downloads the file. See [Saving files your way](https://pli.dev/platform/saving-files/).
    */
-  onDownload?: (file: PliDownload) => void | Promise<void>;
+  onDownload?: DownloadHandler;
   className?: string;
   "aria-label"?: string;
 }
@@ -233,6 +248,8 @@ export function PliDocument({
   endActions,
   theme,
   extraMenus,
+  menuLabels,
+  placeholders,
   filePicker,
   room: roomProp,
   sync,
@@ -248,12 +265,16 @@ export function PliDocument({
   pdfFonts,
   fonts: fontsProp,
   onSave,
-  onDownload,
+  onDownload: onDownloadProp,
   className,
   ...aria
 }: PliDocumentProps) {
   useSessionRevision(session);
   const doc = session.state;
+  // How tags are drawn. Kept the same object while the options say the same, so the page isn't drawn again for nothing.
+  const chipKey = typeof placeholders === "object" ? JSON.stringify([placeholders.labels, placeholders.fields]) : String(!!placeholders);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `chipKey` stands for the options
+  const chipMode = useMemo(() => placeholderMode(placeholders), [chipKey]);
   // Live editing: until the first copy of the document has come from the server, what is shown is a placeholder.
   const syncState = useSyncStatus(sync);
   const loading = !!sync && syncState.version === null;
@@ -511,14 +532,11 @@ export function PliDocument({
   const viewRef = useRef(view);
   viewRef.current = view;
 
+  const onDownload = useDownloadHandler(onDownloadProp);
   /** Hands a made file to the browser to download, or to `onDownload` when the app saves files itself. */
   const deliver = useCallback(
     (name: string, data: BlobPart, type: string) => {
-      if (!onDownload) return downloadFile(name, data, type);
-      const bytes = typeof data === "string" ? new TextEncoder().encode(data) : data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer);
-      void Promise.resolve(onDownload({ name, type, data: bytes })).catch((cause) =>
-        reportStorageError(cause instanceof PliError ? cause : new PliError("unsupported", `The file couldn't be saved${cause instanceof Error && cause.message ? `: ${cause.message}` : ""}`, { cause })),
-      );
+      void handOver(onDownload, name, data, type).catch((cause) => reportStorageError(cause instanceof PliError ? cause : new PliError("unsupported", saveFailure(cause), { cause })));
     },
     [onDownload, reportStorageError],
   );
@@ -892,6 +910,7 @@ export function PliDocument({
           { label: "Footer", disabled: readOnly || view !== "pages", onSelect: () => beginRegionEdit(regionKeyFor(session.state.page, "footer", 1), 0) },
           { label: "Page number", disabled: readOnly || view !== "pages", onSelect: insertPageNumber },
           { label: "Page count", disabled: !region, onSelect: () => region?.session.insertField("pages") },
+          ...(placeholders ? (["separator", ...placeholderMenu(() => target, placeholders === true ? {} : placeholders, readOnly, focusTarget)] as MenuEntry[]) : []),
         ],
       },
       {
@@ -1005,9 +1024,9 @@ export function PliDocument({
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `state` and `doc` change identity with the session
-    [doc, state, view, zoom, outlineOpen, readOnly, region, collapsed, target, session, focusTarget, beginRegionEdit, print, exportAs, exportAsPdf, comments, commentsOpen, suggestionsOpen, canStartComment, filePicker, history, historyOpen],
+    [doc, state, view, zoom, outlineOpen, readOnly, region, collapsed, target, session, focusTarget, beginRegionEdit, print, exportAs, exportAsPdf, comments, commentsOpen, suggestionsOpen, canStartComment, filePicker, history, historyOpen, placeholders],
   );
-  const allMenus = useMemo(() => extendMenus(menus, extraMenus), [menus, extraMenus]);
+  const allMenus = useMemo(() => extendMenus(menus, extraMenus, menuLabels), [menus, extraMenus, menuLabels]);
 
   const onKeyDown = (event: ReactKeyboardEvent) => {
     if (event.defaultPrevented) return;
@@ -1059,6 +1078,7 @@ export function PliDocument({
     ) : null;
 
   return (
+    <PlaceholdersContext.Provider value={chipMode}>
     <FontsProvider fonts={fontRegistry}>
      <ThemeContext.Provider value={forcedTheme(theme)}>
      <FilePickerProvider picker={filePicker}>
@@ -1283,5 +1303,6 @@ export function PliDocument({
      </FilePickerProvider>
      </ThemeContext.Provider>
     </FontsProvider>
+    </PlaceholdersContext.Provider>
   );
 }

@@ -6,6 +6,8 @@ import {
   isTextBlock,
   locate,
   pageBreak,
+  placeholdersIn,
+  plainText,
   fragmentToJson,
   selectedBlocks,
   selectionState,
@@ -13,12 +15,19 @@ import {
   sliceSelection,
   toHtml,
   type DocumentSession,
+  type Point,
+  type Selection,
 } from "@pli.dev/docs";
-import { findBlockElement, pointFromDom, readBlockText, selectionFromDom, selectionFromRange } from "./dom";
+import { applySelectionToDom, findBlockElement, namedTagStart, pointFromDom, readBlockText, selectionFromDom, selectionFromRange } from "./dom";
 import { BLOCK_ATTR, NON_TEXT_TYPES } from "./render";
 
 export interface EditorEventOptions {
   isReadOnly(): boolean;
+  /**
+   * Whether a template's `{{ … }}` tags are shown by name, and so are one character to the caret: it never rests inside one,
+   * Backspace and Delete remove a whole tag, and a selection takes in a tag it touches.
+   */
+  isAtomic?(): boolean;
   /** Called with a block id whose DOM the browser edited directly and which must be rebuilt. */
   remount(blockId: string): void;
   /** Called with image files that were pasted or dropped. */
@@ -42,9 +51,48 @@ export function attachEditorEvents(root: HTMLElement, session: DocumentSession, 
   /** When Ctrl/Cmd+Shift+V was pressed: the paste event that follows is plain text. */
   let plainPasteAt = 0;
 
+  const atomic = (): boolean => options.isAtomic?.() === true;
+
+  /** The tags in a block that are drawn as one piece: where each starts and ends in the block's text. */
+  const tagsIn = (blockId: string) => {
+    const found = locate(session.state, blockId);
+    // A tag that can't be read is drawn as written, so the caret may go inside it to fix it.
+    return found && isTextBlock(found.block) ? placeholdersIn(plainText(found.block.runs)).filter((t) => t.kind !== "error") : [];
+  };
+
+  /**
+   * Moves a selection out of the tags it is inside. A caret that is inside one jumps to the side it was moving toward (it came from
+   * the left, so to the right); a range takes in the whole tag at each end.
+   */
+  const snap = (selection: Selection, previous: Selection | null, dom: { anchor: number | null; focus: number | null } = { anchor: null, focus: null }): Selection => {
+    // A point is inside a tag when it is between its characters, or at an edge but the browser has it inside the tag's element
+    // (`chip` is where that element begins, which says which of two tags side by side it is).
+    const inside = (p: Point, chip: number | null) =>
+      tagsIn(p.block).find((t) => (p.offset > t.from && p.offset < t.to) || (chip !== null && chip >= t.from && chip < t.to && p.offset >= t.from && p.offset <= t.to));
+    const a = inside(selection.anchor, dom.anchor);
+    const f = inside(selection.focus, dom.focus);
+    if (!a && !f) return selection;
+    const { anchor, focus } = selection;
+    if (isCollapsed(selection) && f) {
+      const was = previous?.focus.block === focus.block ? previous.focus.offset : null;
+      const nearer = focus.offset - f.from < f.to - focus.offset ? f.from : f.to;
+      return caret(focus.block, was === null ? nearer : was <= f.from ? f.to : was >= f.to ? f.from : nearer);
+    }
+    const forward = anchor.block === focus.block ? focus.offset >= anchor.offset : true;
+    return {
+      anchor: a ? { block: anchor.block, offset: forward ? a.from : a.to } : anchor,
+      focus: f ? { block: focus.block, offset: forward ? f.to : f.from } : focus,
+    };
+  };
+
   const syncSelection = (): void => {
     const selection = selectionFromDom(root);
-    if (selection) session.select(selection);
+    if (!selection) return;
+    const sel = doc.getSelection();
+    const snapped = atomic() ? snap(selection, session.selection, { anchor: namedTagStart(root, sel?.anchorNode ?? null), focus: namedTagStart(root, sel?.focusNode ?? null) }) : selection;
+    session.select(snapped);
+    // The browser put the caret inside a tag: move it to where the model has it, outside.
+    if (snapped !== selection) applySelectionToDom(root, snapped, true);
   };
 
   const onSelectionChange = (): void => {
@@ -54,7 +102,7 @@ export function attachEditorEvents(root: HTMLElement, session: DocumentSession, 
   const selectRange = (event: InputEvent): void => {
     const range = event.getTargetRanges?.()[0];
     const selection = range && selectionFromRange(root, range);
-    if (selection) session.select(selection);
+    if (selection) session.select(atomic() ? snap(selection, null) : selection);
   };
 
   const insertText = (text: string): void => {
@@ -94,6 +142,15 @@ export function attachEditorEvents(root: HTMLElement, session: DocumentSession, 
       case "deleteContentForward": {
         // When the browser's range sits inside one block (it knows about grapheme clusters, such
         // as family emoji), delete exactly that; otherwise let the command handle block joins.
+        const back = event.inputType === "deleteContentBackward";
+        // Next to a tag that is shown by name, one key press removes the whole tag.
+        const at = atomic() ? session.selection : null;
+        const tag = at && isCollapsed(at) ? tagsIn(at.focus.block).find((t) => (back ? t.to === at.focus.offset : t.from === at.focus.offset)) : undefined;
+        if (at && tag) {
+          session.select({ anchor: { block: at.focus.block, offset: tag.from }, focus: { block: at.focus.block, offset: tag.to } });
+          session.deleteSelection();
+          break;
+        }
         const range = event.getTargetRanges?.()[0];
         const target = range && selectionFromRange(root, range);
         // With an image, divider or table selected, the browser's range is about the text next to it.

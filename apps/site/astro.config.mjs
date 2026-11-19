@@ -91,6 +91,7 @@ export default defineConfig({
               "platform/shared-ui",
               "platform/theme-and-buttons",
               "platform/menus-and-file-pickers",
+              "platform/saving-files",
               "platform/users",
               "platform/comments",
               "platform/realtime",

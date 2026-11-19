@@ -4,6 +4,8 @@ import { CollabLab } from "./collab/CollabLab";
 import { demoById } from "./demos";
 import { DecksDemo } from "./decks/DecksDemo";
 import { Embed } from "./embed/Embed";
+import { Generate } from "./generate/Generate";
+import { Builder } from "./generate/Builder";
 import { Landing } from "./Landing";
 
 import { SheetsDemo } from "./sheets/SheetsDemo";
@@ -31,6 +33,10 @@ export function App() {
       return <DecksDemo />;
     case "embed":
       return <Embed />;
+    case "generate":
+      return <Generate />;
+    case "builder":
+      return <Builder />;
     case "pdf":
       return (
         <Suspense fallback={<p className="pdf-demo-loading">Loading the PDF editor…</p>}>

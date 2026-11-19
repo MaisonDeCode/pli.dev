@@ -12,10 +12,10 @@ import {
   type ReactNode,
 } from "react";
 import { fontStack, lookupFont } from "@pli.dev/core";
-import { userColor, effectiveMarks, headingAnchor, isFormattable, listLabels, plainText, withParagraphStyle, type Block, type Doc, type ImageBlock, type ImageCrop, type Run, type TableBlock, type TocBlock } from "@pli.dev/docs";
+import { userColor, effectiveMarks, placeholdersIn, headingAnchor, isFormattable, listLabels, plainText, withParagraphStyle, type Block, type Doc, type ImageBlock, type ImageCrop, type Run, type TableBlock, type TocBlock } from "@pli.dev/docs";
 import type { DocumentSession, StorageClient, UploadState } from "@pli.dev/docs";
 import type { Layout, Split } from "./layout/paginate";
-import { EditorSessionContext } from "./session-context";
+import { EditorSessionContext, PlaceholdersContext, type PlaceholderMode } from "./session-context";
 import { columnRuns, sectionsOf, type ColumnRun } from "@pli.dev/docs";
 
 /** The page gaps a view needs. `repeats` is optional so simple callers (and tests) can leave it out. */
@@ -110,7 +110,59 @@ function renderRun(run: Run, key: number, fields: FieldValues | undefined, marks
   return <Fragment key={key}>{node}</Fragment>;
 }
 
-type Piece = { kind: "run"; run: Run } | { kind: "gap"; height: number };
+/** How a piece of text that is part of a `{{ … }}` is drawn: `edge` says whether it starts it, ends it, both or neither. */
+interface Chip {
+  kind: "value" | "block" | "error";
+  edge: "start" | "end" | "both" | "mid";
+  /** For an error: what is wrong. */
+  message?: string;
+  /** The tag's name in plain words, when the tag is shown as a name. It is on every piece of the tag. */
+  label?: string;
+  /** The tag as written. */
+  raw: string;
+}
+
+type Piece = { kind: "run"; run: Run; chip?: Chip } | { kind: "gap"; height: number };
+
+/**
+ * Cuts the text of a block at the edges of its `{{ … }}` tags and marks the pieces inside them, so they can be drawn as chips.
+ * A tag can run over several runs (a bold word in the middle of it), and over a page gap; each piece is marked.
+ */
+function withChips(pieces: Piece[], mode: PlaceholderMode): Piece[] {
+  let text = "";
+  for (const piece of pieces) if (piece.kind === "run") text += piece.run.text;
+  const tags = placeholdersIn(text);
+  if (tags.length === 0) return pieces;
+  const out: Piece[] = [];
+  let position = 0;
+  for (const piece of pieces) {
+    if (piece.kind === "gap") {
+      out.push(piece);
+      continue;
+    }
+    const end = position + piece.run.text.length;
+    let from = position;
+    for (const tag of tags) {
+      if (tag.to <= from || tag.from >= end) continue;
+      const a = Math.max(tag.from, from);
+      const b = Math.min(tag.to, end);
+      if (a > from) out.push({ kind: "run", run: { text: piece.run.text.slice(from - position, a - position), marks: piece.run.marks } });
+      const raw = text.slice(tag.from, tag.to);
+      const label = tag.kind === "error" ? undefined : mode.label?.(raw);
+      const starts = a === tag.from;
+      const ends = b === tag.to;
+      out.push({
+        kind: "run",
+        run: { text: piece.run.text.slice(a - position, b - position), marks: piece.run.marks },
+        chip: { kind: tag.kind, edge: starts && ends ? "both" : starts ? "start" : ends ? "end" : "mid", raw, ...(label !== undefined && { label }), ...(tag.message !== undefined && { message: tag.message }) },
+      });
+      from = b;
+    }
+    if (from < end) out.push({ kind: "run", run: { text: piece.run.text.slice(from - position), marks: piece.run.marks } });
+    position = end;
+  }
+  return out;
+}
 
 /** Cuts runs at the page-break offsets so a gap element can sit between the two halves. */
 function piecesWithGaps(runs: readonly Run[], splits: readonly Split[]): Piece[] {
@@ -148,17 +200,29 @@ function piecesWithGaps(runs: readonly Run[], splits: readonly Split[]): Piece[]
  * selection offsets are computed from it. A `<br>` (which adds no text) keeps empty lines and
  * trailing line breaks visible; page gaps add elements but no text.
  */
-function content(runs: readonly Run[], splits: readonly Split[] | undefined, fields: FieldValues | undefined, marksOf?: (marks: Run["marks"]) => Run["marks"]): ReactNode[] {
-  const nodes: ReactNode[] =
-    splits && splits.length > 0
-      ? piecesWithGaps(runs, splits).map((piece, i) =>
-          piece.kind === "run" ? (
-            renderRun(piece.run, i, fields, marksOf)
-          ) : (
-            <span key={i} className="pli-spacer pli-spacer-inline" data-pli-spacer="" contentEditable={false} aria-hidden="true" style={{ height: piece.height }} />
-          ),
-        )
-      : runs.map((run, i) => renderRun(run, i, fields, marksOf));
+function content(runs: readonly Run[], splits: readonly Split[] | undefined, fields: FieldValues | undefined, marksOf?: (marks: Run["marks"]) => Run["marks"], chips?: PlaceholderMode | false): ReactNode[] {
+  let pieces: Piece[] = splits && splits.length > 0 ? piecesWithGaps(runs, splits) : runs.map((run) => ({ kind: "run" as const, run }));
+  if (chips) pieces = withChips(pieces, chips);
+  const nodes: ReactNode[] = pieces.map((piece, i) => {
+    if (piece.kind === "gap") return <span key={i} className="pli-spacer pli-spacer-inline" data-pli-spacer="" contentEditable={false} aria-hidden="true" style={{ height: piece.height }} />;
+    const node = renderRun(piece.run, i, fields, marksOf);
+    if (!piece.chip) return node;
+    const { kind, edge, message, label, raw } = piece.chip;
+    if (label === undefined) {
+      return (
+        <span key={i} className="pli-ph" data-kind={kind} data-edge={edge} title={message}>
+          {node}
+        </span>
+      );
+    }
+    // Shown as a name: the chip's own text is hidden, and the name is drawn by CSS (so it is not text the caret can land in).
+    return (
+      <span key={i} className="pli-ph" data-kind={kind} data-edge={edge} data-friendly="" title={raw}>
+        {(edge === "start" || edge === "both") && <span className="pli-ph-label" data-label={label} contentEditable={false} aria-hidden="true" />}
+        <span className="pli-ph-text">{node}</span>
+      </span>
+    );
+  });
   const last = runs[runs.length - 1];
   if (!last || last.text.endsWith("\n")) nodes.push(<br key="br" />);
   return nodes;
@@ -505,6 +569,7 @@ export const BlockView = memo(function BlockView({
   context,
 }: BlockViewProps) {
   const base = { [BLOCK_ATTR]: block.id, "data-type": block.type };
+  const chips = useContext(PlaceholdersContext) || undefined;
   // A paragraph style gives the paragraph its spacing and alignment, and its text a look that the text's own marks change.
   const named = styles ? { styles } : undefined;
   const shown = named ? withParagraphStyle(named, block) : block;
@@ -514,31 +579,31 @@ export const BlockView = memo(function BlockView({
     case "paragraph":
       return (
         <p {...base} style={formatStyle(shown as FormattableLike)} data-placeholder={placeholder}>
-          {content(block.runs, splits, fields, marksOf)}
+          {content(block.runs, splits, fields, marksOf, chips)}
         </p>
       );
     case "title":
       return (
         <p {...base} className="pli-title" style={formatStyle(shown as FormattableLike)} data-placeholder={placeholder}>
-          {content(block.runs, splits, fields, marksOf)}
+          {content(block.runs, splits, fields, marksOf, chips)}
         </p>
       );
     case "subtitle":
       return (
         <p {...base} className="pli-subtitle" style={formatStyle(shown as FormattableLike)}>
-          {content(block.runs, splits, fields, marksOf)}
+          {content(block.runs, splits, fields, marksOf, chips)}
         </p>
       );
     case "heading":
       return createElement(
         `h${block.level}`,
         { ...base, id: headingAnchor(block), style: formatStyle(shown as FormattableLike) },
-        content(block.runs, splits, fields, marksOf),
+        content(block.runs, splits, fields, marksOf, chips),
       );
     case "quote":
       return (
         <blockquote {...base} style={formatStyle(shown as FormattableLike)}>
-          {content(block.runs, splits, fields, marksOf)}
+          {content(block.runs, splits, fields, marksOf, chips)}
         </blockquote>
       );
     case "code_block":
@@ -556,7 +621,7 @@ export const BlockView = memo(function BlockView({
           data-marker={marker}
           style={{ ...formatStyle(shown as FormattableLike), "--pli-depth": block.depth } as CSSProperties}
         >
-          {content(block.runs, splits, fields, marksOf)}
+          {content(block.runs, splits, fields, marksOf, chips)}
         </div>
       );
     case "divider":

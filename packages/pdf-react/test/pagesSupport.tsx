@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { act } from "react";
 import { beforeEach } from "vitest";
 import { extractText, openPdf, PdfFile, type PdfSession } from "@pli.dev/pdf";
@@ -54,10 +55,10 @@ export interface Mounted {
 export const viewport = { width: 800, height: 600 };
 
 /** Mounts the viewer on a real PDF, with downloads collected instead of saved. */
-export async function mountPdf(session: PdfSession, extra: Partial<PliPdfProps> = {}): Promise<Mounted> {
+export async function mountPdf(session: PdfSession, extra: Partial<PliPdfProps> = {}, wrap: (node: ReactElement) => ReactElement = (node) => node): Promise<Mounted> {
   const renderer = (extra.renderer as ReturnType<typeof fakeRenderer> | undefined) ?? fakeRenderer({ pages: session.doc.pages.length });
   const downloads: Downloaded[] = [];
-  await render(<PliPdf session={session} renderer={renderer} viewport={viewport} defaultZoom={1} onDownload={(bytes, name, mime) => void downloads.push({ name, bytes, mime })} {...extra} />);
+  await render(wrap(<PliPdf session={session} renderer={renderer} viewport={viewport} defaultZoom={1} onDownload={(bytes, name, mime) => void downloads.push({ name, bytes, mime })} {...extra} />));
   await flush();
   return { session, renderer, downloads };
 }

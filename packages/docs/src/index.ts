@@ -126,6 +126,11 @@ export {
 } from "./build";
 
 export { usedFonts } from "./fonts";
+export { generateDocument, pathLabel, type Answers, type GenerateOptions, type GenerateResult, type TemplateIssue } from "./template/generate";
+export { describePlaceholder, placeholderSnippet, placeholdersIn, type Placeholder, type PlaceholderNames, type PlaceholderKind, type PlaceholderSnippet } from "./template/placeholders";
+export { templateFields, type FieldType, type FieldUse, type TemplateAnalysis, type TemplateField } from "./template/fields";
+export { TemplateError, type FilterContext, type TemplateFilter } from "./template/expression";
+export { BUILT_IN_FILTERS } from "./template/filters";
 export { toDocx, type DocxOptions } from "./export/docx";
 export { toPdf, type PdfClip, type PdfFont, type PdfGradient, type PdfImage, type PdfItem, type PdfLink, type PdfOpacity, type PdfOptions, type PdfPage, type PdfPathCommand, type PdfRotation } from "./export/pdf";
 export { parseTrueType, type TrueTypeFont } from "./export/truetype";

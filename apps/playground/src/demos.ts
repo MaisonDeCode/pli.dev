@@ -34,6 +34,16 @@ export const PRODUCTS: Product[] = [
         title: "Collaboration",
         summary: "The same editor in a room with other people, over a real server.",
       },
+      {
+        id: "generate",
+        title: "Documents from answers",
+        summary: "A template with placeholders, parts that appear only when something is true, and rows that repeat. Fill in a questionnaire and the document is made as you type; edit the template in the editor.",
+      },
+      {
+        id: "builder",
+        title: "Templates without code",
+        summary: "The same templates for people who don't write code: each placeholder and condition shows as a plain name, and a list of questions to click in.",
+      },
     ],
   },
   {

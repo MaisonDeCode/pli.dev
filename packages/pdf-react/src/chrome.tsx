@@ -8,7 +8,7 @@
  */
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { ShareButton } from "@pli.dev/react/collab";
-import { MenuBar, extendMenus, keepFocus, type ExtraMenus, type MenuDefinition, type MenuEntry } from "@pli.dev/react";
+import { MenuBar, extendMenus, keepFocus, type ExtraMenus, type MenuDefinition, type MenuEntry, type MenuLabels } from "@pli.dev/react";
 import type { PdfSession } from "@pli.dev/pdf";
 import { ZOOM_MENU, stepZoom, type Zoom } from "./geometry";
 import type { ViewMode } from "./layout";
@@ -142,7 +142,7 @@ export function buildMenus(c: PdfCommands, d: ChromeDeps): PdfMenus {
 }
 
 /** The menu bar, rebuilt when the stores it reads (the file commands, the page tools) change. */
-export function LiveMenuBar({ build, stores, changed, extra }: { build: () => PdfMenus; stores: readonly Store[]; changed?: (listener: () => void) => () => void; extra?: ExtraMenus }) {
+export function LiveMenuBar({ build, stores, changed, extra, labels }: { build: () => PdfMenus; stores: readonly Store[]; changed?: (listener: () => void) => () => void; extra?: ExtraMenus; labels?: MenuLabels }) {
   // Hooks run in the same order on every render: the stores are fixed for a viewer.
   for (const s of stores) useStore(s); // eslint-disable-line react-hooks/rules-of-hooks
   // What the kits tell: the clipboard, the tool in hand... Each change is a new number, so the menus are read again.
@@ -154,13 +154,18 @@ export function LiveMenuBar({ build, stores, changed, extra }: { build: () => Pd
   );
   const menus = build();
   const defs: MenuDefinition[] = MENU_NAMES.filter((name) => menus[name]?.length).map((name) => ({ label: name, items: menus[name]! }));
-  return <MenuBar menus={extendMenus(defs, extra)} className="pli-pdf-menubar" />;
+  return <MenuBar menus={extendMenus(defs, extra, labels)} className="pli-pdf-menubar" />;
 }
 
-/** The File menu's entries with the host's `extraMenus.File` added (for the File button of the toolbar, when there is no menu bar). */
-export function fileMenuItems(items: MenuEntry[] | undefined, extra: ExtraMenus | undefined): MenuEntry[] | undefined {
-  if (!extra || !("File" in extra)) return items;
-  return extendMenus([{ label: "File", items: items ?? [] }], { File: extra.File! }).find((m) => m.label === "File")?.items;
+/**
+ * The File menu's entries with the host's `extraMenus.File` added and its `menuLabels` applied (for the File button of the toolbar,
+ * when there is no menu bar). The labels are those of the File menu, so `"File > Download"` works here as it does in the bar.
+ */
+export function fileMenuItems(items: MenuEntry[] | undefined, extra: ExtraMenus | undefined, labels?: MenuLabels): MenuEntry[] | undefined {
+  const onlyFile = extra && "File" in extra ? { File: extra.File! } : undefined;
+  if (!onlyFile && !labels) return items;
+  // The menu is renamed or removed by the labels, so look for it by its place and not by its name.
+  return extendMenus([{ label: "File", items: items ?? [] }], onlyFile, labels)[0]?.items ?? [];
 }
 
 /**

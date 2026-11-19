@@ -5,6 +5,7 @@ import { DeckSession } from "@pli.dev/decks";
 import { SlideView } from "@pli.dev/decks-react";
 import { starter } from "./basics/Basics";
 import { sampleDeck } from "./decks/DecksDemo";
+import { generatedSample } from "./generate/Generate";
 import { TEAM } from "./collab/people";
 import { labDocument } from "./collab/starter";
 import type { DemoId } from "./router";
@@ -17,6 +18,8 @@ const BLOCKS = 12;
 const PREVIEWS: Record<Exclude<DemoId, "sheets" | "decks" | "pdf">, { doc: () => Doc; people?: PliUser[] }> = {
   basics: { doc: starter },
   embed: { doc: starter },
+  generate: { doc: generatedSample },
+  builder: { doc: generatedSample },
   collaboration: { doc: labDocument, people: TEAM },
 };
 

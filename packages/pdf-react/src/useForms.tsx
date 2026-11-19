@@ -14,6 +14,7 @@ import { useContentEditKit } from "./useEdit";
 import { createFormTools } from "./formTools";
 import { stripUndefined, useAnnotationKit, useKitDefaults, type AnnotationKitOptions } from "./useAnnotations";
 import type { PageContext, PdfPanel, PdfTool, PdfViewContext } from "./extensions";
+import { usePdfDownload } from "./download";
 
 export type FormsKitOptions = Omit<FormControllerOptions, "session">;
 
@@ -158,10 +159,11 @@ export const FormsPdf: ForwardRefExoticComponent<FormsPdfProps & RefAttributes<P
   const withAnnotations = annotations !== false;
   const withEdit = editOptions !== false;
   const defaults = useKitDefaults(props);
+  const formsDownload = usePdfDownload(props.onDownload);
   const annot = useAnnotationKit(props.session, { ...stripUndefined(defaults), ...(annotations || {}), readOnly: props.readOnly });
   const kit = useFormsKit(props.session, {
     readOnly: props.readOnly,
-    download: props.onDownload,
+    download: formsDownload,
     // A click on a signature field opens the annotation signature dialog; the person then puts the signature down on the page.
     ...(withAnnotations ? { onSign: (field: FormField) => annot.controller.signField(field) } : {}),
     ...formOptions,

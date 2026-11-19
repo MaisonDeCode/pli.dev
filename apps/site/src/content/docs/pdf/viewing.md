@@ -133,7 +133,7 @@ import { PliPdf } from "@pli.dev/pdf-react";
 | `password` | The password of an encrypted file, for the renderer |
 | `theme` | `"auto"` (follows the system), `"light"` or `"dark"`. Pages are always drawn on white paper |
 | `onSave(bytes, result)` | Called by Save (the button, the File menu, Ctrl or Cmd with S) with the saved file. The document counts as saved when the promise you return resolves. See [Files](/pdf/files/#in-the-viewer-the-file-menu) |
-| `onDownload(bytes, name, mime)`, `onPrint` | Take over downloads (a copy, split files, page pictures) and printing. Without them the browser downloads, and prints from a hidden frame |
+| `onDownload(bytes, name, mime, { browserDownload })`, `onPrint` | Take over downloads (a copy, split files, page pictures) and printing; `browserDownload()` is the default download, for what you don't handle. Without them the browser downloads, and prints from a hidden frame. See [Saving files your way](/platform/saving-files/) |
 | `onOpen(bytes, name)` | Gives the File menu Open PDF and Create PDF from pictures. You make the new session, because the session is yours |
 | `warnOnUnload` | Ask the browser to confirm leaving the page while there are unsaved changes |
 | `pageTools` | `false` turns off the page tools, the File menu and bookmark editing (thumbnails and outline are then look-only). See [Pages](/pdf/pages/#in-the-viewer) |

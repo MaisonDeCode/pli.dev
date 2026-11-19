@@ -92,10 +92,11 @@ import { useStore } from "./store";
 import { PdfSession, missingVersionSources, pdfVersionHistory, type PdfAnchor, type PdfDoc, type PdfOp, type SaveResult } from "@pli.dev/pdf";
 import type { AutoSaveOptions, FontRegistry, CollabRoom, NamedVersion, ShareClient, StorageClient, Users, VersionHistory, VersionStorage } from "@pli.dev/core";
 import { OfflineBanner, ShareDialog, VersionHistoryPanel, VersionPreviewBar, useSyncStatus } from "@pli.dev/react/collab";
-import { Bar, FilePickerProvider, extendMenus, type ExtraMenus, type FilePicker } from "@pli.dev/react";
+import { Bar, FilePickerProvider, extendMenus, type ExtraMenus, type FilePicker, type MenuLabels } from "@pli.dev/react";
 import { CURSOR_MS, PeopleBar, publishPresence, throttle, useCollab, type PresenceCursor, type CommentsProp, type SyncProp } from "./collab";
 import { setSessionFonts } from "./saving";
 import { SIDEBAR_KEYS } from "./shortcuts";
+import { usePdfDownload, type PdfDownloadHandler } from "./download";
 
 export interface PliPdfHandle {
   goToPage(page: number | string, y?: number): void;
@@ -179,8 +180,13 @@ export interface PliPdfProps {
    * document counts as saved when the promise it returns resolves; if it rejects the dot stays and an error is shown.
    */
   onSave?: (bytes: Uint8Array, result: SaveResult) => void | Promise<void>;
-  /** [page tools] Hands a downloaded file (a copy, a split part, a page picture) to the app. Default: a browser download. */
-  onDownload?: (bytes: Uint8Array, name: string, mime: string) => void | Promise<void>;
+  /**
+   * [page tools] Hands a downloaded file (a copy, a split part, a page picture, form data) to the app: save it in your own storage,
+   * or show the phone's share sheet. The fourth argument has `browserDownload()`, the default, for the files or places you don't
+   * handle. If it throws or rejects an error is shown. Left out, the nearest `DownloadProvider`'s function is used, and without
+   * one the browser downloads the file.
+   */
+  onDownload?: PdfDownloadHandler;
   /** [page tools] Replaces the built-in print (a hidden frame with the saved PDF). */
   onPrint?: () => void | Promise<void>;
   /** [page tools] Replaces the document with another file: gives Open PDF and Create PDF from pictures to the File menu. The session is the host's, so it makes the new one. */
@@ -260,6 +266,12 @@ export interface PliPdfProps {
    * Applied after `menus`, so it also reaches what a kit added. Read-only and disabled states cover the built-in items only. See [Menus and file pickers](/platform/menus-and-file-pickers/).
    */
   extraMenus?: ExtraMenus;
+  /**
+   * New text for the built-in menus, or a way to take an item out. `{ "File > Download": "Export", "Insert > Page break": false }`
+   * renames File > Download and removes Page break. A key is the text as it is now, or a path of them; `false` removes. Also for
+   * translating the menus. See `MenuLabels` and [Menus and file pickers](https://pli.dev/platform/menus-and-file-pickers/).
+   */
+  menuLabels?: MenuLabels;
   /**
    * Your own way of choosing files: called for Open, Create from pictures, Insert pages from a file, Add picture, the signature picture, Replace picture and Import form data,
    * with what for (`purpose`: `"open"`, `"image"` or `"import"`), the file types, and a `browse()` for the browser's chooser. Resolve with the chosen `File`(s), or `null`
@@ -563,12 +575,13 @@ export const PliPdf: ForwardRefExoticComponent<PliPdfProps & RefAttributes<PliPd
 
   // ---- [page tools] ---------------------------------------------------------------------------------------------------
 
+  const download = usePdfDownload(props.onDownload);
   const pageToolsOn = props.pageTools !== false;
   const kit = usePageToolsKit({
     session,
     renderer,
     readOnly,
-    hooks: { onSave: props.onSave, onOpen: props.onOpen, onPrint: props.onPrint, download: props.onDownload, picker: props.filePicker },
+    hooks: { onSave: props.onSave, onOpen: props.onOpen, onPrint: props.onPrint, download: download, picker: props.filePicker },
     warnOnUnload: props.warnOnUnload,
     here: () => {
       const { list: pagesNow, current: cur, layout: lay, scale: s } = latest.current;
@@ -1108,7 +1121,7 @@ export const PliPdf: ForwardRefExoticComponent<PliPdfProps & RefAttributes<PliPd
               startActions={props.startActions}
               endActions={props.endActions}
             />
-            <LiveMenuBar build={buildMenuBar} stores={[kit.files, kit.tools]} changed={props.menusChanged} extra={props.extraMenus} />
+            <LiveMenuBar build={buildMenuBar} stores={[kit.files, kit.tools]} changed={props.menusChanged} extra={props.extraMenus} labels={props.menuLabels} />
           </div>
         )}
         {topToolbar && (
@@ -1131,7 +1144,7 @@ export const PliPdf: ForwardRefExoticComponent<PliPdfProps & RefAttributes<PliPd
           people={!menuOn && props.room ? <PeopleBar collab={collab} room={props.room} /> : undefined}
           readOnly={readOnly}
           title={!menuOn && pageToolsOn ? <DocumentTitle files={kit.files} dirty={session.dirty} /> : undefined}
-          file={pageToolsOn ? menuOn ? <SaveButton files={kit.files} dirty={session.dirty} /> : <FileMenu files={kit.files} dirty={session.dirty} items={fileMenuItems(buildMenuBar().File, props.extraMenus)} /> : undefined}
+          file={pageToolsOn ? menuOn ? <SaveButton files={kit.files} dirty={session.dirty} /> : <FileMenu files={kit.files} dirty={session.dirty} items={fileMenuItems(buildMenuBar().File, props.extraMenus, props.menuLabels)} /> : undefined}
           onOrganise={pageToolsOn && count > 0 ? () => kit.tools.setOrganise(true) : undefined}
         />
         )}

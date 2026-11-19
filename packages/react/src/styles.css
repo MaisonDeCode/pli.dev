@@ -1289,6 +1289,79 @@ body > .pli-panel-fixed[data-theme="dark"] {
   background: color-mix(in srgb, var(--pli-accent) 12%, transparent);
 }
 
+/* A `{{ … }}` in a template, drawn as a chip. Only the background changes: the text, and so the caret, is the page's own. */
+.pli-editor .pli-ph {
+  --pli-ph: var(--pli-accent);
+  background: color-mix(in srgb, var(--pli-ph) 14%, transparent);
+  box-shadow: inset 0 -1.5px 0 color-mix(in srgb, var(--pli-ph) 45%, transparent);
+  font-family: var(--pli-mono);
+  font-size: 0.92em;
+}
+
+.pli-editor .pli-ph[data-kind="block"] {
+  --pli-ph: #0d9488;
+}
+
+.pli-editor .pli-ph[data-kind="error"] {
+  --pli-ph: #dc2626;
+  text-decoration: underline wavy var(--pli-ph);
+  text-decoration-skip-ink: none;
+  text-underline-offset: 2px;
+}
+
+.pli-editor .pli-ph[data-edge="start"],
+.pli-editor .pli-ph[data-edge="both"] {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.pli-editor .pli-ph[data-edge="end"],
+.pli-editor .pli-ph[data-edge="both"] {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+/*
+ * A tag shown by name: its text is kept in the page but hidden, and the name is drawn by CSS, so it is not text the caret can land in.
+ * Zero width and clipped, rather than a zero font size, so a font size on the text itself can't bring it back.
+ */
+.pli-editor .pli-ph[data-friendly] {
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.pli-editor .pli-ph[data-friendly] .pli-ph-text {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+.pli-editor .pli-ph-label::before {
+  content: attr(data-label);
+  padding: 0 0.4em;
+  font-family: var(--pli-font);
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--pli-ph) 80%, var(--pli-paper-fg));
+}
+
+.pli-editor .pli-ph[data-friendly][data-kind="block"] .pli-ph-label::before {
+  text-transform: uppercase;
+  font-size: 0.72em;
+  letter-spacing: 0.06em;
+}
+
+.pli-editor .pli-ph[data-friendly] {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pli-ph) 16%, transparent);
+  box-shadow: none;
+}
+
 /* Page breaks show as a dashed rule with a label. */
 .pli-editor .pli-page-break {
   position: relative;

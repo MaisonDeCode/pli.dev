@@ -101,6 +101,22 @@ describe("the menu bar", () => {
     expect(labelsOf(qa("[role=menu] [role^=menuitem]", document))).toContain("Print…");
   });
 
+  it("menuLabels renames and removes menus and items, in the bar and in the File menu of the toolbar", async () => {
+    await mount(await openWords(), { menuLabels: { File: "Document", Help: false, "Print…": "Print it" } });
+    const bar = qa(".pli-menubar-button").map((b) => b.textContent);
+    expect(bar).toContain("Document");
+    expect(bar).not.toContain("File");
+    expect(bar).not.toContain("Help");
+    await click(menuButton("Document"));
+    expect(labelsOf(qa("[role=menu] [role^=menuitem]", document))).toContain("Print it");
+
+    await mount(await openWords(), { menu: false, onSave: () => undefined, menuLabels: { "Print…": "Print it" } });
+    await click(byLabel("File", toolbar()));
+    const labels = labelsOf(qa("[role=menu] [role^=menuitem]", document));
+    expect(labels).toContain("Print it");
+    expect(labels).not.toContain("Print…");
+  });
+
   it("takes the entries of the `menus` prop: added at the end of a menu, or placed and removed by a function", async () => {
     const calls: string[] = [];
     await mount(await openWords(), { menus: { Tools: [{ label: "My check", onSelect: () => void calls.push("mine") }] } });

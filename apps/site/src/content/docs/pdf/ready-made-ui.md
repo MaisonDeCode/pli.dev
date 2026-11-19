@@ -108,7 +108,7 @@ Files (see [Files](/pdf/files/#in-the-viewer-the-file-menu))
 | Prop | |
 |---|---|
 | `onSave(bytes, result)` | Called by Save (the button, the File menu, Ctrl or ⌘ with S) with the saved file. The document counts as saved when the promise you return resolves; if it rejects the dot stays and an error is shown. `result.warnings` lists what could not be written exactly |
-| `onDownload(bytes, name, mime)` | Takes over every download: a copy, split files, page pictures, form data, a flattened file. Without it the browser downloads |
+| `onDownload(bytes, name, mime, { browserDownload })` | Takes over every download: a copy, split files, page pictures, form data, a flattened file. `browserDownload()` is the default, for what you don't handle. Without it the browser downloads, or a `DownloadProvider`'s function is used. See [Saving files your way](/platform/saving-files/) |
 | `onPrint()` | Takes over printing. Without it the saved file is printed from a hidden frame |
 | `onOpen(bytes, name)` | Gives the File menu Open PDF and Create PDF from pictures. You make the new session, because the session is yours |
 | `warnOnUnload` | Ask the browser to confirm leaving the page while there are unsaved changes |
@@ -135,6 +135,7 @@ People and sharing (see [Comments, people and live editing](#comments-people-and
 | `startActions` | Controls at the left end of the title row, before the document's name |
 | `endActions` | Controls at the far right end of the title row, after Share. With `actions` as well, `actions` comes first |
 | `extraMenus` | Items for the menu bar, by menu name: `{ File: [{ label, onSelect }], AI: [...] }`. A name the bar has (File, Edit, View, Insert, Format, Tools, Help) gets the items at the end of that menu after a divider; any other name makes a new menu before Help. Give `{ items, after }` or `{ items, before }` to put them next to a built-in item. Read-only and disabled states apply to the built-in items only. See [Menus and file pickers](/platform/menus-and-file-pickers/) |
+| `menuLabels` | New text for the built-in menus, or `false` to take an item out: `{ "File > Download": "Export", Help: false }`. Applied last, so it reaches what `menus`, `extraMenus` and the kits added, and the File menu in the toolbar when `menu={false}`. See [Your own menus and file chooser](/platform/menus-and-file-pickers/#rename-or-remove-built-in-items) |
 | `filePicker` | Your own way to choose files. Called for Open, Create from pictures, Insert pages from a file, Insert image, a signature picture, Replace picture and Import data, with the `purpose` (`"open"`, `"image"` or `"import"`), the `accept` list, `multiple`, a `label` and a `browse()` for the browser's chooser. Resolve with the `File`s, or `null` to do nothing. Without it the browser's chooser opens, and dropping files on the pages works as before. See [Menus and file pickers](/platform/menus-and-file-pickers/) |
 
 Fonts:

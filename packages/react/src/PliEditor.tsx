@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useCallback,
+  useContext,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -16,7 +17,8 @@ import { applySelectionToDom, revealSelection } from "./dom";
 import { attachEditorEvents } from "./events";
 import { useSessionRevision } from "./hooks";
 import { fitImage, imageBlockFromFile, prepareImageFile } from "./images";
-import { EditorSessionContext } from "./session-context";
+import { EditorSessionContext, PlaceholdersContext } from "./session-context";
+import { placeholderMode, type PlaceholderOptions } from "./ui/placeholders";
 import { EMPTY_LAYOUT, sameLayout, type Geometry, type Layout } from "./layout/paginate";
 import { measureAndPaginate, type NotesGeometry, type SectionGeometry } from "./layout/measure";
 import { DocumentView, type FieldValues, type SectionBox } from "./render";
@@ -66,6 +68,8 @@ export interface PliEditorProps {
   onStorageError?: (error: PliError, file?: File) => void;
   /** Real values for page-number fields. Only meaningful for static copies, not for editing. */
   fields?: FieldValues;
+  /** Draw each `{{ … }}` as a chip (see `PliDocument`'s `placeholders`). Left out, it follows the `PliDocument` the editor is in, if any. */
+  placeholders?: boolean | PlaceholderOptions;
   /** Accessible name for the editing area. */
   "aria-label"?: string;
   "aria-labelledby"?: string;
@@ -110,12 +114,21 @@ export const PliEditor = forwardRef<PliEditorHandle, PliEditorProps>(function Pl
     maxImageWidth,
     onStorageError,
     fields,
+    placeholders,
     fonts: fontsProp,
     ...aria
   },
   ref,
 ) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const inheritedPlaceholders = useContext(PlaceholdersContext);
+  const ownKey = typeof placeholders === "object" ? JSON.stringify([placeholders.labels, placeholders.fields]) : String(placeholders);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `ownKey` stands for the option
+  const ownChips = useMemo(() => placeholderMode(placeholders), [ownKey]);
+  const chips = placeholders === undefined ? inheritedPlaceholders : ownChips;
+  // When tags are shown by name, the caret treats each as one character.
+  const atomicRef = useRef(false);
+  atomicRef.current = !!chips && !!chips.label;
   useSessionRevision(session);
   const [epochs, setEpochs] = useState<ReadonlyMap<string, number>>(() => new Map());
   const [layout, setLayout] = useState<Layout | null>(null);
@@ -204,6 +217,7 @@ export const PliEditor = forwardRef<PliEditorHandle, PliEditorProps>(function Pl
     if (!root) return;
     return attachEditorEvents(root, session, {
       isReadOnly: () => readOnlyRef.current,
+      isAtomic: () => atomicRef.current,
       remount,
       insertImages: (files) => void insertImages(files),
       pastedImages: sizePastedImages,
@@ -345,6 +359,7 @@ export const PliEditor = forwardRef<PliEditorHandle, PliEditorProps>(function Pl
       {...aria}
     >
       <EditorSessionContext.Provider value={session}>
+      <PlaceholdersContext.Provider value={chips}>
       <DocumentView
         doc={doc}
         placeholder={placeholder}
@@ -358,6 +373,7 @@ export const PliEditor = forwardRef<PliEditorHandle, PliEditorProps>(function Pl
         onResizeColumns={readOnly ? undefined : resizeColumns}
         onResizeRow={readOnly ? undefined : resizeRow}
       />
+      </PlaceholdersContext.Provider>
       </EditorSessionContext.Provider>
     </div>
   );
