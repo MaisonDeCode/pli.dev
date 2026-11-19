@@ -1,10 +1,14 @@
 name: Release
 
-# Changesets collects the changes on main into a "Version packages" pull request. Merging that pull request publishes
-# the packages to npm, with provenance, and creates the GitHub releases. Run it by hand to publish what is on main.
+# For now this runs only when someone starts it by hand (Actions, Release, Run workflow), and releases are made from a checkout
+# with `pnpm version-packages` and `pnpm release` (see RELEASING.md). To have it run by itself again, add back
+#
+#   push:
+#     branches: [main]
+#
+# under `on:`. Then Changesets collects the changes on main into a "Version packages" pull request, and merging that pull request
+# publishes the packages to npm, with provenance, and creates the GitHub releases. Started by hand, it does the same for what is on main.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
