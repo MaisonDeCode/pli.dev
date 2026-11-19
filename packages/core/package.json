@@ -1,6 +1,6 @@
 {
   "name": "@pli.dev/core",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Shared engine primitives for every Pli product: operation sessions, history, ids and errors.",
   "keywords": [
     "pli",

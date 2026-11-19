@@ -1,5 +1,21 @@
 # @pli.dev/decks-react
 
+## 1.2.0
+
+### Minor Changes
+
+- d455aa5: Rename or remove the built-in menus and items. `menuLabels` on `PliDocument`, `PliSheet`, `PliDeck` and `PliPdf` takes the text a menu or item has now and what to show instead, or `false` to remove it: `menuLabels={{ "File > Download": "Export", "DOCX document (.docx)": "Word file", "Insert > Page break": false }}`. A key is the text as it is, which applies wherever it appears, or a path (`"File > Download"`) for one item. Renamed items keep their action, shortcut and state; removing a submenu's last item removes the submenu, and the lines left over are tidied. It is also the way to translate the menus. `relabelMenus` and the `MenuLabels` type are exported, and `extendMenus` takes the labels as a third argument.
+- d455aa5: Take over how files are saved, and keep the default when you want it. `onDownload` on `PliDocument`, `PliSheet`, `PliDeck` and `PliPdf` is now also given `browserDownload()`, the browser's own download, so one function can share a file from a native app and fall back on the web: `onDownload={(file, { browserDownload }) => (native ? share(file) : browserDownload())}`. The new `DownloadProvider` from `@pli.dev/react` sets the function once for every editor inside it, and an editor's own `onDownload` still wins. A function that throws or rejects now shows the person "The file couldn't be saved" with its reason in Documents, Sheets and Decks, as PDF already did. The Documents, Sheets and Decks download types are all `DownloadFile` now.
+
+### Patch Changes
+
+- Updated dependencies [d455aa5]
+- Updated dependencies [d455aa5]
+- Updated dependencies [d455aa5]
+  - @pli.dev/react@1.2.0
+  - @pli.dev/core@1.2.0
+  - @pli.dev/decks@1.2.0
+
 ## 1.1.0
 
 ### Minor Changes
