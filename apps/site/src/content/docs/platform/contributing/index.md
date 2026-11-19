@@ -22,7 +22,7 @@ cd pli.dev
 pnpm install
 ```
 
-You need Node 20 or later and [pnpm](https://pnpm.io) 10 (the `packageManager` field in `package.json` names the exact version; with Corepack on, `pnpm` picks it up by itself). The published packages say `"engines": { "node": ">=20" }`, and CI runs the tests on Node 20, 22 and 24.
+You need Node 20 or later and [pnpm](https://pnpm.io) 10 (the `packageManager` field in `package.json` names the exact version; with Corepack on, `pnpm` picks it up by itself). The published packages say `"engines": { "node": ">=20" }`, and CI runs the tests on Node 20, 22 and 24. On Node 20 the test files that need pdf.js (it needs Node 22.13 or later) or `node:sqlite` (Node 22.5 or later) are left out, and the run says how many; everything else runs there.
 
 Swift work needs Xcode (the package uses Swift tools 5.9). Kotlin work needs a JDK 21 for the `packages/kotlin` build and Android Studio for the Android module. You need none of them for the TypeScript packages.
 

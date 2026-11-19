@@ -58,11 +58,17 @@ try {
       devDependencies: { "@types/node": "^22.0.0", "@types/react": "^19.0.0", "@types/react-dom": "^19.0.0", "@vitejs/plugin-react": "^5.0.0", jsdom: "^26.0.0", typescript: "^5.6.0", vite: "^7.0.0" },
       // The Pli packages depend on each other with ^1.0.0; point those at the tarballs too so nothing is looked up in the registry.
       overrides: direct,
-      pnpm: { overrides: direct },
+      pnpm: { overrides: direct, onlyBuiltDependencies: ["esbuild"] },
     };
     writeFileSync(join(app, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-    // Newer pnpm reads overrides from pnpm-workspace.yaml and older ones from package.json; give it both.
-    if (pm === "pnpm") writeFileSync(join(app, "pnpm-workspace.yaml"), `allowBuilds:\n  esbuild: true\noverrides:\n${Object.entries(direct).map(([name, spec]) => `  "${name}": "${spec}"`).join("\n")}\n`);
+    // Newer pnpm reads overrides and which packages may run build scripts from pnpm-workspace.yaml (and 10.5 and later can; older ones
+    // ask for a `packages` list in that file and fail without one). Older pnpm reads them from package.json, so give each what it reads.
+    if (pm === "pnpm") {
+      const [major, minor] = run("pnpm", ["--version"], app).trim().split(".").map(Number);
+      if (major > 10 || (major === 10 && minor >= 5)) {
+        writeFileSync(join(app, "pnpm-workspace.yaml"), `allowBuilds:\n  esbuild: true\noverrides:\n${Object.entries(direct).map(([name, spec]) => `  "${name}": "${spec}"`).join("\n")}\n`);
+      }
+    }
 
     if (pm === "npm") show(run("npm", ["install", "--no-audit", "--no-fund", "--no-package-lock"], app));
     else show(run("pnpm", ["install", "--no-frozen-lockfile", "--config.auto-install-peers=false", "--config.strict-peer-dependencies=true"], app));

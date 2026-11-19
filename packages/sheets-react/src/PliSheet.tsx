@@ -1835,8 +1835,10 @@ function PliSheetView({ session, remoteImages: remoteImagesProp = false, validat
     try {
       const response = await fetch(pic.src);
       if (!response.ok) throw new Error(`the site answered ${response.status}`);
-      const blob = await response.blob();
-      const { src, alt } = await imageFromFile(new File([blob], pic.alt ?? "picture", { type: blob.type }));
+      // The bytes, not the response's Blob: a Blob from another realm (a test's fetch, a web view's) isn't always taken as a part of a File.
+      const bytes = await response.arrayBuffer();
+      const type = response.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+      const { src, alt } = await imageFromFile(new File([bytes], pic.alt ?? "picture", { type }));
       session.setCellPicture(target, address, { src, alt: pic.alt ?? alt });
     } catch (error) {
       setNotice(`That picture couldn't be fetched to keep (${(error as Error).message}). The site may not allow it.`);
