@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SheetSession, createWorkbook } from "@pli.dev/sheets";
+import { DownloadProvider } from "@pli.dev/react";
 import { PliSheet, stepDecimals, type ChipKind } from "../src";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -505,6 +506,48 @@ describe("the title and the menu bar", () => {
     expect(String.fromCharCode(files[0]!.data[0]!, files[0]!.data[1]!)).toBe("PK");
     expect(new TextDecoder().decode(files[1]!.data)).toBe("x,2\n");
     expect(new TextDecoder().decode(files[2]!.data)).toContain('"format": "pli.sheet"');
+  });
+
+  it("File > Download uses the DownloadProvider's function, and the sheet's own onDownload wins", () => {
+    const fromProvider: string[] = [];
+    const own: string[] = [];
+    const session = new SheetSession(createWorkbook("t"), { now: () => 45000 });
+    act(() =>
+      root.render(
+        <DownloadProvider onDownload={(f) => void fromProvider.push(f.name)}>
+          <PliSheet session={session} />
+        </DownloadProvider>,
+      ),
+    );
+    choose("File", "Download", "Excel workbook (.xlsx)");
+    expect(fromProvider).toEqual(["t.xlsx"]);
+    act(() =>
+      root.render(
+        <DownloadProvider onDownload={(f) => void fromProvider.push(f.name)}>
+          <PliSheet session={session} onDownload={(f) => void own.push(f.name)} />
+        </DownloadProvider>,
+      ),
+    );
+    choose("File", "Download", "This sheet as CSV (.csv)");
+    expect(own).toEqual(["t.csv"]);
+    expect(fromProvider).toEqual(["t.xlsx"]);
+  });
+
+  it("menuLabels renames and removes menus and items, and the renamed item still does its job", () => {
+    const files: string[] = [];
+    const session = new SheetSession(createWorkbook("t"), { now: () => 45000 });
+    act(() => root.render(<PliSheet session={session} onDownload={(f) => void files.push(f.name)} menuLabels={{ File: "Workbook", Review: false, Download: "Export" }} />));
+    const bar = () => [...host.querySelectorAll(".pli-menubar-button")].map((b) => b.textContent);
+    expect(bar()).toEqual(["Workbook", "Edit", "View", "Insert", "Format", "Data"]);
+    choose("Workbook", "Export", "This sheet as CSV (.csv)");
+    expect(files).toEqual(["t.csv"]);
+  });
+
+  it("tells the person when the download function fails, with its reason", async () => {
+    mount({ onDownload: () => Promise.reject(new Error("the drive is full")) as never });
+    choose("File", "Download", "This sheet as CSV (.csv)");
+    await act(async () => {});
+    expect(host.textContent).toContain("The file couldn't be saved: the drive is full");
   });
 
   it("Edit > Undo and Redo work, and Insert > Function starts a formula with the caret inside", async () => {

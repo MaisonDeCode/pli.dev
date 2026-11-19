@@ -27,13 +27,14 @@ The Capacitor app is the editor itself: `PliDocument` from `@pli.dev/react`, wit
 ```tsx
 <PliDocument
   session={session}
-  onDownload={async (file) => {
+  onDownload={async (file, { browserDownload }) => {
+    if (!Capacitor.isNativePlatform()) return browserDownload();   // in a browser, download as usual
     const written = await Filesystem.writeFile({ path: file.name, data: toBase64(file.data), directory: Directory.Cache });
     await Share.share({ title: file.name, url: written.uri });
   }}
 />
 ```
 
-Without `onDownload`, the editor downloads files the way a web page does.
+Without `onDownload`, the editor downloads files the way a web page does. [Saving files your way](/platform/saving-files/) has this and other recipes, and how to set it once for every editor in your app.
 
 The example sits inside the repository and uses the packages from the workspace. In your own Capacitor app, install them from npm: `npm install @pli.dev/docs @pli.dev/react`.

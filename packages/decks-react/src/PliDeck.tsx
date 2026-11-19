@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { FilePickerProvider, FontsProvider, LinkDialog, MenuBar, ThemeContext, downloadFile, extendMenus, forcedTheme, pickWith, useDocumentFonts, useFonts, type ExtraMenus, type FilePicker, type MenuDefinition, type MenuEntry, type PliTheme } from "@pli.dev/react";
+import { FilePickerProvider, FontsProvider, LinkDialog, MenuBar, ThemeContext, extendMenus, forcedTheme, pickWith, handOver, useDownloadHandler, useDocumentFonts, useFonts, type DownloadFile, type DownloadHandler, type ExtraMenus, type FilePicker, type MenuLabels, type MenuDefinition, type MenuEntry, type PliTheme } from "@pli.dev/react";
 import type { FontRegistry } from "@pli.dev/core";
 import {
   CHART_TYPES,
@@ -65,13 +65,7 @@ import { DeckSession as DeckSessionClass, deckVersionHistory, type Deck, type De
 import { VersionHistoryPanel, VersionPreviewBar, useVersions } from "@pli.dev/react/collab";
 
 /** A file made by File > Download. */
-export interface PliDeckDownload {
-  /** The file name, with its extension. */
-  name: string;
-  /** The MIME type. */
-  type: string;
-  data: Uint8Array;
-}
+export type PliDeckDownload = DownloadFile;
 
 export interface PliDeckProps {
   session: DeckSession;
@@ -83,8 +77,13 @@ export interface PliDeckProps {
   toolbar?: boolean;
   /** Show the speaker notes under the slide (default true). */
   notes?: boolean;
-  /** Called with each file File > Download makes, instead of the browser downloading it (for a web view in a native app). */
-  onDownload?: (file: PliDeckDownload) => void | Promise<void>;
+  /**
+   * Called with each file File > Download makes, instead of the browser downloading it: save it in your own storage, or show the
+   * phone's share sheet (a web view in a native app can't download a file). The second argument has `browserDownload()`, the
+   * default, for the files or places you don't handle. If it throws or rejects the deck says why. Left out, the nearest
+   * `DownloadProvider`'s function is used, and without one the browser downloads the file.
+   */
+  onDownload?: DownloadHandler;
   /** Turns a picture file into the address stored in the slide (your storage); otherwise pictures are embedded as data. */
   uploadImage?: (file: File) => Promise<string> | string;
   /** Options for the PDF export, such as `rasterize` (SVG to PNG) and `fonts` (which win over what the registry fetches). */
@@ -147,6 +146,12 @@ export interface PliDeckProps {
    */
   extraMenus?: ExtraMenus;
   /**
+   * New text for the built-in menus, or a way to take an item out. `{ "File > Download": "Export", "Insert > Page break": false }`
+   * renames File > Download and removes Page break. A key is the text as it is now, or a path of them; `false` removes. Also for
+   * translating the menus. See `MenuLabels` and [Menus and file pickers](https://pli.dev/platform/menus-and-file-pickers/).
+   */
+  menuLabels?: MenuLabels;
+  /**
    * Your own way of choosing a file, used for opening a presentation, inserting pictures, a background picture and importing a theme.
    * Left out, the editor opens the browser's file chooser. Dropping and pasting files work as before.
    */
@@ -188,7 +193,7 @@ export function plainError(e: unknown): string {
  */
 const OPEN_ACCEPT = ".json,.pli,.pptx,.potx,application/json";
 
-export function PliDeck({ session, readOnly = false, menu = true, toolbar = true, notes = true, onDownload, uploadImage, pdf, fonts: fontsProp, onOpenPresenterWindow, actions, startActions, endActions, theme, room, users, comments, sync, history, versions, autoSaveVersions, extraMenus, filePicker, className }: PliDeckProps) {
+export function PliDeck({ session, readOnly = false, menu = true, toolbar = true, notes = true, onDownload: onDownloadProp, uploadImage, pdf, fonts: fontsProp, onOpenPresenterWindow, actions, startActions, endActions, theme, room, users, comments, sync, history, versions, autoSaveVersions, extraMenus, menuLabels, filePicker, className }: PliDeckProps) {
   useDeckRevision(session);
   const deck = session.deck;
   const collab = useDeckCollab(session, { room, users, comments, sync });
@@ -531,10 +536,10 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
 
   // ---- Files ------------------------------------------------------------------------------------------------------
 
+  const onDownload = useDownloadHandler(onDownloadProp);
   const deliver = async (file: PliDeckDownload) => {
     try {
-      if (onDownload) await onDownload(file);
-      else downloadFile(file.name, file.data as BlobPart, file.type);
+      await handOver(onDownload, file.name, file.data as BlobPart, file.type);
     } catch (e) {
       setNotice(plainError(e));
     }
@@ -1126,7 +1131,7 @@ export function PliDeck({ session, readOnly = false, menu = true, toolbar = true
                 {endActions}
               </div>
             </div>
-            <MenuBar menus={extendMenus(menus.map((m) => ({ ...m, items: guard(m.items) })), extraMenus)} />
+            <MenuBar menus={extendMenus(menus.map((m) => ({ ...m, items: guard(m.items) })), extraMenus, menuLabels)} />
             {toolbar && ctx && !previewing && (
               <DeckToolbar
                 session={session}

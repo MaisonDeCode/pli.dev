@@ -2,6 +2,7 @@
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createDeck, parseDeck, plainText, serializeDeck, toPptx, type TableElement } from "@pli.dev/decks";
+import { DownloadProvider } from "@pli.dev/react";
 import { PliDeck, type PliDeckDownload } from "../src";
 import { byLabel, click, host, key, menuItem, newSession, pointer, q, qa, render, run, runAsync, sampleDeck, setValue, useHost } from "./harness";
 
@@ -226,6 +227,47 @@ describe("files", () => {
     expect(parseDeck(new TextDecoder().decode(got[2]!.data)).slides.length).toBe(3);
     expect([...got[3]!.data.slice(0, 2)]).toEqual([0x50, 0x4b]);
     expect(got[3]!.type).toContain("template");
+  });
+
+  it("uses the DownloadProvider's function, and the deck's own onDownload wins", async () => {
+    const fromProvider: string[] = [];
+    const own: string[] = [];
+    render(
+      <DownloadProvider onDownload={(f) => void fromProvider.push(f.name)}>
+        <PliDeck session={newSession()} />
+      </DownloadProvider>,
+    );
+    choose("File", "Download", "Pli JSON (.json)");
+    await wait(30);
+    expect(fromProvider).toEqual(["Sample.json"]);
+    render(
+      <DownloadProvider onDownload={(f) => void fromProvider.push(f.name)}>
+        <PliDeck session={newSession()} onDownload={(f) => void own.push(f.name)} />
+      </DownloadProvider>,
+    );
+    choose("File", "Download", "Pli JSON (.json)");
+    await wait(30);
+    expect(own).toEqual(["Sample.json"]);
+    expect(fromProvider).toEqual(["Sample.json"]);
+  });
+
+  it("menuLabels renames and removes menus and items, and the renamed item still does its job", async () => {
+    const got: string[] = [];
+    render(<PliDeck session={newSession()} onDownload={(f) => void got.push(f.name)} menuLabels={{ File: "Presentation", Tools: false, Download: "Export" }} />);
+    const bar = [...host.querySelectorAll(".pli-menubar-button")].map((b) => b.textContent);
+    expect(bar).toContain("Presentation");
+    expect(bar).not.toContain("File");
+    expect(bar).not.toContain("Tools");
+    choose("Presentation", "Export", "Pli JSON (.json)");
+    await wait(30);
+    expect(got).toEqual(["Sample.json"]);
+  });
+
+  it("says why when the download function fails", async () => {
+    render(<PliDeck session={newSession()} onDownload={() => Promise.reject(new Error("the drive is full"))} />);
+    choose("File", "Download", "Pli JSON (.json)");
+    await wait(30);
+    expect(host.textContent).toContain("the drive is full");
   });
 
   it("passes the PDF options on", async () => {

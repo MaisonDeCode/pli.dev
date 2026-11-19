@@ -70,6 +70,21 @@ export function selectionFromDom(root: HTMLElement): Selection | null {
   return anchor && focus ? { anchor, focus } : null;
 }
 
+/**
+ * Where, in its block's text, the tag that is shown by name begins, if a DOM position is inside one (and so hidden); otherwise
+ * `null`. Of two tags side by side, it says which one the position is in.
+ */
+export function namedTagStart(root: HTMLElement, node: Node | null): number | null {
+  const el = node instanceof Element ? node : node?.parentElement;
+  const chip = el?.closest<HTMLElement>(".pli-ph[data-friendly]");
+  const block = chip && findBlockElement(root, chip);
+  if (!chip || !block) return null;
+  const range = chip.ownerDocument.createRange();
+  range.setStart(block, 0);
+  range.setEnd(chip, 0);
+  return range.toString().length;
+}
+
 /** Converts a static range (from a `beforeinput` event) to a document selection. */
 export function selectionFromRange(
   root: HTMLElement,
@@ -84,6 +99,24 @@ function findBlock(root: HTMLElement, id: string): HTMLElement | null {
   return blockElements(root).find((el) => blockId(el) === id) ?? null;
 }
 
+/**
+ * A tag shown by name keeps its text in the page, hidden. A point at its edge is put just outside it, in the paragraph, where the
+ * caret is drawn, and not inside the hidden text, where it would not be.
+ */
+function outsideTag(node: Text, offset: number): { node: Node; offset: number } {
+  const chip = node.parentElement?.closest<HTMLElement>(".pli-ph[data-friendly]");
+  const parent = chip?.parentNode;
+  if (!chip || !parent) return { node, offset };
+  const edge = chip.getAttribute("data-edge");
+  const texts: Text[] = [];
+  const walker = chip.ownerDocument.createTreeWalker(chip, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) texts.push(n);
+  const at = Array.prototype.indexOf.call(parent.childNodes, chip) as number;
+  if (offset === 0 && node === texts[0] && (edge === "start" || edge === "both")) return { node: parent, offset: at };
+  if (offset === node.data.length && node === texts[texts.length - 1] && (edge === "end" || edge === "both")) return { node: parent, offset: at + 1 };
+  return { node, offset };
+}
+
 export function domPointFromPoint(root: HTMLElement, point: Point): { node: Node; offset: number } | null {
   const el = findBlock(root, point.block);
   if (!el) return null;
@@ -96,7 +129,7 @@ export function domPointFromPoint(root: HTMLElement, point: Point): { node: Node
   let lastText: Text | null = null;
   for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
     lastText = n;
-    if (point.offset <= passed + n.data.length) return { node: n, offset: point.offset - passed };
+    if (point.offset <= passed + n.data.length) return outsideTag(n, point.offset - passed);
     passed += n.data.length;
   }
   // No text to land in: an empty block (just a <br>), or an offset past the end.
@@ -114,11 +147,12 @@ function sameSelection(a: Selection, b: Selection): boolean {
 
 /**
  * Makes the browser's selection match `selection`. Does nothing if it already does, so it never
- * disturbs the user's own selection. Returns whether it changed anything.
+ * disturbs the user's own selection. Returns whether it changed anything. `force` sets it even when it matches in the document's
+ * terms, for when the browser's is at a different place in the page (inside a hidden tag) for the same offset.
  */
-export function applySelectionToDom(root: HTMLElement, selection: Selection): boolean {
+export function applySelectionToDom(root: HTMLElement, selection: Selection, force = false): boolean {
   const current = selectionFromDom(root);
-  if (current && sameSelection(current, selection)) return false;
+  if (!force && current && sameSelection(current, selection)) return false;
   const anchor = domPointFromPoint(root, selection.anchor);
   const focus = domPointFromPoint(root, selection.focus);
   const dom = root.ownerDocument.getSelection();

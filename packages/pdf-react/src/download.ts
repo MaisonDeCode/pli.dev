@@ -1,6 +1,7 @@
 /** Saving bytes as files: a download, several downloads, or one ZIP of them. No dependencies. */
+import { useMemo } from "react";
 import { PliError } from "@pli.dev/core";
-import { browseFiles } from "@pli.dev/react";
+import { browseFiles, useDownloadHandler, type DownloadHelpers } from "@pli.dev/react";
 
 /** A file name that is safe on every system: no slashes or control characters, no leading dots, not empty. */
 export function safeName(name: string, fallback = "document"): string {
@@ -26,6 +27,27 @@ export function downloadBytes(bytes: Uint8Array, name: string, mime = "applicati
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL?.(url), 4000);
+}
+
+/**
+ * How an app takes over downloads: `onDownload` on the editor. It gets the bytes, the name and the MIME type, and `helpers` with
+ * `browserDownload()`, the default, to call for the files it doesn't handle.
+ */
+export type PdfDownloadHandler = (bytes: Uint8Array, name: string, mime: string, helpers: DownloadHelpers) => void | Promise<void>;
+
+/**
+ * The function that saves files: the editor's own `onDownload`, otherwise the nearest `DownloadProvider`'s (adapted to this
+ * shape), otherwise none, and the browser downloads. Always called with three arguments by the editor, so the helpers are added
+ * here.
+ */
+export function usePdfDownload(own: PdfDownloadHandler | undefined): ((bytes: Uint8Array, name: string, mime: string) => void | Promise<void>) | undefined {
+  const inherited = useDownloadHandler();
+  return useMemo(() => {
+    const helpers = (bytes: Uint8Array, name: string, mime: string): DownloadHelpers => ({ browserDownload: () => downloadBytes(bytes, name, mime) });
+    if (own) return (bytes, name, mime) => own(bytes, name, mime, helpers(bytes, name, mime));
+    if (inherited) return (bytes, name, mime) => inherited({ name, type: mime, data: bytes }, helpers(bytes, name, mime));
+    return undefined;
+  }, [own, inherited]);
 }
 
 export interface NamedFile {

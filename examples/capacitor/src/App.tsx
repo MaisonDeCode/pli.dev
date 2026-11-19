@@ -70,8 +70,8 @@ export function App() {
       session={session}
       defaultView={narrow ? "continuous" : "pages"}
       ruler={!narrow}
-      // In a browser, File > Download works as usual. In the app it goes through the share sheet.
-      onDownload={Capacitor.isNativePlatform() ? saveAndShare : undefined}
+      // In the app File > Download goes through the share sheet. In a browser it works as usual: `browserDownload` is the default.
+      onDownload={(file, { browserDownload }) => (Capacitor.isNativePlatform() ? saveAndShare(file) : browserDownload())}
     />
   );
 }

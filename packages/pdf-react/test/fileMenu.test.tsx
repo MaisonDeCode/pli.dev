@@ -5,6 +5,7 @@ import { PdfFile, type SaveOptions } from "@pli.dev/pdf";
 import { byLabel, chooseMenu, click, closeMenus, flush, key, menuButton, menuEntry, q, qa, run, saveFile, setValue, useHost } from "./harness";
 import { fileOf, mountPdf, openWords, pdfOf, stubChooser, stubDialogs, tick, wordsOf, WORDS } from "./pagesSupport";
 import { makePng } from "../../pdf/test/support/png";
+import { DownloadProvider, type DownloadFile } from "@pli.dev/react";
 import { readZip } from "../src";
 import { fakeRenderer } from "../src/testing";
 
@@ -188,6 +189,40 @@ describe("download and copies", () => {
       await flush();
       expect(clicked).toEqual([{ href: "blob:one", download: "report-copy.pdf" }]);
       expect(made[0]!.type).toBe("application/pdf");
+    } finally {
+      HTMLAnchorElement.prototype.click = click0;
+    }
+  });
+
+  it("uses the DownloadProvider's function when the editor has none, with the file in the shape the other editors use", async () => {
+    const session = await openWords();
+    const got: DownloadFile[] = [];
+    await mountPdf(session, { onDownload: undefined }, (node) => <DownloadProvider onDownload={(file) => void got.push(file)}>{node}</DownloadProvider>);
+    await fileMenu("Save a copy");
+    await flush();
+    expect(got.map((f) => [f.name, f.type, bytesOk(f.data)])).toEqual([["report-copy.pdf", "application/pdf", true]]);
+  });
+
+  it("prefers its own onDownload to the provider's, and gives it the browser download to fall back on", async () => {
+    const session = await openWords();
+    const fromProvider: DownloadFile[] = [];
+    const made: Blob[] = [];
+    vi.stubGlobal("URL", Object.assign(function () {}, URL, { createObjectURL: (b: Blob) => (made.push(b), "blob:own"), revokeObjectURL: () => {} }));
+    const clicked: string[] = [];
+    const click0 = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+      clicked.push(this.download);
+    };
+    try {
+      await mountPdf(
+        session,
+        { onDownload: (_bytes, _name, _mime, { browserDownload }) => browserDownload() },
+        (node) => <DownloadProvider onDownload={(file) => void fromProvider.push(file)}>{node}</DownloadProvider>,
+      );
+      await fileMenu("Save a copy");
+      await flush();
+      expect(clicked).toEqual(["report-copy.pdf"]);
+      expect(fromProvider).toEqual([]);
     } finally {
       HTMLAnchorElement.prototype.click = click0;
     }

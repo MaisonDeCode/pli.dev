@@ -137,7 +137,7 @@ export { PageContextMenu, PageToolbar, Toasts, pageMenuItems } from "./PageMenu"
 export { PageDialogs, FileDialogs, formatSize } from "./PdfDialogs";
 export { FileMenu, SaveButton, DocumentTitle } from "./FileMenu";
 export { Notices, Store, useStore, type Toast } from "./store";
-export { crc32, documentName, downloadBytes, downloadFiles, fileStem, makeZip, pickFiles, readZip, safeName, type NamedFile } from "./download";
+export { crc32, documentName, downloadBytes, downloadFiles, fileStem, makeZip, pickFiles, readZip, safeName, usePdfDownload, type NamedFile, type PdfDownloadHandler } from "./download";
 export { PROPERTIES_KEYS, SIDEBAR_KEYS, claimKey, formShortcutTable, pageShortcutTable, registerShortcuts, shortcutGroups, viewerShortcutTable, MOD as SHORTCUT_MOD } from "./shortcuts";
 
 // ---- forms: fill, Prepare form, data, flatten (stage 4) ----

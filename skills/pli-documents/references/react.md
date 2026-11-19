@@ -49,7 +49,7 @@ For a server, send `serializeDoc(session.state)` the same way. `parseDoc` valida
 
 ## Props worth knowing
 
-`session` (required), `readOnly`, `defaultView` (`"pages"` or `"continuous"`), `menu`/`toolbar`/`statusBar` (set `false` to hide), `placeholder`, `autoFocus`, `onSave` (called for Ctrl/Cmd+S; without it the shortcut does nothing), `onImported` (after File > Import DOCX), `onDownload` (see Capacitor), `paper="light"` to keep white pages in dark mode, `sync` and `room` for live co-editing.
+`session` (required), `readOnly`, `defaultView` (`"pages"` or `"continuous"`), `menu`/`toolbar`/`statusBar` (set `false` to hide), `placeholder`, `autoFocus`, `onSave` (called for Ctrl/Cmd+S; without it the shortcut does nothing), `onImported` (after File > Import DOCX), `onDownload` (takes over File > Download; to save files in your own storage or share them, see Capacitor; `DownloadProvider` sets it for every editor), `menuLabels` (rename or remove menu items: `{ "File > Download": "Export", "Insert > Page break": false }`; also for translating), `paper="light"` to keep white pages in dark mode, `sync` and `room` for live co-editing.
 
 Theme with CSS custom properties on `.pli-document`: `--pli-accent`, `--pli-font`, `--pli-doc-font` and the rest listed on the docs page "Ready-made editor".
 
@@ -67,7 +67,7 @@ The web editor runs unchanged. Three things make it right on a phone (see `examp
 
 1. `@capacitor/keyboard` with `Keyboard: { resize: KeyboardResize.Native }` in `capacitor.config.ts`, so the web view shrinks above the keyboard and the toolbar (at the bottom on a phone) rides above it.
 2. `maximum-scale=1` in the page's viewport meta, so iOS doesn't zoom when a field is focused.
-3. A web view can't download files. Pass `onDownload` and write the file to the cache with `@capacitor/filesystem`, then `@capacitor/share`. On iOS, `Keyboard.setAccessoryBarVisible({ isVisible: false })` hides the bar of arrows above the keyboard.
+3. A web view can't download files. Pass `onDownload` (or wrap the app in `<DownloadProvider onDownload>`) and write the file to the cache with `@capacitor/filesystem`, then `@capacitor/share`; its second argument has `browserDownload()` for the web build. On iOS, `Keyboard.setAccessoryBarVisible({ isVisible: false })` hides the bar of arrows above the keyboard.
 
 ## Pitfalls
 

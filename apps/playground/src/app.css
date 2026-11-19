@@ -210,3 +210,45 @@ li[data-dir="store"] .lab-dir { color: #e67700; }
 .embed-select::after { content: ""; position: absolute; right: 0.7rem; top: 50%; width: 0.38rem; height: 0.38rem; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-70%) rotate(45deg); pointer-events: none; opacity: 0.7; }
 .embed-log { flex: none; padding: 0.5rem 0.75rem; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); font-size: 0.8rem; display: grid; gap: 0.15rem; max-height: 9rem; overflow: auto; }
 .embed-log div { font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem; opacity: 0.85; }
+
+/* ------------------------------------------------------------------ "Documents from answers": a questionnaire beside the document it makes */
+
+.generate { display: flex; flex-direction: column; height: 100%; }
+.generate-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem 1.25rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid #d8dbe0; font-size: 0.85rem; }
+.generate-tabs { display: inline-flex; border: 1px solid #c9ccd2; border-radius: 0.45rem; overflow: hidden; }
+.generate-tabs button { font: inherit; font-size: 0.8rem; padding: 0.3rem 0.8rem; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.generate-tabs button[aria-selected="true"] { background: #4f46e5; color: #fff; }
+.generate-tabs button:focus-visible { outline: 2px solid #4f46e5; outline-offset: -2px; }
+.generate-status { flex: 1; min-width: 12rem; color: #6b7078; font-size: 0.8rem; }
+.generate-main { flex: 1; min-height: 0; display: flex; }
+.generate-side { flex: none; width: 21rem; overflow: auto; padding: 0.75rem 1rem 2rem; border-right: 1px solid #d8dbe0; display: flex; flex-direction: column; gap: 0.6rem; }
+.generate-doc { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.generate-hint { margin: 0; padding: 0.55rem 0.9rem; font-size: 0.8rem; color: #4b5058; background: #f4f5f8; border-bottom: 1px solid #d8dbe0; }
+.generate-hint code, .generate-asks code, .generate-problems code { font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem; background: #eceef3; padding: 0 0.25rem; border-radius: 0.2rem; }
+.generate-form { display: flex; flex-direction: column; gap: 0.55rem; }
+.generate-form h2 { margin: 0.6rem 0 0; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7078; }
+.generate-field { display: grid; gap: 0.2rem; font-size: 0.8rem; }
+.generate-field input, .generate-field select, .generate-row input { font: inherit; font-size: 0.85rem; padding: 0.35rem 0.5rem; border: 1px solid #c9ccd2; border-radius: 0.35rem; background: #fff; color: #1b1d22; min-width: 0; }
+.generate-field input:focus-visible, .generate-field select:focus-visible, .generate-row input:focus-visible { outline: 2px solid #4f46e5; outline-offset: 1px; }
+.generate-check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; }
+.generate-row { display: grid; grid-template-columns: 1fr 5.5rem 1.7rem; gap: 0.4rem; }
+.generate-remove, .generate-add { font: inherit; font-size: 0.8rem; border: 1px solid #c9ccd2; border-radius: 0.35rem; background: transparent; color: inherit; cursor: pointer; }
+.generate-add { align-self: start; padding: 0.3rem 0.7rem; }
+.generate-remove:hover, .generate-add:hover { background: #eceef3; }
+.generate-asks { font-size: 0.8rem; margin-top: 0.5rem; }
+.generate-asks summary { cursor: pointer; font-weight: 600; }
+.generate-asks p { margin: 0.4rem 0; color: #6b7078; }
+.generate-asks ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.15rem; }
+.generate-asks li span { color: #6b7078; }
+.generate-problems { margin: 0.5rem 0 0; padding: 0.5rem 0.7rem 0.5rem 1.4rem; font-size: 0.78rem; background: #fff1f0; border: 1px solid #f3c1bd; border-radius: 0.4rem; color: #7a1f17; }
+@media (max-width: 760px) {
+  .generate-main { flex-direction: column; overflow: auto; }
+  .generate-side { width: auto; border-right: 0; border-bottom: 1px solid #d8dbe0; overflow: visible; }
+  .generate-doc { min-height: 28rem; }
+}
+.builder-heading { margin: 0; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7078; }
+.builder-note { margin: 0; font-size: 0.8rem; color: #4b5058; }
+.builder-list { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.builder-list button { font: inherit; font-size: 0.8rem; padding: 0.25rem 0.7rem; border: 1px solid #c9ccd2; border-radius: 999px; background: #f4f5f8; color: #1b1d22; cursor: pointer; }
+.builder-list button:hover { background: #e4e2fb; border-color: #4f46e5; }
+.builder-list button:focus-visible { outline: 2px solid #4f46e5; outline-offset: 1px; }

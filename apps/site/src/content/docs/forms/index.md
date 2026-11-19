@@ -17,6 +17,7 @@ Forms is forms and surveys.
 - Sections, branching logic and validation
 - Responses stored in Databases and viewable as Sheets
 - Export of the form and responses
+- Responses handed to a Documents template, to make a finished document from each one (the [template engine](/documents/guides/documents-from-answers/) already takes any answers)
 
 ## How it will be offered
 

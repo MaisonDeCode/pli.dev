@@ -6,11 +6,12 @@ export { DocumentView, type DocumentViewProps, type FieldValues } from "./render
 export { useDocumentSession, useSelectionState, useSessionRevision } from "./hooks";
 export { imageBlockFromFile, imageBlockFromUrl, type ImageOptions } from "./images";
 export { downloadFile, printDocument } from "./print";
+export { DownloadContext, DownloadProvider, bytesOf, handOver, saveFailure, useDownloadHandler, type DownloadFile, type DownloadHandler, type DownloadHelpers } from "./ui/downloads";
 export { exportPdf, type PdfExport, type PdfExportOptions } from "./pdf";
 export { paginate, type BlockMetric, type Geometry, type Layout, type LineInfo, type Split } from "./layout/paginate";
 
 export { MenuBar, type MenuDefinition } from "./ui/MenuBar";
-export { extendMenus, type ExtraMenuItems, type ExtraMenus } from "./ui/extensions";
+export { extendMenus, relabelMenus, type ExtraMenuItems, type ExtraMenus, type MenuLabels } from "./ui/extensions";
 export { FileInput, FilePickerContext, FilePickerProvider, browseFiles, pickWith, useFilePicker, type FileInputProps, type FilePickPurpose, type FilePickRequest, type FilePicker, type PickOptions } from "./ui/file-picker";
 export { Bar, barKey, scrollIntoBar, useBarScroll, type BarOverflow, type BarProps } from "./ui/bar";
 export { ColorPicker, type ColorPickerProps } from "./ui/ColorPicker";
@@ -62,3 +63,4 @@ export {
 export { Icons } from "./ui/icons";
 export { ThemeContext, ThemedDiv, forcedTheme, useThemeAttr, type PliTheme } from "./theme";
 export { FontPicker, FontsProvider, useDocumentFonts, useFonts, useFontsVersion, type FontPickerProps } from "./ui/fonts";
+export { insertSnippet, insertValue, placeholderMenu, placeholderMode, valueTag, type PlaceholderChoice, type PlaceholderField, type PlaceholderOptions } from "./ui/placeholders";

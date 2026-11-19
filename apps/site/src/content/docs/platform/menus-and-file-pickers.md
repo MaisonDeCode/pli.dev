@@ -1,11 +1,11 @@
 ---
 title: Your own menus and file chooser
-description: Add items to the menus of a Pli editor, add menus of your own, and replace the browser's file chooser with your app's.
+description: Add items to the menus of a Pli editor, add menus of your own, rename or remove the built-in ones, and replace the browser's file chooser with your app's.
 sidebar:
   order: 5
 ---
 
-The ready-made editors (Documents, Sheets, Decks and PDF) give you a working menu bar and the browser's own file chooser. Both can be extended, so you can fit them into your app without rebuilding the editor.
+The ready-made editors (Documents, Sheets, Decks and PDF) give you a working menu bar and the browser's own file chooser. Both can be extended, and the menus can be reworded or trimmed, so you can fit them into your app without rebuilding the editor.
 
 ## Add to the menus
 
@@ -50,6 +50,33 @@ Each entry is the same as in the editor's own menus:
 Items you add are yours: Pli doesn't disable them in read-only mode. If an action shouldn't be available there, set `disabled` yourself.
 
 The menu names are the ones on screen. Documents has File, Edit, View, Insert and Format. Sheets adds Data and Review. Decks has Slide, Arrange and Tools. PDF has Tools and Help.
+
+## Rename or remove built-in items
+
+Pass `menuLabels` to change the words on the menus, or to take an item out. Each key is the text a menu or item has now, and its value is what to show instead. `false` removes it.
+
+```tsx
+<PliDocument
+  session={session}
+  menuLabels={{
+    "File > Download": "Export",          // one item, by its path
+    "DOCX document (.docx)": "Word file", // every item with this text
+    "Insert > Page break": false,         // taken out
+    Help: false,                          // a whole menu
+  }}
+/>
+```
+
+- **The text as it is** (`"Download"`) applies to every menu or item with that text. Some words are in two places (Table is in Insert and in Format), so use a path when you mean one of them.
+- **A path** (`"File > Download"`, or `"File > Download > PDF document (.pdf)"`) applies to that item only, and wins over the plain text. Write each part as it is now, even when a part above it is renamed: after `"File": "Document"`, the path is still `"File > Download"`.
+- **What the item does stays the same.** A renamed item keeps its shortcut, its checked and disabled states and its action. The shortcut hint isn't changed, only the label.
+- **Taking out** a submenu's last item takes the submenu out with it, and a menu with nothing left goes too. The lines between groups are tidied so none is left at an end or doubled.
+- **Your own items** from `extraMenus` can be renamed or removed the same way. `extraMenus` places them by the built-in text as it is now (`after: "Page count"`), and `menuLabels` is applied afterwards.
+- **A key that matches nothing** is ignored, so check the spelling: it is the text as shown today, in English.
+
+It works the same in Documents, Sheets, Decks and PDF (in PDF it also applies to the File menu in the toolbar when the menu bar is off), and it is the way to translate the menus into another language. It changes the menu bar only: button tips and the words in dialogs are not changed.
+
+To hide a menu bar altogether, use `menu={false}`.
 
 ## Use your own file chooser
 

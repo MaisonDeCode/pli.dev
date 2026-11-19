@@ -234,5 +234,5 @@ The title row shows the document's name with a dot when there are unsaved change
 - **Document properties** shows and sets the title, author, subject and keywords, and tells the page count and size, file size, PDF version and whether the file is protected.
 - **Print** prints the saved file from a hidden frame, so the browser's own PDF viewer prints it. Where the browser cannot do this a message says so and suggests downloading.
 
-`onDownload(bytes, name, mime)` takes over every download (a native app's save dialog, say), and `onPrint` takes over printing. `downloadBytes`, `downloadFiles` and `makeZip` are exported for your own use.
+`onDownload(bytes, name, mime, { browserDownload })` takes over every download (a native app's save dialog, say; call `browserDownload()` for the default), and `onPrint` takes over printing. A `DownloadProvider` sets the download for every editor in an app: see [Saving files your way](/platform/saving-files/). `downloadBytes`, `downloadFiles` and `makeZip` are exported for your own use.
 

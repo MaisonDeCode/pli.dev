@@ -28,7 +28,7 @@ Commit the file in `.changeset/` with the change. Breaking changes (see "Release
 
 ## Releasing
 
-CI does it. When changesets are on `main`, the `release` workflow opens a pull request called "Version packages" that bumps the versions and writes `CHANGELOG.md` in each package. Merging it publishes with `pnpm release`, with npm provenance, and creates a GitHub release.
+For now releases are made by hand, from a checkout of `main` (see below). The `release` workflow is there and set to run only when started by hand: it doesn't run when something is merged to `main`, so no "Version packages" pull request appears by itself. Started from the Actions tab, it opens that pull request (bumping the versions and writing `CHANGELOG.md` in each package), and merging it publishes with `pnpm release`, with npm provenance, and creates a GitHub release. To have it do that on every push to `main` again, add the `push:` trigger back in `.github/workflows/release.yml` (the file says how).
 
 To see exactly what would be published, without publishing:
 
