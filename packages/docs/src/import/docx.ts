@@ -8,6 +8,8 @@ import type {
   Doc,
   DocAnchor,
   DocStyle,
+  BoxStyle,
+  FloatPlacement,
   ImageBlock,
   ListMarker,
   Marks,
@@ -155,6 +157,59 @@ const num = (value: string | undefined): number | undefined => {
 };
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
+
+/** The first element named `name` at or below `node`. */
+function descendant(node: XmlElement | undefined, name: string): XmlElement | undefined {
+  if (!node) return undefined;
+  if (node.name === name) return node;
+  for (const c of elements(node)) {
+    const found = descendant(c, name);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** Word's default theme colours, for a file whose theme can't be read. */
+const DEFAULT_THEME: Record<string, string> = {
+  dk1: "#000000", lt1: "#ffffff", dk2: "#44546a", lt2: "#e7e6e6", accent1: "#4472c4", accent2: "#ed7d31", accent3: "#a5a5a5",
+  accent4: "#ffc000", accent5: "#5b9bd5", accent6: "#70ad47", hlink: "#0563c1", folHlink: "#954f72",
+};
+const SCHEME_ALIAS: Record<string, string> = { bg1: "lt1", tx1: "dk1", bg2: "lt2", tx2: "dk2" };
+
+const toHex = (r: number, g: number, b: number): string => `#${[r, g, b].map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, "0")).join("")}`;
+
+/** Colour changes a drawing applies on top of a base colour (a lighter or darker shade of a theme colour). */
+function adjustColor(hex: string, mods: XmlElement[]): string {
+  let [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+  for (const mod of mods) {
+    const v = (num(attr(mod, "val")) ?? 100000) / 100000;
+    if (mod.name === "lumMod" || mod.name === "lumOff") {
+      const max = Math.max(r, g, b) / 255, min = Math.min(r, g, b) / 255;
+      let h = 0, sat = 0;
+      const l = (max + min) / 2;
+      const d = max - min;
+      if (d > 0) {
+        sat = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        const rr = r / 255, gg = g / 255, bb = b / 255;
+        h = max === rr ? (gg - bb) / d + (gg < bb ? 6 : 0) : max === gg ? (bb - rr) / d + 2 : (rr - gg) / d + 4;
+        h /= 6;
+      }
+      const l2 = clamp(mod.name === "lumMod" ? l * v : l + v, 0, 1);
+      const hue = (p: number, q: number, t: number) => {
+        const x = t < 0 ? t + 1 : t > 1 ? t - 1 : t;
+        return x < 1 / 6 ? p + (q - p) * 6 * x : x < 1 / 2 ? q : x < 2 / 3 ? p + (q - p) * (2 / 3 - x) * 6 : p;
+      };
+      if (sat === 0) r = g = b = l2 * 255;
+      else {
+        const q = l2 < 0.5 ? l2 * (1 + sat) : l2 + sat - l2 * sat;
+        const pp = 2 * l2 - q;
+        [r, g, b] = [hue(pp, q, h + 1 / 3) * 255, hue(pp, q, h) * 255, hue(pp, q, h - 1 / 3) * 255];
+      }
+    } else if (mod.name === "shade") [r, g, b] = [r * v, g * v, b * v];
+    else if (mod.name === "tint") [r, g, b] = [255 - (255 - r) * v, 255 - (255 - g) * v, 255 - (255 - b) * v];
+  }
+  return toHex(r, g, b);
+}
 
 function hexColor(value: string | undefined): string | undefined {
   if (!value || value.toLowerCase() === "auto") return undefined;
@@ -374,6 +429,8 @@ interface Shared {
   referencedNotes: Set<string>;
   /** The theme's Latin heading and body fonts, which runs refer to as `majorHAnsi` and `minorHAnsi`. */
   themeFonts?: { major?: string; minor?: string };
+  /** The theme's colours by name (`accent1`, `dk1`), which drawings refer to instead of a colour. */
+  themeColors?: Record<string, string>;
   /** Whether tracked changes are accepted as the file is read, rather than kept as suggestions. */
   acceptChanges: boolean;
   /** The user id for an author's name, remembering who has been seen. */
@@ -392,6 +449,8 @@ interface Field {
 type Piece =
   | { kind: "run"; run: Run }
   | { kind: "image"; block: ImageBlock }
+  /** A picture or text box placed at a position on the page: it belongs to the paragraph it was anchored in, and takes no room in it. */
+  | { kind: "float"; block: ImageBlock | TableBlock }
   | { kind: "page_break" }
   | { kind: "toc"; levels: number };
 
@@ -580,6 +639,8 @@ class Converter {
     const stillInToc = this.fields.some((f) => f.kind === "toc");
 
     if (info.pageBreakBefore && this.mode === "body") out.push({ id: createId("b_"), type: "page_break" });
+    // What was anchored in the paragraph goes in front of it, so it is placed against the paragraph and doesn't cut it in two.
+    for (const piece of pieces) if (piece.kind === "float") out.push(piece.block);
 
     let runs: Run[] = [];
     let emitted = false;
@@ -591,6 +652,7 @@ class Converter {
       emitted = true;
     };
     for (const piece of pieces) {
+      if (piece.kind === "float") continue;
       if (piece.kind === "run") runs.push(piece.run);
       else if (piece.kind === "image") {
         flush();
@@ -787,8 +849,12 @@ class Converter {
       text = "";
     };
 
-    for (const el of elements(r)) {
+    const visit = (el: XmlElement): void => {
       switch (el.name) {
+        // Word writes a newer drawing with an older one after it for programs that can't read it: read the first, not both.
+        case "AlternateContent":
+          for (const inner of elements(child(el, "Choice"))) visit(inner);
+          break;
         case "fldChar": {
           const type = attr(el, "fldCharType");
           if (type === "begin") {
@@ -864,14 +930,20 @@ class Converter {
         case "drawing": {
           if (skipping()) break;
           flush();
+          if (descendant(el, "wsp")) {
+            const box = this.textBox(el);
+            if (box) out.push({ kind: "float", block: box });
+            break;
+          }
           const image = this.image(el);
-          if (image) out.push({ kind: "image", block: image });
+          if (image) out.push(image.float ? { kind: "float", block: image } : { kind: "image", block: image });
           break;
         }
         default:
           break;
       }
-    }
+    };
+    for (const el of elements(r)) visit(el);
     flush();
   }
 
@@ -942,18 +1014,15 @@ class Converter {
   }
 
   private image(drawing: XmlElement): ImageBlock | null {
-    const find = (node: XmlElement, name: string): XmlElement | undefined => {
-      if (node.name === name) return node;
-      for (const c of elements(node)) {
-        const found = find(c, name);
-        if (found) return found;
-      }
-      return undefined;
-    };
+    const find = (node: XmlElement, name: string): XmlElement | undefined => descendant(node, name);
     const blip = find(drawing, "blip");
     const extent = find(drawing, "extent");
     const docPr = find(drawing, "docPr");
     const alt = attr(docPr, "descr") || undefined;
+    if (!blip) {
+      this.warn("A drawing that isn't a picture (a chart, a diagram or a group of shapes) was left out");
+      return null;
+    }
     const rid = attr(blip, "embed", "r");
     const rel = rid ? this.rels.get(rid) : undefined;
     const width = clamp(Math.round((num(attr(extent, "cx")) ?? 0) / EMU_PER_PX), 1, 20000) || 100;
@@ -983,7 +1052,117 @@ class Converter {
     const side = (name: string) => clamp((num(attr(rect, name)) ?? 0) / 100000, 0, 0.9);
     const cut = { top: side("t"), right: side("r"), bottom: side("b"), left: side("l") };
     const crop = rect && (cut.top || cut.right || cut.bottom || cut.left) && cut.left + cut.right <= 0.95 && cut.top + cut.bottom <= 0.95 ? cut : undefined;
-    return { id: createId("b_"), type: "image", src: `data:${mime};base64,${toBase64(bytes)}`, ...(alt && { alt }), width, height, ...(wrap && { wrap }), ...(crop && { crop }) };
+    // Anchored in the body with the text going straight through it, it is placed on the page: a background, a logo in a corner.
+    const float = anchor && this.mode === "body" && find(anchor, "wrapNone") ? this.placement(anchor) : undefined;
+    return { id: createId("b_"), type: "image", src: `data:${mime};base64,${toBase64(bytes)}`, ...(alt && { alt }), width, height, ...(wrap && { wrap }), ...(crop && { crop }), ...(float && { float }) };
+  }
+
+  /** Where an anchored drawing sits: what it is measured from, how far, and whether it is behind the text. */
+  private placement(anchor: XmlElement): FloatPlacement {
+    const across = { page: "page", margin: "margin", leftMargin: "margin", rightMargin: "margin", insideMargin: "margin", outsideMargin: "margin", column: "column", character: "column" } as const;
+    const down = { page: "page", margin: "margin", topMargin: "margin", bottomMargin: "margin", insideMargin: "margin", outsideMargin: "margin", paragraph: "paragraph", line: "paragraph" } as const;
+    const sideH: Record<string, "left" | "center" | "right"> = { left: "left", inside: "left", center: "center", right: "right", outside: "right" };
+    const sideV: Record<string, "top" | "center" | "bottom"> = { top: "top", inside: "top", center: "center", bottom: "bottom", outside: "bottom" };
+    const axis = <F extends string, A extends string>(pos: XmlElement | undefined, froms: Record<string, F>, fallback: F, sides: Record<string, A>) => {
+      const from = froms[attr(pos, "relativeFrom") ?? ""] ?? fallback;
+      const side = sides[textOf(child(pos, "align")).trim()];
+      const offset = Math.round((num(textOf(child(pos, "posOffset")).trim()) ?? 0) / EMU_PER_PX);
+      return { from, ...(side ? { align: side } : offset ? { offset } : {}) };
+    };
+    return {
+      x: axis(child(anchor, "positionH"), across, "column", sideH),
+      y: axis(child(anchor, "positionV"), down, "paragraph", sideV),
+      ...(attr(anchor, "behindDoc") === "1" || attr(anchor, "behindDoc") === "true" ? { behind: true } : {}),
+    };
+  }
+
+  /** The colour inside a fill or line element (`solidFill`, a style's `fillRef`), with any lighter or darker shade it asks for. */
+  private colourIn(holder: XmlElement | undefined): { color: string; alpha?: number } | undefined {
+    const el = child(holder, "srgbClr") ?? child(holder, "schemeClr") ?? child(holder, "sysClr") ?? child(holder, "prstClr");
+    if (!el) return undefined;
+    let base: string | undefined;
+    if (el.name === "srgbClr") base = hexColor(attr(el, "val"));
+    else if (el.name === "schemeClr") {
+      const name = attr(el, "val") ?? "";
+      base = this.shared.themeColors?.[SCHEME_ALIAS[name] ?? name];
+    } else if (el.name === "sysClr") base = hexColor(attr(el, "lastClr")) ?? (attr(el, "val") === "window" ? "#ffffff" : "#000000");
+    else base = HIGHLIGHTS[attr(el, "val") ?? ""] ?? "#000000";
+    if (!base) return undefined;
+    const mods = elements(el);
+    const alpha = num(attr(mods.find((m) => m.name === "alpha"), "val"));
+    return { color: adjustColor(base, mods), ...(alpha !== undefined && alpha < 100000 && { alpha: alpha / 100000 }) };
+  }
+
+  /** A text box or shape anchored on the page: a one-cell table that floats, with the fill, outline and text it had. */
+  private textBox(drawing: XmlElement): TableBlock | null {
+    const anchor = descendant(drawing, "anchor");
+    const wsp = descendant(drawing, "wsp");
+    if (!anchor || !wsp) {
+      this.warn("A text box that isn't anchored to a page was left out");
+      return null;
+    }
+    if (this.mode !== "body") {
+      this.warn("A text box or shape inside a header, footer, table or note was left out");
+      return null;
+    }
+    const extent = child(anchor, "extent");
+    const width = clamp(Math.round((num(attr(extent, "cx")) ?? 0) / EMU_PER_PX), 1, 20000) || 100;
+    const height = clamp(Math.round((num(attr(extent, "cy")) ?? 0) / EMU_PER_PX), 1, 20000) || 100;
+    const spPr = child(wsp, "spPr");
+    const style = child(wsp, "style");
+    const geometry = attr(child(spPr, "prstGeom"), "prst") ?? "rect";
+    const shape: BoxStyle["shape"] = geometry === "ellipse" ? "ellipse" : geometry === "roundRect" ? "round_rect" : "rect";
+    if (!["rect", "roundRect", "ellipse"].includes(geometry)) this.warn("A shape other than a rectangle, rounded rectangle or oval was drawn as a rectangle");
+
+    // Fill: what the shape says, otherwise what its style gives.
+    let fill: { color: string; alpha?: number } | undefined;
+    const solid = child(spPr, "solidFill");
+    const gradient = child(child(child(spPr, "gradFill"), "gsLst"), "gs");
+    if (solid) fill = this.colourIn(solid);
+    else if (gradient) fill = this.colourIn(gradient);
+    else if (!child(spPr, "noFill") && !child(spPr, "blipFill") && (num(attr(child(style, "fillRef"), "idx")) ?? 0) > 0) fill = this.colourIn(child(style, "fillRef"));
+
+    // Outline: the same way. `ln` has its width, dash and compound type (a double line is "dbl", "thinThick" and so on).
+    const ln = child(spPr, "ln");
+    let line: BoxStyle["line"];
+    const lnSolid = child(ln, "solidFill");
+    const lnColour = lnSolid ? this.colourIn(lnSolid) : !ln || !child(ln, "noFill") ? ((num(attr(child(style, "lnRef"), "idx")) ?? 0) > 0 && !child(ln, "noFill") ? this.colourIn(child(style, "lnRef")) : undefined) : undefined;
+    if (lnColour) {
+      const w = num(attr(ln, "w"));
+      const dash = attr(child(ln, "prstDash"), "val") ?? "solid";
+      const compound = attr(ln, "cmpd") ?? "sng";
+      line = {
+        color: lnColour.color,
+        width: Math.max(0, Math.round(((w ?? 12700) / EMU_PER_PX) * 10) / 10),
+        ...(compound !== "sng" ? { style: "double" as const } : /dot/i.test(dash) && !/dash/i.test(dash) ? { style: "dotted" as const } : /dash/i.test(dash) ? { style: "dashed" as const } : {}),
+      };
+    }
+
+    // Text: the box's own insets, and where the text sits in its height.
+    const body = child(wsp, "bodyPr");
+    const inset = (name: string, fallback: number) => Math.round((num(attr(body, name)) ?? fallback) / EMU_PER_PX);
+    const padding = { x: inset("lIns", 91440), y: inset("tIns", 45720) };
+    const anchorAt = attr(body, "anchor");
+    const content = child(child(wsp, "txbx"), "txbxContent");
+    const blocks = content ? this.cellBlocks(content) : [{ id: createId("b_"), type: "paragraph" as const, runs: [] }];
+    const float: FloatPlacement & BoxStyle = {
+      ...this.placement(anchor),
+      width,
+      height,
+      ...(shape !== "rect" && { shape }),
+      ...(fill && { fill: fill.color, ...(fill.alpha !== undefined && { fillOpacity: fill.alpha }) }),
+      ...(line && { line }),
+      ...((padding.x !== 10 || padding.y !== 5) && { padding }),
+    };
+    const vAlign = anchorAt === "ctr" ? "middle" : anchorAt === "b" ? "bottom" : undefined;
+    return {
+      id: createId("b_"),
+      type: "table",
+      rows: [{ id: createId("r_"), cells: [{ id: createId("c_"), blocks, ...(vAlign && { vAlign }) }] }],
+      columns: [1],
+      borders: "none",
+      float,
+    };
   }
 
   // ---- Tables ----
@@ -1212,7 +1391,14 @@ export function fromDocx(bytes: Uint8Array, options: DocxImportOptions = {}): Do
   const scheme = child(child(themeXml, "themeElements"), "fontScheme");
   const latinOf = (name: "majorFont" | "minorFont") => attr(child(child(scheme, name), "latin"), "typeface")?.trim() || undefined;
   const themeFonts = { major: latinOf("majorFont"), minor: latinOf("minorFont") };
-  const shared: Shared = { pkg, warnings, styles, numbering, counters: new Map(), usedLevels: new Set(), wordNumbers: new Map(), used: new Set(), threadOf, footnotes: footnoteIdFor, referencedNotes: new Set(), themeFonts, acceptChanges: options.trackedChanges === "accept", authorOf };
+  const themeColors: Record<string, string> = { ...DEFAULT_THEME };
+  const clrScheme = child(child(themeXml, "themeElements"), "clrScheme");
+  for (const slot of elements(clrScheme)) {
+    const given = child(slot, "srgbClr") ?? child(slot, "sysClr");
+    const value = hexColor(attr(given, "val") ?? attr(given, "lastClr"));
+    if (value) themeColors[slot.name] = value;
+  }
+  const shared: Shared = { pkg, warnings, styles, numbering, counters: new Map(), usedLevels: new Set(), wordNumbers: new Map(), used: new Set(), threadOf, footnotes: footnoteIdFor, referencedNotes: new Set(), themeFonts, themeColors, acceptChanges: options.trackedChanges === "accept", authorOf };
 
   const converter = new Converter(shared, docPath, rels, "body");
   const items = converter.blocks(elements(body).filter((n) => n.name !== "sectPr"));

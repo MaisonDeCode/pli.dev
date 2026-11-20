@@ -1,6 +1,7 @@
 import { fontStack } from "@pli.dev/core";
 import { sameShape, sectionShape, sectionsOf, type Section } from "../sections";
 import { footnoteIds, numberFootnotes } from "../footnotes";
+import { isFloating, type FloatingBlock } from "../model";
 import type { Align, Block, Doc, HeadingBlock, ImageBlock, ListItemBlock, ListMarker, PageSetup, ParagraphFormat, Run, TableBlock, TocBlock } from "../model";
 import { pageDimensions, pageSetupOf } from "../page";
 import { defaultMarker, listLabels, markerOf } from "../lists";
@@ -139,6 +140,7 @@ function blockHtml(doc: Doc, block: Exclude<Block, { type: "list_item" }>): stri
     case "image": {
       const src = safeSrc(block.src);
       if (!src) return "";
+      if (block.float) return floatHtml(doc, block as FloatingBlock);
       // A picture that text wraps around is a float, so what follows runs beside it.
       const float = block.wrap ? `float:${block.wrap};margin:${block.wrap === "left" ? "0 14px 8px 0" : "0 0 8px 14px"}` : "";
       const img = imageHtml(block, escapeHtml(src), float);
@@ -147,8 +149,43 @@ function blockHtml(doc: Doc, block: Exclude<Block, { type: "list_item" }>): stri
     case "toc":
       return tocHtml(doc, block);
     case "table":
-      return tableHtml(doc, block);
+      return isFloating(block) ? floatHtml(doc, block) : tableHtml(doc, block);
   }
+}
+
+/**
+ * A picture or text box that floats. Web pages have no pages to place it on, so it is placed against the text column at the
+ * paragraph it belongs to: a zero-height box at that place, with the object positioned inside it. Distances are kept; lining up
+ * with the left, middle or right of the column is kept too.
+ */
+function floatHtml(doc: Doc, block: FloatingBlock): string {
+  const { x, y, behind, z } = block.float;
+  const size = block.type === "image" ? { width: block.width, height: block.height } : { width: block.float.width, height: block.float.height };
+  const across = x.align === "right" ? `right:${x.offset ?? 0}px` : x.align === "center" ? "left:50%;transform:translateX(-50%)" : `left:${x.offset ?? 0}px`;
+  const place = `position:absolute;${across};top:${y.offset ?? 0}px;width:${Math.round(size.width)}px;height:${Math.round(size.height)}px;z-index:${behind ? -1 : 1 + Math.round(z ?? 0)}`;
+  let inner: string;
+  if (block.type === "image") {
+    const src = safeSrc(block.src);
+    if (!src) return "";
+    inner = `<span style="${place}">${imageHtml(block, escapeHtml(src), "")}</span>`;
+  } else {
+    const f = block.float;
+    const cell = block.rows[0]!.cells[0]!;
+    const padding = f.padding ?? { x: 10, y: 5 };
+    const radius = f.shape === "ellipse" ? "border-radius:50%" : f.shape === "round_rect" ? `border-radius:${Math.round(Math.min(f.width, f.height) / 6)}px` : "";
+    const fill = f.fill ? `background-color:${cssValue(f.fill)}${f.fillOpacity !== undefined && f.fillOpacity < 1 ? ";background-color:" + rgbaOf(f.fill, f.fillOpacity) : ""}` : "";
+    const line = f.line && f.line.width > 0 ? `border:${f.line.width}px ${f.line.style ?? "solid"} ${cssValue(f.line.color)}` : "";
+    const where = cell.vAlign === "middle" ? "center" : cell.vAlign === "bottom" ? "flex-end" : "flex-start";
+    const css = [place, "box-sizing:border-box", "overflow:hidden", `padding:${padding.y}px ${padding.x}px`, "display:flex", "flex-direction:column", `justify-content:${where}`, fill, line, radius].filter(Boolean).join(";");
+    inner = `<div style="${css}">${blocksHtml(doc, cell.blocks)}</div>`;
+  }
+  return `<div class="float" style="position:relative;height:0">${inner}</div>`;
+}
+
+/** `#rrggbb` as an `rgba()` colour. */
+function rgbaOf(hex: string, opacity: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${Math.max(0, opacity)})`;
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   footnoteIds,
   footnoteNumbers,
   hasFirstPageRegions,
+  isFloating,
   isNoteName,
   noteIdOf,
   noteName,
@@ -25,6 +26,7 @@ import {
   type RegionName,
 } from "@pli.dev/docs";
 import { useSessionRevision } from "./hooks";
+import { floatFrames, type SheetBox } from "./floats";
 import type { Layout } from "./layout/paginate";
 import { PliEditor, type PliEditorHandle, type PliEditorProps } from "./PliEditor";
 import { DocumentView } from "./render";
@@ -261,6 +263,18 @@ export function PageCanvas({
   const lastSheet = sheets[sheets.length - 1]!;
   const totalHeight = lastSheet.top + lastSheet.d.height + CANVAS_PADDING;
 
+  // Pictures and text boxes that float are placed on the sheet their paragraph is on, counted from the body's top left corner.
+  const bodyLeft = sheets[0]!.left + margin.left;
+  const bodyTop = CANVAS_PADDING + topPad;
+  const boxes: SheetBox[] = sheets.map((sheet) => ({ left: sheet.left - bodyLeft, top: sheet.top - bodyTop, width: sheet.d.width, height: sheet.d.height, margin: sheet.d.margin }));
+  const boxesKey = JSON.stringify(boxes);
+  const hasFloats = doc.blocks.some(isFloating);
+  const frames = useMemo(
+    () => (paged && layout && hasFloats ? floatFrames(doc.blocks, layout, boxes) : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `boxesKey` stands for the numbers in `boxes`
+    [paged, layout, hasFloats, doc.blocks, boxesKey],
+  );
+
   // Where each section's text sits, for sections with margins or page sizes of their own.
   const boxKey = dims.map((d) => `${(maxWidth - d.width) / 2 + d.margin.left}:${d.textWidth}`).join(",");
   const sectionBoxes = useMemo(() => {
@@ -496,6 +510,7 @@ export function PageCanvas({
           pagination={pagination}
           footnotes={notesGeometry}
           sectionBoxes={sectionBoxes}
+          floatFrames={frames}
           onLayout={onLayout}
           onFocusChange={onBodyFocusChange}
           maxImageWidth={textWidth}

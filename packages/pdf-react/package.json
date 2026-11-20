@@ -1,6 +1,6 @@
 {
   "name": "@pli.dev/pdf-react",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "React PDF editor for Pli: thumbnails, continuous and single-page views, text selection and search, outline, annotation tools, page tools and form filling, driven by the @pli.dev/pdf engine.",
   "keywords": [
     "pli",

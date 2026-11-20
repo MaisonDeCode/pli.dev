@@ -17,7 +17,7 @@ import {
 import { anchorFor, attachOps, commentIdsIn, detachOps, documentCommentStore, reanchorOps } from "./comments";
 import * as commands from "./commands";
 import type { Command } from "./commands";
-import type { Align, Block, Columns, Doc, DocAnchor, DocStyle, ImageCrop, ListMarker, MarkPatch, Marks, PageSetup, ParagraphFormatPatch, RegionName, Run } from "./model";
+import type { Align, Block, BoxStyle, Columns, Doc, DocAnchor, DocStyle, FloatingBlock, FloatPlacement, ImageCrop, ListMarker, MarkPatch, Marks, PageSetup, ParagraphFormatPatch, RegionName, Run } from "./model";
 import { DEFAULT_PAGE, pageSetupOf } from "./page";
 import { sameShape, sectionShape, sectionsOf, type SectionShape } from "./sections";
 import type { ImportOptions } from "./html/import";
@@ -25,7 +25,7 @@ import { canonicalOps, materializeStandIns } from "./canonical";
 import { docReducer, type DocOp } from "./ops";
 import { readPaste, type PasteInput } from "./paste";
 import { applyMarkPatch, textLength } from "./runs";
-import { isTextBlock } from "./model";
+import { isFloating, isTextBlock } from "./model";
 import { caret, clampSelection, isCollapsed, mapSelection, selectAll, type Selection } from "./selection";
 import { collectIds, locate } from "./tree";
 import { REGION_NAMES } from "./regions";
@@ -502,8 +502,9 @@ export class DocumentSession extends Session<Doc, DocOp, Selection | null> {
     const selection = this.#selection;
     const block = selection ? locate(this.state, selection.focus.block)?.block : undefined;
     if (!block || block.type !== "image") return false;
-    if ((block.wrap ?? null) === wrap) return true;
-    const { wrap: _old, ...rest } = block;
+    if ((block.wrap ?? null) === wrap && !block.float) return true;
+    // Text wrapping round a picture, or the picture in a line of text, takes it off the page if it was fixed there.
+    const { wrap: _old, float: _float, ...rest } = block;
     this.transact([{ type: "replace_block", id: block.id, block: (wrap ? { ...rest, wrap } : rest) as Block }]);
     return true;
   }
@@ -540,6 +541,52 @@ export class DocumentSession extends Session<Doc, DocOp, Selection | null> {
     }
     this.transact([{ type: "replace_block", id, block: { ...rest, width, height, ...(clean && { crop: clean }) } as Block }], options.merge ? { merge: true } : undefined);
     return true;
+  }
+
+  // Pictures and text boxes that float on the page.
+
+  /** Puts a floating picture or text box in the document, against the paragraph the caret is in. See `floatingImage` and `textBox`. */
+  insertFloat(block: FloatingBlock): boolean {
+    return this.exec(commands.insertFloat(block));
+  }
+
+  /**
+   * Changes where a floating picture or text box sits and how it looks: the parts of `change` replace the ones it has (an `x` or `y`
+   * is replaced whole). `null` puts it back in the text: a picture on a line of its own, a text box as a plain one-cell table.
+   * `id` is the block's, or the selected one's when left out. Returns false when it isn't a floating block.
+   */
+  setFloat(change: Partial<FloatPlacement & BoxStyle> | null, id?: string, options: { merge?: boolean } = {}): boolean {
+    const target = id ?? this.#selection?.focus.block;
+    const found = target ? locate(this.state, target) : null;
+    // A caret in a text box's text means the box.
+    const block = found?.cell && found.cell.table.float ? found.cell.table : found?.block;
+    // A picture in the text can be put on the page (`{}` does it, at its paragraph); a table can't become a text box.
+    const plain = block?.type === "image" && !block.float && !found?.cell && change !== null;
+    if (!block || (!isFloating(block) && !plain)) return false;
+    let float: Record<string, unknown> | null = null;
+    if (change) {
+      float = isFloating(block) ? { ...block.float } : { x: { from: "column" }, y: { from: "paragraph" } };
+      for (const [key, value] of Object.entries(change)) {
+        if (value === undefined) delete float[key];
+        else float[key] = value;
+      }
+      // A text box keeps a size, and a picture keeps the one it has.
+      if (block.type === "image") for (const key of ["width", "height", "shape", "fill", "fillOpacity", "line", "padding"]) delete float[key];
+    }
+    const patch: Record<string, unknown> = { float };
+    // On the page, a picture is no longer beside text or lined up in a line.
+    if (block.type === "image" && float) Object.assign(patch, { wrap: null, align: null });
+    if (block.type === "image" && change && (change.width !== undefined || change.height !== undefined)) {
+      patch.width = Math.max(1, Math.round(change.width ?? block.width));
+      patch.height = Math.max(1, Math.round(change.height ?? block.height));
+    }
+    this.transact([{ type: "update_block", id: block.id, patch }], options.merge ? { merge: true } : undefined);
+    return true;
+  }
+
+  /** The floating pictures and text boxes of the document, in the order they come in. */
+  get floats(): FloatingBlock[] {
+    return this.state.blocks.filter(isFloating);
   }
 
   /** The picture whose crop is being set (it shows all of the picture, with a grip on each edge), if any. */

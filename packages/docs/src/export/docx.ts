@@ -1,6 +1,7 @@
 import { zipSync, strToU8 } from "fflate";
 import { officeHint, officeSubstitute, type Thread } from "@pli.dev/core";
-import type { Align, Block, Doc, DocAnchor, HeadingBlock, ImageBlock, ListItemBlock, ListMarker, Marks, PageSetup, ParagraphFormat, Run, TableBlock, TocBlock } from "../model";
+import { isFloating } from "../model";
+import type { Align, Block, BoxStyle, Doc, DocAnchor, FloatPlacement, HeadingBlock, ImageBlock, ListItemBlock, ListMarker, Marks, PageSetup, ParagraphFormat, Run, TableBlock, TocBlock } from "../model";
 import { colSpanOf, originMap, rowSpanOf } from "../grid";
 import { pageDimensions, pageSetupOf, PX_PER_INCH } from "../page";
 import { commentRanges } from "../comments";
@@ -16,6 +17,7 @@ const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationship
 const NS_WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 const NS_A = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const NS_PIC = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+const NS_WPS = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape";
 const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const MAX_LEVEL = 8;
 const EMU_PER_PX = 9525;
@@ -304,11 +306,27 @@ function srcRect(block: ImageBlock): string {
   return `<a:srcRect l="${t(c.left)}" t="${t(c.top)}" r="${t(c.right)}" b="${t(c.bottom)}"/>`;
 }
 
-function drawingXml(block: ImageBlock, part: Part, wrap?: "left" | "right"): string | null {
+/** Where an object that floats sits, as Word writes it: what it is measured from and how far, or which side it is lined up with. */
+function placementXml(float: FloatPlacement): string {
+  const axis = (tag: "positionH" | "positionV", position: FloatPlacement["x"] | FloatPlacement["y"]) => {
+    const side = position.align === "left" || position.align === "top" ? (tag === "positionH" ? "left" : "top") : position.align === "right" || position.align === "bottom" ? (tag === "positionH" ? "right" : "bottom") : position.align;
+    const inner = side ? `<wp:align>${side}</wp:align>` : `<wp:posOffset>${Math.round((position.offset ?? 0) * EMU_PER_PX)}</wp:posOffset>`;
+    return `<wp:${tag} relativeFrom="${position.from}">${inner}</wp:${tag}>`;
+  };
+  return `<wp:simplePos x="0" y="0"/>${axis("positionH", float.x)}${axis("positionV", float.y)}`;
+}
+
+/** The start of the `wp:anchor` of a floating object: it takes no room in the text, and the text goes straight through it. */
+function anchorOpen(float: FloatPlacement, part: Part): string {
+  const order = 251658240 + (float.z ?? 0) + part.shared.nextDocPr;
+  return `<wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="${Math.max(0, Math.round(order))}" behindDoc="${float.behind ? 1 : 0}" locked="0" layoutInCell="1" allowOverlap="1">`;
+}
+
+function drawingXml(block: ImageBlock, part: Part, wrap?: "left" | "right", float?: FloatPlacement): string | null {
   const image = decodeImage(block.src);
   if (!image) return null;
   const { shared } = part;
-  const limit = part.maxImageWidth ?? shared.maxImageWidthPx;
+  const limit = float ? Infinity : (part.maxImageWidth ?? shared.maxImageWidthPx);
   const scale = block.width > limit ? limit / block.width : 1;
   const cx = Math.round(block.width * scale * EMU_PER_PX);
   const cy = Math.round(block.height * scale * EMU_PER_PX);
@@ -329,6 +347,12 @@ function drawingXml(block: ImageBlock, part: Part, wrap?: "left" | "right"): str
     `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
     `</pic:pic></a:graphicData></a:graphic>`;
 
+  if (float) {
+    return (
+      `<w:drawing>${anchorOpen(float, part)}${placementXml(float)}` +
+      `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>${graphic}</wp:anchor></w:drawing>`
+    );
+  }
   if (wrap) {
     // 14 px of space between the picture and the text, on the side the text is on.
     const gap = 14 * EMU_PER_PX;
@@ -386,6 +410,45 @@ function tocXml(doc: Doc, block: TocBlock, part: Part): string {
  * A Word table with a fixed column grid sized from the text width, a repeating header row, shading
  * and borders. Cells hold ordinary paragraphs, lists and images.
  */
+/** The text box or shape of a table that floats, as a drawing: Word's `wps` shape, with the text inside it. */
+function textBoxXml(table: TableBlock & { float: FloatPlacement & BoxStyle }, doc: Doc, part: Part): string {
+  const { float } = table;
+  const cell = table.rows[0]!.cells[0]!;
+  const cx = Math.round(float.width * EMU_PER_PX);
+  const cy = Math.round(float.height * EMU_PER_PX);
+  const docPr = part.shared.nextDocPr++;
+  const padding = float.padding ?? { x: 10, y: 5 };
+
+  const colour = (value: string, opacity?: number) => `<a:srgbClr val="${hex(value) ?? "000000"}">${opacity !== undefined && opacity < 1 ? `<a:alpha val="${Math.round(opacity * 100000)}"/>` : ""}</a:srgbClr>`;
+  const fill = float.fill ? `<a:solidFill>${colour(float.fill, float.fillOpacity)}</a:solidFill>` : "<a:noFill/>";
+  const line = float.line
+    ? `<a:ln w="${Math.round(float.line.width * EMU_PER_PX)}"${float.line.style === "double" ? ' cmpd="dbl"' : ""}><a:solidFill>${colour(float.line.color)}</a:solidFill>` +
+      (float.line.style === "dashed" ? '<a:prstDash val="dash"/>' : float.line.style === "dotted" ? '<a:prstDash val="sysDot"/>' : "") +
+      "</a:ln>"
+    : "<a:ln><a:noFill/></a:ln>";
+  const geometry = float.shape === "ellipse" ? "ellipse" : float.shape === "round_rect" ? "roundRect" : "rect";
+
+  const saved = { runDefaults: part.runDefaults, defaultFormat: part.defaultFormat, maxImageWidth: part.maxImageWidth };
+  part.runDefaults = undefined;
+  part.defaultFormat = { spaceAfter: 2 };
+  part.maxImageWidth = Math.max(16, float.width - padding.x * 2 - 4);
+  const content = blocksXml(cell.blocks, doc, part);
+  Object.assign(part, saved);
+
+  const inset = (px: number) => Math.round(px * EMU_PER_PX);
+  const anchorAt = cell.vAlign === "middle" ? "ctr" : cell.vAlign === "bottom" ? "b" : "t";
+  return (
+    `<w:drawing>${anchorOpen(float, part)}${placementXml(float)}` +
+    `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>` +
+    `<wp:docPr id="${docPr}" name="Text Box ${docPr}"/><wp:cNvGraphicFramePr/>` +
+    `<a:graphic xmlns:a="${NS_A}"><a:graphicData uri="${NS_WPS}"><wps:wsp xmlns:wps="${NS_WPS}"><wps:cNvSpPr txBox="1"/>` +
+    `<wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="${geometry}"><a:avLst/></a:prstGeom>${fill}${line}</wps:spPr>` +
+    `<wps:txbx><w:txbxContent>${content}</w:txbxContent></wps:txbx>` +
+    `<wps:bodyPr rot="0" vert="horz" wrap="square" lIns="${inset(padding.x)}" tIns="${inset(padding.y)}" rIns="${inset(padding.x)}" bIns="${inset(padding.y)}" anchor="${anchorAt}" anchorCtr="0"><a:noAutofit/></wps:bodyPr>` +
+    `</wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing>`
+  );
+}
+
 function tableXml(table: TableBlock, doc: Doc, part: Part): string {
   const total = part.shared.textWidthTwips;
   const widths = table.columns.map((f) => Math.round(f * total));
@@ -489,9 +552,9 @@ function blocksXml(blocks: readonly Block[], doc: Doc, part: Part): string {
 
   for (const [at, block] of blocks.entries()) {
     // Anything that isn't text after a wrapped picture gets a paragraph of its own to hold it.
-    if (floats && !("runs" in block) && !(block.type === "image" && block.wrap && canFloat(part))) body.push(`<w:p>${takeFloats()}</w:p>`);
+    if (floats && !("runs" in block) && !(block.type === "image" && block.wrap && canFloat(part)) && !(isFloating(block) && canFloat(part))) body.push(`<w:p>${takeFloats()}</w:p>`);
     if (block.type !== "list_item") ours.length = 0;
-    const afterTable = previousTable;
+    const afterTable: boolean = previousTable;
     previousTable = block.type === "table";
 
     switch (block.type) {
@@ -532,6 +595,11 @@ function blocksXml(blocks: readonly Block[], doc: Doc, part: Part): string {
         body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
         break;
       case "image": {
+        if (block.float && canFloat(part)) {
+          const placed = drawingXml(block, part, undefined, block.float);
+          if (placed) floats += `<w:r>${placed}</w:r>`;
+          break;
+        }
         const drawing = block.wrap && canFloat(part) ? drawingXml(block, part, block.wrap) : null;
         if (drawing) floats += `<w:r>${drawing}</w:r>`;
         else body.push(imageXml(block, part));
@@ -544,6 +612,12 @@ function blocksXml(blocks: readonly Block[], doc: Doc, part: Part): string {
         // Sections are written by `toDocx`, not as blocks.
         break;
       case "table":
+        // A text box is anchored to the paragraph after it, like a picture that floats.
+        if (isFloating(block) && canFloat(part)) {
+          floats += `<w:r>${textBoxXml(block, doc, part)}</w:r>`;
+          previousTable = afterTable;
+          break;
+        }
         // Word needs a paragraph between two tables, or it merges them into one.
         if (afterTable) body.push("<w:p/>");
         body.push(tableXml(block, doc, part));

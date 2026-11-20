@@ -1,5 +1,6 @@
 import { createId } from "@pli.dev/core";
 import {
+  isFloating,
   isFormattable,
   isTextBlock,
   type Align,
@@ -7,6 +8,7 @@ import {
   type Columns,
   type Doc,
   type DocStyle,
+  type FloatingBlock,
   type ListItemBlock,
   type ListMarker,
   type MarkPatch,
@@ -307,6 +309,33 @@ function mergeOps(block: TextBlock, next: TextBlock): DocOp[] {
   return ops;
 }
 
+/** The block next to `index` in `direction`, stepping over the pictures and text boxes that float (they take no room in the text), and those it stepped over. */
+function neighbour(list: readonly Block[], index: number, direction: -1 | 1): { block: Block | undefined; floats: FloatingBlock[]; at: number } {
+  const floats: FloatingBlock[] = [];
+  let at = index + direction;
+  while (list[at] && isFloating(list[at]!)) {
+    floats.push(list[at] as FloatingBlock);
+    at += direction;
+  }
+  if (direction < 0) floats.reverse();
+  return { block: list[at], floats, at };
+}
+
+/** Moves floating objects to just before the block at `index`, so they stay with the paragraph two paragraphs have been joined into. */
+function bringFloatsTo(list: readonly Block[], index: number, floats: readonly FloatingBlock[]): DocOp[] {
+  if (floats.length === 0) return [];
+  const ops: DocOp[] = floats.map((f) => ({ type: "delete_block", id: f.id }));
+  const skip = new Set(floats.map((f) => f.id));
+  let before: Block | undefined;
+  for (let i = index - 1; i >= 0 && !before; i--) if (!skip.has(list[i]!.id)) before = list[i];
+  let after: string | null = before ? before.id : null;
+  for (const f of floats) {
+    ops.push({ type: "insert_block", block: f, after });
+    after = f.id;
+  }
+  return ops;
+}
+
 /** Removes a block that holds no text. A table cell that would be left with nothing keeps an empty paragraph. */
 function removeNonTextBlock(doc: Doc, located: Located): CommandResult {
   const { block } = located;
@@ -326,7 +355,9 @@ export function backspace(): Command {
     const at = selection.focus;
     const located = where(doc, at.block);
     const block = located.block;
-    const previous = located.list[located.index - 1];
+    // A picture or text box that floats takes no room in the text, so it is neither joined with nor removed by Backspace.
+    const back = neighbour(located.list, located.index, -1);
+    const previous = back.block;
 
     if (!isTextBlock(block)) return removeNonTextBlock(doc, located);
 
@@ -355,7 +386,8 @@ export function backspace(): Command {
     if (!isTextBlock(previous)) {
       return { ops: [{ type: "delete_block", id: previous.id }], selection: caret(block.id, 0) };
     }
-    return { ops: mergeOps(previous, block), selection: caret(previous.id, textLength(previous.runs)) };
+    const index = located.list.indexOf(previous);
+    return { ops: [...mergeOps(previous, block), ...bringFloatsTo(located.list, index, back.floats)], selection: caret(previous.id, textLength(previous.runs)) };
   };
 }
 
@@ -366,7 +398,8 @@ export function deleteForward(): Command {
     const at = selection.focus;
     const located = where(doc, at.block);
     const block = located.block;
-    const next = located.list[located.index + 1];
+    const ahead = neighbour(located.list, located.index, 1);
+    const next = ahead.block;
 
     if (!isTextBlock(block)) return backspace()(doc, selection);
 
@@ -387,7 +420,7 @@ export function deleteForward(): Command {
     if (!isTextBlock(next)) {
       return { ops: [{ type: "delete_block", id: next.id }], selection: caret(block.id, at.offset) };
     }
-    return { ops: mergeOps(block, next), selection: caret(block.id, at.offset) };
+    return { ops: [...mergeOps(block, next), ...bringFloatsTo(located.list, located.index, ahead.floats)], selection: caret(block.id, at.offset) };
   };
 }
 
@@ -789,6 +822,25 @@ export function insertBlock(block: Block, options: { replaceEmpty?: boolean; tra
     const fresh = emptyParagraph();
     ops.push({ type: "insert_block", block: fresh, after: block.id });
     return { ops, selection: caret(fresh.id, 0) };
+  };
+}
+
+/**
+ * Puts a picture or text box that floats on the page into the document. It belongs to the paragraph the caret is in (it goes in
+ * front of it, and is placed against it), and takes no room there. Where the caret was stays where it is, except that a text box
+ * gets the caret in its text so it can be typed in at once.
+ */
+export function insertFloat(block: FloatingBlock): Command {
+  return (doc, selection) => {
+    const step = collapseSelection(doc, selection);
+    const found = locate(step.doc, step.at.block);
+    if (!found) return null;
+    const before = step.doc.blocks[found.topIndex - 1];
+    const insert: DocOp = { type: "insert_block", block, after: before ? before.id : null };
+    const ops = [...step.ops, insert];
+    // Back where the caret was, which a floating picture leaves alone; a text box takes the caret into its text.
+    if (block.type === "table") return { ops, selection: startPointOf(block) ? caret(startPointOf(block)!.block, 0) : selection };
+    return { ops, selection: caret(block.id, 0) };
   };
 }
 

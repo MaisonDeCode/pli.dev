@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { DocumentSession, caret, createDoc, paragraph, plainText, text } from "@pli.dev/docs";
-import { PliDocument, insertSnippet, insertValue } from "../src";
+import { PliDocument, insertSnippet, insertValue, type PlaceholderField } from "../src";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -96,6 +96,35 @@ describe("inserting fields", () => {
     expect(labels.some((l) => l.includes("Repeat for each"))).toBe(true);
   });
 
+  it("writes an answer whose name is not a plain word so that it reads back", () => {
+    const s = make("");
+    act(() => root.render(<PliDocument session={s} placeholders={{ fields: [{ path: "answer.q-id", label: "Colour" }] }} />));
+    insertValue(s, "answer.q-id");
+    expect(texts(s)).toEqual(['{{ answer["q-id"] }}']);
+  });
+
+  it("offers only lists under Repeat for each…, and a plain list when there are none", () => {
+    const menu = (fields: PlaceholderField[]) => {
+      const s = make("x");
+      act(() => root.render(<PliDocument session={s} placeholders={{ fields }} />));
+      act(() => [...host.querySelectorAll<HTMLElement>(".pli-menubar-button")].find((b) => b.textContent === "Insert")!.click());
+      const items = () => [...host.querySelectorAll<HTMLElement>(".pli-menu-panel [role=menuitem]")];
+      const repeat = items().find((i) => i.textContent?.startsWith("Repeat for each"))!;
+      act(() => repeat.click());
+      return { s, after: items().map((i) => i.textContent ?? "") };
+    };
+    // Single answers are not lists: nothing to pick, the list goes in with a word to replace.
+    const none = menu(["client.name", { path: "plan", label: "Plan" }]);
+    expect(none.after).not.toContain("client.name");
+    expect(none.after).not.toContain("Plan");
+    expect(texts(none.s)).toEqual(["{{#each list as item}}", "", "{{/each}}", "x"]);
+    // With lists among the answers, only the lists.
+    act(() => root.unmount());
+    root = createRoot(host);
+    const some = menu(["client.name", { path: "services", label: "Services", fields: ["name"] }, { path: "rooms", label: "Rooms", list: true }]);
+    expect(some.after.filter((l) => ["client.name", "Services", "Rooms"].includes(l))).toEqual(["Services", "Rooms"]);
+  });
+
   it("is not in the Insert menu otherwise", () => {
     const s = make("x");
     act(() => root.render(<PliDocument session={s} />));
@@ -155,6 +184,35 @@ describe("tags shown by name", () => {
     document.getSelection()!.setBaseAndExtent(first, 5, first, 5);
     act(() => void e2.dispatchEvent(new InputEvent("beforeinput", { inputType: "deleteContentForward", bubbles: true, cancelable: true })));
     expect(texts(t)).toEqual(["Dear , hello"]);
+  });
+
+  it("finds the name of an answer given with a path that needs brackets", () => {
+    const s = make('Colour: {{ answer["q-id"] }}');
+    act(() => root.render(<PliDocument session={s} placeholders={{ fields: [{ path: "answer.q-id", label: "Favourite colour" }], labels: true }} />));
+    expect(labels()).toEqual(["Favourite colour"]);
+  });
+
+  it("steps over a tag with Tab and back with Shift+Tab, only when the caret is against one", () => {
+    const s = make("Dear {{ client.name }}, hello");
+    named(s);
+    const editor = host.querySelector<HTMLElement>("[data-pli-editor]")!;
+    const id = s.state.blocks[0]!.id;
+    const tab = (shiftKey: boolean) => {
+      const event = new KeyboardEvent("keydown", { key: "Tab", shiftKey, bubbles: true, cancelable: true });
+      act(() => void editor.dispatchEvent(event));
+      return event.defaultPrevented;
+    };
+    act(() => s.select(caret(id, 5)));
+    expect(tab(false)).toBe(true);
+    expect(s.selection?.focus.offset).toBe(5 + 17);
+    expect(tab(true)).toBe(true);
+    expect(s.selection?.focus.offset).toBe(5);
+    // Away from a tag, Tab is left to the browser.
+    const first = host.querySelector<HTMLElement>('[data-type="paragraph"]')!.firstChild as Text;
+    act(() => s.select(caret(id, 2)));
+    document.getSelection()!.setBaseAndExtent(first, 2, first, 2);
+    expect(tab(false)).toBe(false);
+    expect(s.selection?.focus.offset).toBe(2);
   });
 
   it("offers the choices of an answer under Only if…", () => {

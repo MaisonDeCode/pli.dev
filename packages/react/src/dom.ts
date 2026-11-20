@@ -28,12 +28,26 @@ function isNonText(el: HTMLElement): boolean {
   return NON_TEXT_TYPES.has(el.getAttribute("data-type") ?? "");
 }
 
+/**
+ * An offset kept inside its node. A browser can report a position past the end of a node whose content has just changed (Safari does
+ * while a tag shown by name is being removed), and a range or a selection built from it throws "index is not in the allowed range".
+ */
+export function withinNode(node: Node, offset: number): number {
+  const size = node.nodeType === 3 || node.nodeType === 4 || node.nodeType === 8 ? (node as CharacterData).length : node.childNodes.length;
+  return Math.max(0, Math.min(Number.isFinite(offset) ? offset : 0, size));
+}
+
 function offsetInBlock(el: HTMLElement, node: Node, offset: number): number {
   if (isNonText(el)) return 0;
-  const range = el.ownerDocument.createRange();
-  range.setStart(el, 0);
-  range.setEnd(node, offset);
-  return range.toString().length;
+  try {
+    const range = el.ownerDocument.createRange();
+    range.setStart(el, 0);
+    range.setEnd(node, withinNode(node, offset));
+    return range.toString().length;
+  } catch {
+    // The node is no longer in the block (it was removed while the browser was still pointing at it): the end of the block's text.
+    return (el.textContent ?? "").length;
+  }
 }
 
 /**
@@ -50,7 +64,13 @@ export function pointFromDom(root: HTMLElement, node: Node, offset: number): Poi
   const range = root.ownerDocument.createRange();
   for (const el of blocks) {
     range.selectNodeContents(el);
-    const position = range.comparePoint(node, offset);
+    let position: number;
+    try {
+      position = range.comparePoint(node, withinNode(node, offset));
+    } catch {
+      // A node that is no longer in the page can't be compared with anything.
+      break;
+    }
     if (position < 0) return { block: blockId(el), offset: 0 };
     // A table holds other blocks; a position inside it but outside every cell block belongs to the
     // next cell block, found on the following iterations. Only the space just before it is the table.
@@ -79,10 +99,14 @@ export function namedTagStart(root: HTMLElement, node: Node | null): number | nu
   const chip = el?.closest<HTMLElement>(".pli-ph[data-friendly]");
   const block = chip && findBlockElement(root, chip);
   if (!chip || !block) return null;
-  const range = chip.ownerDocument.createRange();
-  range.setStart(block, 0);
-  range.setEnd(chip, 0);
-  return range.toString().length;
+  try {
+    const range = chip.ownerDocument.createRange();
+    range.setStart(block, 0);
+    range.setEnd(chip, 0);
+    return range.toString().length;
+  } catch {
+    return null;
+  }
 }
 
 /** Converts a static range (from a `beforeinput` event) to a document selection. */
@@ -157,7 +181,11 @@ export function applySelectionToDom(root: HTMLElement, selection: Selection, for
   const focus = domPointFromPoint(root, selection.focus);
   const dom = root.ownerDocument.getSelection();
   if (!anchor || !focus || !dom) return false;
-  dom.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset);
+  try {
+    dom.setBaseAndExtent(anchor.node, withinNode(anchor.node, anchor.offset), focus.node, withinNode(focus.node, focus.offset));
+  } catch {
+    return false;
+  }
   return true;
 }
 

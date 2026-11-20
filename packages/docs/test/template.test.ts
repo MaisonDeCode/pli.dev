@@ -10,6 +10,8 @@ import {
   image,
   paragraph,
   parseDoc,
+  placeholderPath,
+  placeholderPathParts,
   placeholderSnippet,
   placeholdersIn,
   plainText,
@@ -628,8 +630,30 @@ describe("describePlaceholder", () => {
     expect(d("{{/each}}")).toBe("End of list");
   });
 
+  it("finds a name whichever way the path is written", () => {
+    const given = { "answer.q-id": "Favourite colour", 'answer["other-id"]': "Other" };
+    expect(describePlaceholder('{{ answer["q-id"] }}', given)).toBe("Favourite colour");
+    expect(describePlaceholder("{{ answer.other }}", given)).toBe("Answer other");
+    expect(describePlaceholder('{{ answer["other-id"] }}', given)).toBe("Other");
+    expect(describePlaceholder('{{ answer["q-id"] }}', (path) => (path === "answer.q-id" ? "From a function" : undefined))).toBe("From a function");
+  });
+
   it("gives nothing for a tag that can't be read, so it is shown as written", () => {
     expect(d("{{ 1 + }}")).toBeUndefined();
     expect(d("plain text")).toBeUndefined();
+  });
+});
+
+describe("placeholderPath", () => {
+  it("writes a path so that it reads back as the same answer", () => {
+    expect(placeholderPath("client.name")).toBe("client.name");
+    expect(placeholderPath("answer.q-id")).toBe('answer["q-id"]');
+    expect(placeholderPath("answer['q id']")).toBe('answer["q id"]');
+    expect(placeholderPath('answer["q-id"].first')).toBe('answer["q-id"].first');
+    expect(placeholderPath("rows.0.name")).toBe("rows.0.name");
+    expect(placeholderPathParts('a["b.c"].d')).toEqual(["a", "b.c", "d"]);
+    const data = { answer: { "q-id": "blue" } };
+    const result = generateDocument(make(`{{ ${placeholderPath("answer.q-id")} }}`), data);
+    expect(txt(result.doc.blocks[0])).toBe("blue");
   });
 });

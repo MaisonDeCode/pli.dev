@@ -20,6 +20,7 @@ const PREVIEWS: Record<Exclude<DemoId, "sheets" | "decks" | "pdf">, { doc: () =>
   embed: { doc: starter },
   generate: { doc: generatedSample },
   builder: { doc: generatedSample },
+  cover: { doc: generatedSample },
   collaboration: { doc: labDocument, people: TEAM },
 };
 

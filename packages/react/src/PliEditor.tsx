@@ -10,7 +10,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { PliError, cellRect, cellsInRect, image, isCollapsed, locate, usedFonts, type DocumentSession, type PasteInput } from "@pli.dev/docs";
+import { PliError, cellRect, cellsInRect, image, isCollapsed, isFloating, locate, usedFonts, type DocumentSession, type PasteInput } from "@pli.dev/docs";
 import type { FontRegistry } from "@pli.dev/core";
 import { useDocumentFonts, useFonts } from "./ui/fonts";
 import { applySelectionToDom, revealSelection } from "./dom";
@@ -22,6 +22,7 @@ import { placeholderMode, type PlaceholderOptions } from "./ui/placeholders";
 import { EMPTY_LAYOUT, sameLayout, type Geometry, type Layout } from "./layout/paginate";
 import { measureAndPaginate, type NotesGeometry, type SectionGeometry } from "./layout/measure";
 import { DocumentView, type FieldValues, type SectionBox } from "./render";
+import type { FloatFrame } from "./floats";
 
 export interface PaginationConfig extends Geometry {
   /** The zoom applied to the editor with a CSS transform. */
@@ -55,6 +56,8 @@ export interface PliEditorProps {
   footnotes?: NotesGeometry;
   /** Where each section's text sits, when sections have different margins or page sizes. See `DocumentViewProps`. */
   sectionBoxes?: readonly SectionBox[];
+  /** Where each floating picture and text box is drawn on its page (see `floatFrames`). Without it they are drawn where they sit in the text. */
+  floatFrames?: ReadonlyMap<string, FloatFrame>;
   /** Called whenever the page layout changes. */
   onLayout?: (layout: Layout) => void;
   /** Called when the editing area gains or loses focus. */
@@ -110,6 +113,7 @@ export const PliEditor = forwardRef<PliEditorHandle, PliEditorProps>(function Pl
     onLayout,
     footnotes,
     sectionBoxes,
+    floatFrames,
     onFocusChange,
     maxImageWidth,
     onStorageError,
@@ -297,6 +301,29 @@ export const PliEditor = forwardRef<PliEditorHandle, PliEditorProps>(function Pl
     [session],
   );
 
+  // Dragging a floating picture or text box moves it: its position is kept as a distance from the same edge, now further along.
+  const floatFramesRef = useRef(floatFrames);
+  floatFramesRef.current = floatFrames;
+  const moveFloat = useCallback(
+    (id: string, dx: number, dy: number) => {
+      const block = locate(session.state, id)?.block;
+      if (!block || !isFloating(block)) return;
+      const frame = floatFramesRef.current?.get(id);
+      const { x, y } = block.float;
+      // Where its edge is now, counted from where the position starts. Lined up with an edge becomes a distance.
+      const fromX = frame ? frame.left + dx - frame.origin.x : (x.offset ?? 0) + dx;
+      const fromY = frame ? frame.top + dy - frame.origin.y : (y.offset ?? 0) + dy;
+      session.setFloat({ x: { from: x.from, offset: Math.round(fromX) }, y: { from: y.from, offset: Math.round(fromY) } }, id);
+    },
+    [session],
+  );
+  const resizeFloat = useCallback(
+    (id: string, width: number, height: number) => {
+      session.setFloat({ width, height }, id);
+    },
+    [session],
+  );
+
   const resizeImage = useCallback(
     (id: string, width: number, height: number) => {
       session.updateBlock(id, { width, height });
@@ -337,7 +364,9 @@ export const PliEditor = forwardRef<PliEditorHandle, PliEditorProps>(function Pl
 
   // The selected block, for images and whole tables, which are selected as a unit.
   const selectedBlock = selection && isCollapsed(selection) ? locate(doc, selection.focus.block)?.block : undefined;
-  const selectedId = selectedBlock?.type === "image" || selectedBlock?.type === "table" ? selectedBlock.id : null;
+  // A caret in a text box's text counts as having the box, so it shows its handles.
+  const insideBox = selection && isCollapsed(selection) ? locate(doc, selection.focus.block)?.cell?.table : undefined;
+  const selectedId = insideBox?.float ? insideBox.id : selectedBlock?.type === "image" || selectedBlock?.type === "table" ? selectedBlock.id : null;
 
   // Cells covered by a drag across several cells, drawn highlighted.
   const covered = selection ? cellRect(doc, selection) : null;
@@ -372,6 +401,9 @@ export const PliEditor = forwardRef<PliEditorHandle, PliEditorProps>(function Pl
         onResizeImage={readOnly ? undefined : resizeImage}
         onResizeColumns={readOnly ? undefined : resizeColumns}
         onResizeRow={readOnly ? undefined : resizeRow}
+        floatFrames={floatFrames}
+        onMoveFloat={readOnly ? undefined : moveFloat}
+        onResizeFloat={readOnly ? undefined : resizeFloat}
       />
       </PlaceholdersContext.Provider>
       </EditorSessionContext.Provider>

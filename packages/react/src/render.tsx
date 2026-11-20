@@ -12,9 +12,10 @@ import {
   type ReactNode,
 } from "react";
 import { fontStack, lookupFont } from "@pli.dev/core";
-import { userColor, effectiveMarks, placeholdersIn, headingAnchor, isFormattable, listLabels, plainText, withParagraphStyle, type Block, type Doc, type ImageBlock, type ImageCrop, type Run, type TableBlock, type TocBlock } from "@pli.dev/docs";
+import { userColor, effectiveMarks, placeholdersIn, headingAnchor, isFormattable, isFloating, listLabels, plainText, withParagraphStyle, type Block, type Doc, type FloatingBlock, type ImageBlock, type ImageCrop, type Run, type TableBlock, type TocBlock } from "@pli.dev/docs";
 import type { DocumentSession, StorageClient, UploadState } from "@pli.dev/docs";
 import type { Layout, Split } from "./layout/paginate";
+import { clipPath, floatSize, type FloatFrame } from "./floats";
 import { EditorSessionContext, PlaceholdersContext, type PlaceholderMode } from "./session-context";
 import { columnRuns, sectionsOf, type ColumnRun } from "@pli.dev/docs";
 
@@ -539,6 +540,12 @@ export interface RenderContext {
   onResizeColumns?: (id: string, columns: number[]) => void;
   /** Called with a table row's new minimum height, in points, when its bottom edge is dragged. */
   onResizeRow?: (id: string, row: number, points: number) => void;
+  /** Where each floating picture and text box is drawn on its page. Without a place, one is drawn where it sits in the text. */
+  floatFrames?: ReadonlyMap<string, FloatFrame>;
+  /** Called with how far (in pixels) a floating picture or text box was dragged. */
+  onMoveFloat?: (id: string, dx: number, dy: number) => void;
+  /** Called with a floating text box's new size, from its corner handle. */
+  onResizeFloat?: (id: string, width: number, height: number) => void;
 }
 
 interface BlockViewProps {
@@ -554,6 +561,9 @@ interface BlockViewProps {
   /** The document's named styles, so a block is drawn again when one changes. */
   styles?: Doc["styles"];
   onResizeImage?: (id: string, width: number, height: number) => void;
+  /** For a floating picture or text box: where it is drawn. */
+  frame?: FloatFrame;
+  onMoveFloat?: (id: string, dx: number, dy: number) => void;
 }
 
 export const BlockView = memo(function BlockView({
@@ -567,6 +577,8 @@ export const BlockView = memo(function BlockView({
   styles,
   onResizeImage,
   context,
+  frame,
+  onMoveFloat,
 }: BlockViewProps) {
   const base = { [BLOCK_ATTR]: block.id, "data-type": block.type };
   const chips = useContext(PlaceholdersContext) || undefined;
@@ -640,6 +652,7 @@ export const BlockView = memo(function BlockView({
         />
       );
     case "image":
+      if (block.float) return <FloatingImage block={block as ImageBlock & { float: NonNullable<ImageBlock["float"]> }} selected={!!selected} frame={frame} onResize={onResizeImage} onMove={onMoveFloat} />;
       return (
         <figure
           {...base}
@@ -655,9 +668,193 @@ export const BlockView = memo(function BlockView({
     case "toc":
       return <TocView block={block} entries={toc ?? []} />;
     case "table":
-      return context ? <TableView table={block} context={context} /> : null;
+      if (!context) return null;
+      return isFloating(block) ? <TextBoxView table={block} context={context} frame={frame} selected={!!selected} /> : <TableView table={block} context={context} />;
   }
 });
+
+// ---- pictures and text boxes that float on the page ----
+
+/** `#rrggbb` as a CSS colour with some see-through. */
+function withOpacity(hex: string, opacity: number | undefined): string {
+  if (opacity === undefined || opacity >= 1) return hex;
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${Math.max(0, opacity)})`;
+}
+
+/** Where and how a floating block is drawn: on its page when the place is known, and otherwise where it sits in the text. */
+function floatStyle(block: FloatingBlock, frame: FloatFrame | undefined): CSSProperties {
+  const { width, height } = floatSize(block);
+  const { behind, z, x, y } = block.float;
+  const style: CSSProperties = {
+    position: "absolute",
+    width,
+    height,
+    // Behind the text is behind every line of it, on top of the paper.
+    zIndex: behind ? -1 : 1 + Math.min(Math.max(Math.round(z ?? 0), 0), 100000),
+  };
+  if (frame) {
+    style.left = frame.left;
+    style.top = frame.top;
+    style.clipPath = clipPath(frame.clip);
+  } else {
+    // No page to measure against (a page without edges, or before the first layout): nudged from where it sits in the text.
+    style.marginLeft = x.offset ?? 0;
+    style.marginTop = y.offset ?? 0;
+  }
+  return style;
+}
+
+/** Dragging a floating block moves it: the offset so far, and the handlers that make it happen. Nothing is set when moving isn't allowed. */
+function useFloatMove(id: string, onMove: ((id: string, dx: number, dy: number) => void) | undefined) {
+  const [live, setLive] = useState<{ dx: number; dy: number } | null>(null);
+  const liveRef = useRef<{ dx: number; dy: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; scale: number; moved: boolean } | null>(null);
+  if (!onMove) return { live: null, handlers: {} };
+  const handlers = {
+    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+      if (event.button !== 0 || (event.target as HTMLElement).closest(".pli-image-handle, .pli-crop-handle, .pli-float-resize")) return;
+      const zoom = (event.currentTarget.closest("[data-pli-zoom]") as HTMLElement | null)?.dataset.pliZoom;
+      drag.current = { x: event.clientX, y: event.clientY, scale: zoom ? Number(zoom) || 1 : 1, moved: false };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
+      const d = drag.current;
+      if (!d) return;
+      const dx = (event.clientX - d.x) / d.scale;
+      const dy = (event.clientY - d.y) / d.scale;
+      // A click that wobbles is still a click.
+      if (!d.moved && Math.hypot(dx, dy) < 4) return;
+      d.moved = true;
+      liveRef.current = { dx, dy };
+      setLive(liveRef.current);
+    },
+    onPointerUp: (event: ReactPointerEvent<HTMLElement>) => {
+      const d = drag.current;
+      drag.current = null;
+      if (!d) return;
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+      const moved = liveRef.current;
+      liveRef.current = null;
+      setLive(null);
+      if (d.moved && moved) onMove(id, Math.round(moved.dx), Math.round(moved.dy));
+    },
+    onPointerCancel: () => {
+      drag.current = null;
+      liveRef.current = null;
+      setLive(null);
+    },
+  };
+  return { live, handlers };
+}
+
+/** A picture on the page: behind the text, or over it, at a position, with the picture's own resize handles. */
+function FloatingImage({ block, selected, frame, onResize, onMove }: { block: ImageBlock & { float: NonNullable<ImageBlock["float"]> }; selected: boolean; frame?: FloatFrame; onResize?: ImageViewProps["onResize"]; onMove?: BlockViewProps["onMoveFloat"] }) {
+  const { live, handlers } = useFloatMove(block.id, onMove);
+  const style = floatStyle(block as FloatingBlock, frame);
+  if (live) style.transform = `translate(${live.dx}px, ${live.dy}px)`;
+  return (
+    <figure
+      {...{ [BLOCK_ATTR]: block.id, "data-type": "image" }}
+      className="pli-image pli-float"
+      contentEditable={false}
+      data-selected={selected ? "" : undefined}
+      data-behind={block.float.behind ? "" : undefined}
+      data-moving={live ? "" : undefined}
+      style={style}
+      {...handlers}
+    >
+      <ImageView block={block} selected={selected} onResize={onResize} />
+    </figure>
+  );
+}
+
+const MIN_BOX = 24;
+
+/**
+ * A text box or a shape on the page: a box with a fill and an outline that holds a cell's blocks, which are edited like any text.
+ * Dragging the bar along its top moves it, and the corner handle resizes it, while it is selected or has the caret.
+ */
+function TextBoxView({ table, context, frame, selected }: { table: TableBlock & { float: NonNullable<TableBlock["float"]> }; context: RenderContext; frame?: FloatFrame; selected: boolean }) {
+  const { float } = table;
+  const row = table.rows[0]!;
+  const cell = row.cells[0]!;
+  const { live, handlers } = useFloatMove(table.id, context.onMoveFloat);
+  const [size, setSizeState] = useState<{ width: number; height: number } | null>(null);
+  const sizeRef = useRef<{ width: number; height: number } | null>(null);
+  const resizing = useRef<{ x: number; y: number; width: number; height: number; scale: number } | null>(null);
+  const setSize = (next: { width: number; height: number } | null) => {
+    sizeRef.current = next;
+    setSizeState(next);
+  };
+  const shown = size ?? { width: float.width, height: float.height };
+  const style = floatStyle(table as FloatingBlock, frame);
+  style.width = shown.width;
+  style.height = shown.height;
+  if (live) style.transform = `translate(${live.dx}px, ${live.dy}px)`;
+  if (float.fill) style.backgroundColor = withOpacity(float.fill, float.fillOpacity);
+  if (float.line && float.line.width > 0) {
+    style.borderWidth = float.line.width;
+    style.borderStyle = float.line.style ?? "solid";
+    style.borderColor = float.line.color;
+  }
+  style.borderRadius = float.shape === "ellipse" ? "50%" : float.shape === "round_rect" ? Math.min(shown.width, shown.height) / 6 : undefined;
+  const padding = float.padding ?? { x: 10, y: 5 };
+  const align = cell.vAlign === "middle" ? "center" : cell.vAlign === "bottom" ? "flex-end" : "flex-start";
+
+  const startResize = (event: ReactPointerEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const zoom = (event.currentTarget.closest("[data-pli-zoom]") as HTMLElement | null)?.dataset.pliZoom;
+    resizing.current = { x: event.clientX, y: event.clientY, width: float.width, height: float.height, scale: zoom ? Number(zoom) || 1 : 1 };
+  };
+  const moveResize = (event: ReactPointerEvent<HTMLElement>) => {
+    const d = resizing.current;
+    if (!d) return;
+    setSize({
+      width: Math.max(MIN_BOX, Math.round(d.width + (event.clientX - d.x) / d.scale)),
+      height: Math.max(MIN_BOX, Math.round(d.height + (event.clientY - d.y) / d.scale)),
+    });
+  };
+  const endResize = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!resizing.current) return;
+    resizing.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    const done = sizeRef.current;
+    setSize(null);
+    if (done && (done.width !== float.width || done.height !== float.height)) context.onResizeFloat?.(table.id, done.width, done.height);
+  };
+
+  return (
+    <div
+      {...{ [BLOCK_ATTR]: table.id, "data-type": "table" }}
+      className="pli-textbox pli-float"
+      data-selected={selected ? "" : undefined}
+      data-behind={float.behind ? "" : undefined}
+      data-moving={live ? "" : undefined}
+      data-shape={float.shape ?? "rect"}
+      style={style}
+    >
+      {context.onMoveFloat && (
+        <span className="pli-float-grip" contentEditable={false} role="button" aria-label="Move text box" data-table-grip={table.id} {...handlers} />
+      )}
+      <div className="pli-textbox-row" data-row-id={row.id}>
+        <div
+          className="pli-textbox-cell"
+          data-cell-id={cell.id}
+          data-selected-cell={context.selectedCells?.has(cell.id) ? "" : undefined}
+          style={{ padding: `${padding.y}px ${padding.x}px`, justifyContent: align }}
+        >
+          {renderBlocks(cell.blocks, context)}
+        </div>
+      </div>
+      {selected && context.onResizeFloat && (
+        <span className="pli-float-resize" contentEditable={false} role="slider" aria-label="Resize text box" onPointerDown={startResize} onPointerMove={moveResize} onPointerUp={endResize} onPointerCancel={endResize} />
+      )}
+    </div>
+  );
+}
 
 const MIN_COLUMN = 0.05;
 /** The shortest a row can be dragged to, in points. */
@@ -983,6 +1180,8 @@ function renderBlocks(blocks: readonly Block[], context: RenderContext, placehol
         toc={block.type === "toc" ? tocEntries(doc.blocks, block.levels, layout?.pageOf) : undefined}
         onResizeImage={onResizeImage}
         context={block.type === "table" ? context : undefined}
+        frame={isFloating(block) ? context.floatFrames?.get(block.id) : undefined}
+        onMoveFloat={isFloating(block) ? context.onMoveFloat : undefined}
       />
     );
 
@@ -1036,6 +1235,12 @@ export interface DocumentViewProps {
   onResizeColumns?: (id: string, columns: number[]) => void;
   /** Called when a row's bottom edge is dragged. Omit to make row heights fixed. */
   onResizeRow?: (id: string, row: number, points: number) => void;
+  /** Where each floating picture and text box is drawn. See `floatFrames`. */
+  floatFrames?: ReadonlyMap<string, FloatFrame>;
+  /** Called with how far a floating picture or text box was dragged. Omit to keep them where they are. */
+  onMoveFloat?: (id: string, dx: number, dy: number) => void;
+  /** Called with a text box's new size from its corner handle. */
+  onResizeFloat?: (id: string, width: number, height: number) => void;
 }
 
 /** Renders a document's blocks. Pure and hook-free apart from drag state, so it also works for static output. */
@@ -1051,7 +1256,10 @@ export const DocumentView = memo(function DocumentView({
   sectionBoxes,
   onResizeColumns,
   onResizeRow,
+  floatFrames,
+  onMoveFloat,
+  onResizeFloat,
 }: DocumentViewProps) {
-  const context: RenderContext = { doc, epochs, layout, fields, selectedId, selectedCells, onResizeImage, sectionBoxes, onResizeColumns, onResizeRow };
+  const context: RenderContext = { doc, epochs, layout, fields, selectedId, selectedCells, onResizeImage, sectionBoxes, onResizeColumns, onResizeRow, floatFrames, onMoveFloat, onResizeFloat };
   return <>{renderBlocks(doc.blocks, context, placeholder)}</>;
 });

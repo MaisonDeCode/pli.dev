@@ -155,8 +155,57 @@ function claim(path: string, seen: Set<string>, value: unknown): string {
   return id;
 }
 
+/** The position of a floating object: where it sits on its page, and in front of or behind the text. */
+function checkPlacement(at: string, value: Json): void {
+  for (const [axis, froms, aligns] of [
+    ["x", ["page", "margin", "column"], ["left", "center", "right"]],
+    ["y", ["page", "margin", "paragraph"], ["top", "center", "bottom"]],
+  ] as const) {
+    const position = value[axis];
+    if (!isObject(position)) fail(`${at}.${axis}`, "expected an object");
+    only(`${at}.${axis}`, position, ["from", "offset", "align"]);
+    if (!(froms as readonly unknown[]).includes(position.from)) fail(`${at}.${axis}.from`, `expected one of ${froms.join(", ")}`);
+    if (position.offset !== undefined) num(`${at}.${axis}.offset`, position.offset, -100000, 100000);
+    if (position.align !== undefined && !(aligns as readonly unknown[]).includes(position.align)) fail(`${at}.${axis}.align`, `expected one of ${aligns.join(", ")}`);
+  }
+  if (value.behind !== undefined && typeof value.behind !== "boolean") fail(`${at}.behind`, "expected true or false");
+  if (value.z !== undefined) num(`${at}.z`, value.z, -1000000, 1000000);
+}
+
+const COLOUR = /^#[0-9a-fA-F]{6}$/;
+
+function checkBox(at: string, value: Json): void {
+  only(at, value, ["x", "y", "behind", "z", "width", "height", "shape", "fill", "fillOpacity", "line", "padding"]);
+  checkPlacement(at, value);
+  num(`${at}.width`, value.width, 1, 20000);
+  num(`${at}.height`, value.height, 1, 20000);
+  if (value.shape !== undefined && !["rect", "round_rect", "ellipse"].includes(value.shape as string)) fail(`${at}.shape`, 'expected "rect", "round_rect" or "ellipse"');
+  if (value.fill !== undefined && !COLOUR.test(str(`${at}.fill`, value.fill))) fail(`${at}.fill`, "expected a colour like #1a2b3c");
+  if (value.fillOpacity !== undefined) num(`${at}.fillOpacity`, value.fillOpacity, 0, 1);
+  if (value.line !== undefined) {
+    const line = value.line;
+    if (!isObject(line)) fail(`${at}.line`, "expected an object");
+    only(`${at}.line`, line, ["color", "width", "style"]);
+    if (!COLOUR.test(str(`${at}.line.color`, line.color))) fail(`${at}.line.color`, "expected a colour like #1a2b3c");
+    num(`${at}.line.width`, line.width, 0, 200);
+    if (line.style !== undefined && !["solid", "dashed", "dotted", "double"].includes(line.style as string)) fail(`${at}.line.style`, 'expected "solid", "dashed", "dotted" or "double"');
+  }
+  if (value.padding !== undefined) {
+    const padding = value.padding;
+    if (!isObject(padding)) fail(`${at}.padding`, "expected an object");
+    only(`${at}.padding`, padding, ["x", "y"]);
+    num(`${at}.padding.x`, padding.x, 0, 1000);
+    num(`${at}.padding.y`, padding.y, 0, 1000);
+  }
+}
+
 function checkTable(at: string, table: Json, seen: Set<string>): void {
-  only(at, table, ["id", "type", "rows", "columns", "headerRow", "borders"]);
+  only(at, table, ["id", "type", "rows", "columns", "headerRow", "borders", "float"]);
+  if (table.float !== undefined) {
+    if (!isObject(table.float)) fail(`${at}.float`, "expected an object");
+    checkBox(`${at}.float`, table.float);
+    if ((table.columns as unknown[] | undefined)?.length !== 1 || (table.rows as unknown[] | undefined)?.length !== 1) fail(`${at}.float`, "a text box has one row and one column");
+  }
   if (table.headerRow !== undefined && typeof table.headerRow !== "boolean") fail(`${at}.headerRow`, "expected a boolean");
   if (table.borders !== undefined && !["all", "horizontal", "none"].includes(table.borders as string)) {
     fail(`${at}.borders`, 'expected "all", "horizontal" or "none"');
@@ -264,13 +313,20 @@ function checkBlocks(path: string, value: unknown, seen: Set<string>, inCell = f
         checkSectionRegions(`${at}.regions`, block.regions);
         break;
       case "image":
-        only(at, block, ["id", "type", "src", "alt", "width", "height", "align", "wrap", "crop"]);
+        only(at, block, ["id", "type", "src", "alt", "width", "height", "align", "wrap", "crop", "float"]);
         str(`${at}.src`, block.src, { nonEmpty: true });
         if (block.alt !== undefined) str(`${at}.alt`, block.alt);
         num(`${at}.width`, block.width, 1, 20000);
         num(`${at}.height`, block.height, 1, 20000);
         checkAlign(at, block.align);
         if (block.wrap !== undefined && block.wrap !== "left" && block.wrap !== "right") fail(`${at}.wrap`, 'expected "left" or "right"');
+        if (block.float !== undefined) {
+          if (inCell) fail(`${at}.float`, "a picture inside a table cell or text box can't float");
+          if (!isObject(block.float)) fail(`${at}.float`, "expected an object");
+          only(`${at}.float`, block.float, ["x", "y", "behind", "z"]);
+          checkPlacement(`${at}.float`, block.float);
+          if (block.wrap !== undefined) fail(`${at}.wrap`, "a floating picture takes no room in the text, so nothing wraps");
+        }
         if (block.crop !== undefined) {
           if (typeof block.crop !== "object" || block.crop === null || Array.isArray(block.crop)) fail(`${at}.crop`, "expected an object");
           const crop = block.crop as Record<string, unknown>;

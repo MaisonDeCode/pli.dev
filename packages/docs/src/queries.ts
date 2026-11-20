@@ -9,6 +9,8 @@ import {
   type ParagraphFormat,
   type TableBlock,
   type TextBlock,
+  isFloating,
+  type FloatingBlock,
 } from "./model";
 import { marksAtCaret, segmentsOf, indent, outdent, type BlockSpec } from "./commands";
 import { rangeHasMark, sliceRuns } from "./runs";
@@ -53,8 +55,10 @@ export interface SelectionState {
   list: ListState | null;
   /** The image the caret is on, if any. */
   image: ImageBlock | null;
-  /** The table the caret is in, if any. */
+  /** The table the caret is in, if any. A text box is not one. */
   table: TableState | null;
+  /** The picture or text box that floats on the page that the caret is on or in, if any. */
+  floating: FloatingBlock | null;
   canIndent: boolean;
   canOutdent: boolean;
   /** The columns of the section the caret is in. */
@@ -99,10 +103,20 @@ export interface TableState {
   canSplit: boolean;
 }
 
+/** The picture or text box that floats that the caret is on, or in the text of. */
+function floatingAt(doc: Doc, selection: Selection): FloatingBlock | null {
+  const found = locate(doc, selection.focus.block);
+  if (!found) return null;
+  const block = found.cell?.table.float ? found.cell.table : found.block;
+  return isFloating(block) ? block : null;
+}
+
 function tableStateOf(doc: Doc, selection: Selection): TableState | null {
   const rect = cellRect(doc, selection);
   const located = locate(doc, selection.focus.block);
   if (!located) return null;
+  // A text box is a table inside, but isn't edited as one: no rows or columns to add.
+  if (located.block.type === "table" ? located.block.float : located.cell?.table.float) return null;
   const whole = !rect && located.block.type === "table";
   const cellInfo = located.cell;
   const table = whole ? (located.block as TableBlock) : cellInfo?.table;
@@ -252,6 +266,7 @@ export function selectionState(doc: Doc, selection: Selection | null, pending: M
       list: null,
       image: null,
       table: null,
+      floating: null,
       canIndent: false,
       canOutdent: false,
       columns: columnSetup(doc.page?.columns),
@@ -276,6 +291,7 @@ export function selectionState(doc: Doc, selection: Selection | null, pending: M
     list: listStateOf(doc, selection),
     image: isCollapsed(selection) && focus?.type === "image" ? focus : null,
     table: tableStateOf(doc, selection),
+    floating: floatingAt(doc, selection),
     canIndent: indent()(doc, selection) !== null,
     canOutdent: outdent()(doc, selection) !== null,
     columns: focus ? columnsAt(doc, locate(doc, focus.id)!.topIndex) : columnSetup(doc.page?.columns),

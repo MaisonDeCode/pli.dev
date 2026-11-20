@@ -1,6 +1,6 @@
 {
   "name": "@pli.dev/docs",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Pli Documents: a headless rich-text document model with operations, history and export to Markdown, HTML and DOCX.",
   "keywords": [
     "pli",

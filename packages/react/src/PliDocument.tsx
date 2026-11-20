@@ -19,8 +19,13 @@ import {
   type DocxImportResult,
   imagesIn,
   resolveImages,
+  pageBackground,
   pageBreak,
+  pageDimensions,
+  plainText,
   paragraph,
+  textBox,
+  type FloatingBlock,
   pageSetupOf,
   regionKeyFor,
   regionKind,
@@ -81,6 +86,8 @@ import { useSyncStatus } from "./sync";
 import { FindPanel, OutlinePanel, StatusBar, outlineOf } from "./ui/panels";
 import { ListStartDialog, listMenuItems } from "./ui/lists";
 import { pictureMenuItems } from "./ui/pictures";
+import { ObjectDialog } from "./ui/objects";
+import { imageBlockFromFile } from "./images";
 import { RowHeightDialog, TableDialog, tableMenuItems } from "./ui/tables";
 
 /** A file made by File > Download. */
@@ -293,7 +300,7 @@ export function PliDocument({
   const [layout, setLayout] = useState<Layout | null>(null);
   const [region, setRegion] = useState<RegionEdit | null>(null);
   const [focusedRegion, setFocusedRegion] = useState(false);
-  const [dialog, setDialog] = useState<null | "link" | "image" | "page" | "table" | "rowHeight" | "listStart" | "paragraph" | "columns" | "styles" | "newParagraphStyle" | "newCharacterStyle">(null);
+  const [dialog, setDialog] = useState<null | "link" | "image" | "page" | "table" | "rowHeight" | "listStart" | "paragraph" | "columns" | "styles" | "newParagraphStyle" | "newCharacterStyle" | "object">(null);
   const [find, setFind] = useState<null | { replace: boolean }>(null);
 
   const [commentsOpen, setCommentsOpen] = useState(defaultCommentsOpen);
@@ -799,6 +806,51 @@ export function PliDocument({
     focusTarget();
   };
 
+  // Pictures and text boxes that float on the page.
+  const textWidthPx = Math.max(100, (pageDimensions(pageSetupOf(doc)).width - pageSetupOf(doc).margins.left - pageSetupOf(doc).margins.right) * 96);
+  const insertTextBox = () => {
+    if (readOnly || region) return;
+    const width = Math.min(300, textWidthPx);
+    session.insertFloat(textBox("", { x: { from: "column" }, y: { from: "paragraph" }, width, height: 120, fill: "#ffffff", line: { color: "#000000", width: 1 } }));
+    focusTarget();
+  };
+  const insertShape = (shape: "rect" | "round_rect" | "ellipse") => {
+    if (readOnly || region) return;
+    session.insertFloat(textBox("", { x: { from: "column" }, y: { from: "paragraph" }, width: 180, height: 110, shape, fill: "#c7d2fe", line: { color: "#4f46e5", width: 2 } }));
+    focusTarget();
+  };
+  const chooseBackground = () => {
+    if (readOnly || region) return;
+    void pickWith(filePicker, { purpose: "image", accept: "image/*", label: "Choose a picture for the page" }).then(async ([file]) => {
+      if (!file) return;
+      try {
+        const picture = await imageBlockFromFile(file, { maxWidth: 4000, maxDimension: 2400 });
+        session.insertFloat(pageBackground(picture.src, { width: picture.width, height: picture.height }, doc.page, { alt: picture.alt ?? "" }));
+        focusTarget();
+      } catch (error) {
+        reportStorageError(error instanceof PliError ? error : new PliError("storage", error instanceof Error ? error.message : "That picture couldn't be used."));
+      }
+    });
+  };
+  /** The floating pictures and text boxes, for choosing one that can't be clicked on (one behind the text). */
+  const floatLabel = (block: FloatingBlock, n: number): string => {
+    if (block.type === "image") return `${block.float.behind ? "Background picture" : "Picture"} ${n}${block.alt ? `: ${block.alt.slice(0, 24)}` : ""}`;
+    const first = block.rows[0]?.cells[0]?.blocks.map((b) => ("runs" in b ? plainText(b.runs) : "")).find((t) => t.trim() !== "");
+    return `${block.float.fill || block.float.line ? (first ? "Text box" : "Shape") : "Text box"} ${n}${first ? `: ${first.trim().slice(0, 24)}` : ""}`;
+  };
+  const toggleBehind = () => {
+    const current = state.floating;
+    if (!current) return;
+    session.setFloat({ behind: current.float.behind ? undefined : true }, current.id);
+    focusTarget();
+  };
+  const deleteObject = () => {
+    const current = state.floating;
+    if (!current) return;
+    session.transact([{ type: "delete_block", id: current.id }]);
+    focusTarget();
+  };
+
   const chooseImport = () => {
     if (!filePicker) return importInput.current?.click();
     void pickWith(filePicker, { purpose: "import", accept: ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document", label: "Import a DOCX file" }).then(([file]) => file && void importFile(file));
@@ -870,6 +922,17 @@ export function PliDocument({
         label: "Insert",
         items: [
           { label: "Image…", disabled: readOnly, onSelect: () => setDialog("image") },
+          { label: "Text box", disabled: readOnly || !!region, onSelect: insertTextBox },
+          {
+            label: "Shape",
+            disabled: readOnly || !!region,
+            items: [
+              { label: "Rectangle", onSelect: () => insertShape("rect") },
+              { label: "Rounded rectangle", onSelect: () => insertShape("round_rect") },
+              { label: "Oval", onSelect: () => insertShape("ellipse") },
+            ],
+          },
+          { label: "Page background…", disabled: readOnly || !!region, onSelect: chooseBackground },
           { label: "Link…", shortcut: `${MOD}K`, disabled: readOnly, onSelect: () => setDialog("link") },
           {
             label: "Table",
@@ -1016,6 +1079,28 @@ export function PliDocument({
             items: pictureMenuItems(target, state.image, focusTarget),
           },
           { label: "Table", disabled: readOnly || !state.table, items: tableMenuItems(target, state.table, focusTarget, { onRowHeight: () => setDialog("rowHeight") }) },
+          {
+            label: "Object on the page",
+            disabled: readOnly || !!region || (!state.floating && session.floats.length === 0),
+            items: [
+              { label: "Options…", disabled: !state.floating, onSelect: () => setDialog("object") },
+              { label: "Behind the text", checked: !!state.floating?.float.behind, disabled: !state.floating, onSelect: toggleBehind },
+              { label: "Delete", disabled: !state.floating, onSelect: deleteObject },
+              ...(session.floats.length > 0
+                ? [
+                    "separator" as const,
+                    ...session.floats.map((block, i) => ({
+                      label: floatLabel(block, i + 1),
+                      checked: state.floating?.id === block.id,
+                      onSelect: () => {
+                        session.select(caret(block.id, 0));
+                        focusTarget();
+                      },
+                    })),
+                  ]
+                : []),
+            ],
+          },
           "separator",
           { label: "Clear formatting", shortcut: `${MOD}\\`, disabled: readOnly, onSelect: () => { target.clearFormatting(); focusTarget(); } },
           "separator",
@@ -1231,6 +1316,13 @@ export function PliDocument({
           maxWidth={Math.max(100, (8.5 - pageSetupOf(doc).margins.left - pageSetupOf(doc).margins.right) * 96)}
           onInsert={insertImage}
           onFile={(file) => targetRef.current?.insertImages([file])}
+          onClose={() => { setDialog(null); focusTarget(); }}
+        />
+        <ObjectDialog
+          open={dialog === "object"}
+          block={state.floating}
+          onApply={(patch) => session.setFloat(patch)}
+          onInline={() => session.setFloat(null)}
           onClose={() => { setDialog(null); focusTarget(); }}
         />
         <ColumnsDialog

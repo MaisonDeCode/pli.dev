@@ -249,6 +249,48 @@ export interface ImageCrop {
   left: number;
 }
 
+/**
+ * Where an object that floats sits on its page. A floating object is in the document's flow at a place (it belongs to the
+ * paragraph after it, or the one before when it is last), takes no room there, and is drawn at a position on the page that
+ * paragraph is on, over the text or behind it. All distances are CSS pixels, and may be negative: a picture can run off the page.
+ */
+export interface FloatPlacement {
+  /** Across the page. `column` counts from the left edge of the text. */
+  x: FloatPosition<"page" | "margin" | "column", "left" | "center" | "right">;
+  /** Down the page. `paragraph` counts from the top of the paragraph the object belongs to. */
+  y: FloatPosition<"page" | "margin" | "paragraph", "top" | "center" | "bottom">;
+  /** Draw it behind the text, so text goes over it. Unset means in front. A page background is a picture behind the text. */
+  behind?: boolean;
+  /** The order of floating objects that overlap, from the back to the front. Unset means the order they come in the document. */
+  z?: number;
+}
+
+/** A position along one direction: a distance from an edge, or lined up with it (`offset` is then the gap that is left). */
+export interface FloatPosition<From extends string, Align extends string> {
+  from: From;
+  /** Distance from the edge named by `from`. 0 when unset. With `align`, a distance inward from the aligned edge. */
+  offset?: number;
+  /** Line up with a side of what `from` names, or its middle, instead of a distance from its start. */
+  align?: Align;
+}
+
+/** How a box that floats looks: its size, and the fill and outline that make it a shape. */
+export interface BoxStyle {
+  /** Size in CSS pixels. Text that doesn't fit is cut off. */
+  width: number;
+  height: number;
+  /** The shape: `rect` (default), `round_rect` or `ellipse`. */
+  shape?: "rect" | "round_rect" | "ellipse";
+  /** Fill colour as `#rrggbb`. Unset means none: the page shows through. */
+  fill?: string;
+  /** How see-through the fill is, 0 (invisible) to 1 (solid). Unset means solid. */
+  fillOpacity?: number;
+  /** The outline. Unset means none. */
+  line?: { color: string; width: number; style?: "solid" | "dashed" | "dotted" | "double" };
+  /** Room between the edge of the box and its text, in pixels: across (left and right) and down (top and bottom). Default 10 and 5. */
+  padding?: { x: number; y: number };
+}
+
 export interface ImageBlock {
   id: string;
   type: "image";
@@ -267,6 +309,8 @@ export interface ImageBlock {
   wrap?: "left" | "right";
   /** Cut away the edges of the picture. The file keeps all of it, so the crop can be changed later. */
   crop?: ImageCrop;
+  /** Put the picture at a position on the page instead of in a line of text, taking no room in the text. `align` and `wrap` don't apply to it. */
+  float?: FloatPlacement;
 }
 
 /** A table of contents built from the document's headings. It is generated, so it stays current. */
@@ -324,6 +368,12 @@ export interface TableBlock {
   headerRow?: boolean;
   /** Which cell borders to draw. Default `all`. */
   borders?: "all" | "horizontal" | "none";
+  /**
+   * Makes the table a **text box**: one cell of text (and pictures) in a box that floats at a position on the page, over the
+   * text or behind it, with a fill and an outline if it has them. It has one row and one column. With no text in it, it is a shape.
+   * Its blocks are edited, templated and saved like the blocks of any cell, so `{{ … }}` in a text box is filled in with the rest.
+   */
+  float?: FloatPlacement & BoxStyle;
 }
 
 export type TextBlock =
@@ -410,4 +460,12 @@ export function isTextBlock(block: Block): block is TextBlock {
 
 export function isFormattable(block: Block): block is FormattableBlock {
   return isTextBlock(block) && block.type !== "code_block";
+}
+
+/** A picture or text box that floats at a position on its page, and where it is. */
+export type FloatingBlock = (ImageBlock & { float: FloatPlacement }) | (TableBlock & { float: FloatPlacement & BoxStyle });
+
+/** Whether a block floats at a position on the page, taking no room in the text. */
+export function isFloating(block: Block): block is FloatingBlock {
+  return (block.type === "image" || block.type === "table") && block.float !== undefined;
 }
