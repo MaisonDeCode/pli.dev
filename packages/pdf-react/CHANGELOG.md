@@ -1,5 +1,15 @@
 # @pli.dev/pdf-react
 
+## 1.3.0
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @pli.dev/react@1.3.0
+  - @pli.dev/core@1.3.0
+  - @pli.dev/pdf@1.3.0
+
 ## 1.2.0
 
 ### Minor Changes

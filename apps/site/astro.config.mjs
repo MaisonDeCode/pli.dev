@@ -55,6 +55,7 @@ export default defineConfig({
                   "documents/features/suggestions",
                   "documents/features/headers-and-footers",
                   "documents/features/images",
+                  "documents/features/text-boxes-and-backgrounds",
                   "documents/features/lists",
                   "documents/features/tables",
                   "documents/features/copy-and-paste",

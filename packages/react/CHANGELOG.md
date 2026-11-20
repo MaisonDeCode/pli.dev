@@ -1,5 +1,19 @@
 # @pli.dev/react
 
+## 1.3.0
+
+### Minor Changes
+
+- Page backgrounds, text boxes and shapes. A picture can be put behind a page, and pictures, text boxes and shapes can be set at a place on it, in front of the text or behind it, without taking room in the text. Insert > Page background…, Text box and Shape; drag them or set them under Format > Object on the page. The text in a text box is filled in when a template makes a document, like the rest. Word files with pictures anchored on the page and text boxes are read as such and written back the same way, and they come out in PDF and HTML. In code, `floatingImage`, `textBox` and `pageBackground` build them, `session.insertFloat` and `session.setFloat` place and change them, and a picture or one-cell table with a `float` is the same thing saved. Backspace and Delete no longer remove a picture that floats when a paragraph next to it is joined.
+
+### Patch Changes
+
+- Fixes for editing templates with tags shown by name. Removing a tag in Safari no longer fails with "index is not in the allowed range". Insert > Repeat for each… only offers answers that are lists (give `fields` or `list: true`), and puts in a plain list when there are none. An answer whose name isn't a plain word, such as `answer.q-id`, is inserted as `answer["q-id"]` so it reads back, and its chip finds its name either way (`placeholderPath` is exported). With the caret against a tag, Tab steps over it and Shift+Tab steps back.
+- Updated dependencies
+- Updated dependencies
+  - @pli.dev/docs@1.3.0
+  - @pli.dev/core@1.3.0
+
 ## 1.2.0
 
 ### Minor Changes

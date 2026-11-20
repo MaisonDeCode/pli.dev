@@ -6,6 +6,7 @@ import { DecksDemo } from "./decks/DecksDemo";
 import { Embed } from "./embed/Embed";
 import { Generate } from "./generate/Generate";
 import { Builder } from "./generate/Builder";
+import { Cover } from "./generate/Cover";
 import { Landing } from "./Landing";
 
 import { SheetsDemo } from "./sheets/SheetsDemo";
@@ -37,6 +38,8 @@ export function App() {
       return <Generate />;
     case "builder":
       return <Builder />;
+    case "cover":
+      return <Cover />;
     case "pdf":
       return (
         <Suspense fallback={<p className="pdf-demo-loading">Loading the PDF editor…</p>}>

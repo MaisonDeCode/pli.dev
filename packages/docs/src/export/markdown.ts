@@ -134,9 +134,19 @@ export function toMarkdown(source: Doc): string {
         lines.push("_" + block.runs.map(renderRun).join("").replace(/\n/g, " ") + "_", "");
         break;
       case "image":
+        // A picture placed on the page (a background, a logo in a corner) isn't part of the text.
+        if (block.float) break;
         lines.push(`![${escapeMarkdown(block.alt ?? "")}](${block.src.replace(/\)/g, "%29")})`, "");
         break;
       case "table":
+        // A text box is its text, as paragraphs.
+        if (block.float) {
+          for (const cellBlock of block.rows[0]!.cells[0]!.blocks) {
+            const line = cellBlockMarkdown(cellBlock);
+            if (line.trim() !== "") lines.push(line, "");
+          }
+          break;
+        }
         lines.push(...tableMarkdown(block), "");
         break;
       case "section_break":

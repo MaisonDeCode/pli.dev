@@ -44,6 +44,11 @@ export const PRODUCTS: Product[] = [
         title: "Templates without code",
         summary: "The same templates for people who don't write code: each placeholder and condition shows as a plain name, and a list of questions to click in.",
       },
+      {
+        id: "cover",
+        title: "Cover pages",
+        summary: "A picture behind the page, and boxes of text set at a place on it, that fill in from answers like the rest of a template. Download the result as a Word file.",
+      },
     ],
   },
   {

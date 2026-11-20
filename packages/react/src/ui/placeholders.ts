@@ -1,4 +1,4 @@
-import { describePlaceholder, isTextBlock, locate, placeholderSnippet, textLength, type DocumentSession, type PlaceholderSnippet } from "@pli.dev/docs";
+import { describePlaceholder, isTextBlock, locate, placeholderPath, placeholderSnippet, textLength, type DocumentSession, type PlaceholderSnippet } from "@pli.dev/docs";
 import type { PlaceholderMode } from "../session-context";
 import type { MenuEntry } from "./primitives";
 
@@ -11,14 +11,19 @@ export type PlaceholderChoice = string | number | { value: string | number; labe
 export type PlaceholderField =
   | string
   | {
-      /** Where the answer is, with a dot for each level: `client.name`. */
+      /**
+       * Where the answer is, with a dot for each level: `client.name`. A name that isn't a plain word (`answer.q-id`) is fine: the
+       * tags put in the document are written the way they are read back (`answer["q-id"]`), and the chip finds its name either way.
+       */
       path: string;
       /** What the menu and the chips call it, instead of the name: "Client name". */
       label?: string;
       /** For an answer that is one of a few choices: *Only if…* then offers "is Team", "is Starter". */
       options?: readonly PlaceholderChoice[];
-      /** For a list: what each item has (`["name", { path: "fee", label: "Fee" }]`). They are offered under the list, to use between *Repeat for each…* and its end. */
+      /** For a list: what each item has (`["name", { path: "fee", label: "Fee" }]`). They are offered under the list, to use between *Repeat for each…* and its end. Giving them also makes this a list. */
       fields?: readonly PlaceholderField[];
+      /** Marks the answer as a list when you don't say what its items have. Only lists are offered under *Repeat for each…*. */
+      list?: boolean;
     };
 
 /**
@@ -41,11 +46,12 @@ export interface PlaceholderOptions {
 const pathOf = (field: PlaceholderField): string => (typeof field === "string" ? field : field.path);
 const labelOf = (field: PlaceholderField): string => (typeof field === "string" ? field : (field.label ?? field.path));
 const childrenOf = (field: PlaceholderField): readonly PlaceholderField[] => (typeof field === "string" ? [] : (field.fields ?? []));
+const isList = (field: PlaceholderField): boolean => childrenOf(field).length > 0 || (typeof field !== "string" && field.list === true);
 const valueOf = (choice: PlaceholderChoice): string | number => (typeof choice === "object" ? choice.value : choice);
 const choiceLabel = (choice: PlaceholderChoice): string => (typeof choice === "object" ? (choice.label ?? String(choice.value)) : String(choice));
 
 /** The text of a tag that shows an answer. */
-export const valueTag = (path: string): string => `{{ ${path} }}`;
+export const valueTag = (path: string): string => `{{ ${placeholderPath(path)} }}`;
 
 /** How tags are drawn for these options: `false` for none, otherwise whether to show names and which. */
 export function placeholderMode(options: boolean | PlaceholderOptions | undefined): PlaceholderMode | false {
@@ -87,7 +93,7 @@ export function insertSnippet(session: DocumentSession, kind: PlaceholderSnippet
 }
 
 /** `plan == "team"`, for the answer and one of its choices. */
-const comparison = (path: string, choice: PlaceholderChoice): string => `${path} == ${typeof valueOf(choice) === "number" ? valueOf(choice) : JSON.stringify(valueOf(choice))}`;
+const comparison = (path: string, choice: PlaceholderChoice): string => `${placeholderPath(path)} == ${typeof valueOf(choice) === "number" ? valueOf(choice) : JSON.stringify(valueOf(choice))}`;
 
 /**
  * The entries for Insert when a template is being edited: *Field* (the answers, by name), *Only if…* and *Repeat for each…*. With
@@ -119,19 +125,20 @@ export function placeholderMenu(session: () => DocumentSession, options: Placeho
   const conditions = (list: readonly PlaceholderField[]): MenuEntry[] =>
     list.map((f) => {
       const choices = typeof f === "string" ? [] : (f.options ?? []);
-      if (choices.length === 0) return field(f, (path) => (s) => void insertSnippet(s, "if", path));
+      if (choices.length === 0) return field(f, (path) => (s) => void insertSnippet(s, "if", placeholderPath(path)));
       return {
         label: labelOf(f),
         items: choices.map((c) => ({ label: `is ${choiceLabel(c)}`, onSelect: run((s) => void insertSnippet(s, "if", comparison(pathOf(f), c))) })),
       } as MenuEntry;
     });
 
-  const lists = fields.filter((f) => childrenOf(f).length > 0);
-  const repeatable = lists.length > 0 ? lists : fields;
+  // Only a list can be repeated. With no list among the answers, *Repeat for each…* puts in a list with a word to replace, as it
+  // does when there are no answers at all, and does not offer a single answer as if it were one.
+  const repeatable = fields.filter(isList);
   const plain = (label: string, kind: PlaceholderSnippet): MenuEntry => ({ label, disabled, onSelect: run((s) => void insertSnippet(s, kind)) });
   return [
     ...(fields.length > 0 ? [{ label: "Field", disabled, items: values(fields) } as MenuEntry] : []),
     fields.length > 0 ? { label: "Only if…", disabled, items: conditions(fields) } : plain("Only if…", "if"),
-    repeatable.length > 0 ? { label: "Repeat for each…", disabled, items: repeatable.map((f) => field(f, (path) => (s) => void insertSnippet(s, "each", path))) } : plain("Repeat for each…", "each"),
+    repeatable.length > 0 ? { label: "Repeat for each…", disabled, items: repeatable.map((f) => field(f, (path) => (s) => void insertSnippet(s, "each", placeholderPath(path)))) } : plain("Repeat for each…", "each"),
   ];
 }

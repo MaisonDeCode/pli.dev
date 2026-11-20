@@ -1,5 +1,6 @@
-import { columnRuns, sectionsOf, type Block, type Columns } from "@pli.dev/docs";
+import { columnRuns, isFloating, sectionsOf, type Block, type Columns } from "@pli.dev/docs";
 import { BLOCK_ATTR } from "../render";
+import { anchorKeyOf } from "../floats";
 import { rowGroups } from "./groups";
 import { paginate, type BlockMetric, type FlowMetric, type Geometry, type Layout, type LineInfo, type PageGeometry } from "./paginate";
 
@@ -80,6 +81,41 @@ function metricFor(el: HTMLElement, block: Block, origin: DOMRect, scale: number
   }
   return metric;
 }
+
+/**
+ * The blocks that floating objects are placed against, by the id the paginator knows them by (a table is known by its first row).
+ * An object belongs to the paragraph after it, or the one before when it is last. Only objects placed down from their paragraph need it.
+ */
+export function anchorsOf(blocks: readonly Block[]): Set<string> {
+  const anchors = new Set<string>();
+  blocks.forEach((block, i) => {
+    if (!isFloating(block) || block.float.y.from !== "paragraph") return;
+    const key = anchorKeyOf(blocks, i);
+    if (key !== undefined) anchors.add(key);
+  });
+  return anchors;
+}
+
+/** The layout with where each anchor starts worked out from the blocks' natural places and the gaps the layout put in. */
+function withTops(layout: Layout, metrics: readonly FlowMetric[], anchors: ReadonlySet<string>): Layout {
+  if (anchors.size === 0) return layout;
+  const tops = new Map<string, number>();
+  let shift = 0;
+  for (const m of metrics) {
+    if (isSectionMetric(m)) continue;
+    if ("columns" in m) {
+      // Blocks in columns are placed close enough by where they would be in one column.
+      for (const item of m.blocks) if (anchors.has(item.id)) tops.set(item.id, item.top + shift);
+      continue;
+    }
+    shift += layout.before.get(m.id) ?? 0;
+    if (anchors.has(m.id)) tops.set(m.id, m.top + shift);
+    for (const split of layout.splits.get(m.id) ?? []) shift += split.height;
+  }
+  return { ...layout, tops };
+}
+
+const isSectionMetric = (m: FlowMetric): m is Extract<FlowMetric, { geometry: unknown }> => "geometry" in m;
 
 /** What the paginator needs to leave room for footnotes at the bottom of the pages that cite them. */
 export interface NotesGeometry {
@@ -163,6 +199,8 @@ export function measureAndPaginate(
         const items: BlockMetric[] = [];
         let lineHeight = 0;
         for (const inner of blocks.slice(run.from, run.to)) {
+          // A floating object takes no room, so it has no place in the flow to measure.
+          if (isFloating(inner)) continue;
           const el = elements.get(inner.id);
           if (!el) continue;
           items.push(metricFor(el, inner, origin, scale));
@@ -172,6 +210,7 @@ export function measureAndPaginate(
         index = run.to - 1;
         continue;
       }
+      if (isFloating(block)) continue;
       if (block.type === "table") {
         // A table is paginated by rows: a row that doesn't fit moves whole to the next page.
         // Rows that a merged cell spans can't be separated by a page break, so they move together: each
@@ -218,8 +257,9 @@ export function measureAndPaginate(
     // Notes take room at the bottom of the page their reference is on, which can move the reference to
     // the next page. Settle that by paginating again with the room each page now needs, a few times at most.
     let reserve = new Map<number, number>();
+    const anchors = anchorsOf(blocks);
     let layout = paginate(metrics, geometry);
-    if (!notes || refs.length === 0) return layout;
+    if (!notes || refs.length === 0) return withTops(layout, metrics, anchors);
     let byPage = new Map<number, string[]>();
     for (let pass = 0; pass < 5; pass++) {
       byPage = new Map();
@@ -234,7 +274,7 @@ export function measureAndPaginate(
       reserve = next;
       layout = paginate(metrics, { ...geometry, reserve: (page) => reserve.get(page) ?? 0 });
     }
-    return { ...layout, notes: byPage };
+    return withTops({ ...layout, notes: byPage }, metrics, anchors);
   } finally {
     root.classList.remove(MEASURING_CLASS);
   }

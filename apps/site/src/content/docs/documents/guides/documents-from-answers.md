@@ -183,8 +183,8 @@ Pass `placeholders` to `PliDocument` while someone is writing a template:
 ```
 
 - **Chips.** Each `{{ … }}` is drawn with a tinted background in a code font: blue for an answer, green for `{{#if}}`, `{{else}}`, `{{#each}}` and their closing tags, and red with a wavy underline for one that can't be read (hover it to see why). It is only drawing. The text is the same as without it, so typing, selecting and Word files behave as usual, and a tag that runs over bold or italic text is drawn as one chip.
-- **Insert > Field** lists your answers by name and puts `{{ client.name }}` at the caret.
-- **Insert > Only if…** and **Repeat for each…** put the opening and closing tag on lines of their own, with an empty line between them for the text that goes inside, and split the paragraph first when the caret is in the middle of one. They list your answers too, so you pick the one the condition or list is about.
+- **Insert > Field** lists your answers by name and puts `{{ client.name }}` at the caret. An answer whose name isn't a plain word, such as `answer.q-id`, goes in as `{{ answer["q-id"] }}`, which is how it has to be written to be read back, and the chip finds its name whichever way you list it. `placeholderPath(path)` gives that form if you build tags yourself.
+- **Insert > Only if…** and **Repeat for each…** put the opening and closing tag on lines of their own, with an empty line between them for the text that goes inside, and split the paragraph first when the caret is in the middle of one. They list your answers too, so you pick the one the condition or list is about. Only a list can be repeated, so Repeat for each… offers the answers that have `fields` (what each item has) or `list: true`; with none of those it puts in a list with a word to replace.
 
 `placeholders` on its own (`true`) gives the chips, and Only if… and Repeat for each… with a word to replace. `templateFields(template).fields` gives the `fields` for a template that already has some, and the answers your own questionnaire asks are a good list for a new one.
 
@@ -218,7 +218,7 @@ Add `labels: true` and each tag is shown by its name, with the code hidden:
 
 The names come from `fields`. An answer you didn't list is named from its own name, so `clientCity` is "Client city". A tag that can't be read is shown as written, in red, so it can be fixed.
 
-It is only how the editor draws the text, so nothing changes underneath: the same template works in `generateDocument`, in other apps and in Word. Each tag counts as one character for the caret. The arrow keys jump over it, a click next to it puts the caret beside it, and Backspace or Delete removes the whole tag. A selection that touches a tag takes in all of it. Hover a tag to see the code.
+It is only how the editor draws the text, so nothing changes underneath: the same template works in `generateDocument`, in other apps and in Word. Each tag counts as one character for the caret. The arrow keys jump over it, a click next to it puts the caret beside it, and Backspace or Delete removes the whole tag. Tab with the caret against a tag steps over it (Shift+Tab steps back), and anywhere else Tab works as usual, so nobody is stuck. A selection that touches a tag takes in all of it. Hover a tag to see the code.
 
 Giving each field its `options` lets *Insert > Only if…* offer "is Team" and "is Starter" for that answer, and giving a list its `fields` offers the list's items under it. To change a tag, delete it and insert another.
 

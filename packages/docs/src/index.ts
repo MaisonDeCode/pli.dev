@@ -13,6 +13,9 @@ export type {
   HeadingBlock,
   ImageBlock,
   ImageCrop,
+  FloatPlacement,
+  FloatPosition,
+  BoxStyle,
   ListItemBlock,
   ListMarker,
   MarkPatch,
@@ -38,7 +41,8 @@ export type {
   TitleBlock,
   TocBlock,
 } from "./model";
-export { isFormattable, isTextBlock } from "./model";
+export { isFloating, isFormattable, isTextBlock } from "./model";
+export type { FloatingBlock } from "./model";
 
 export { resolveSuggestionOps, stripSuggestions, suggestionIds, suggestionsIn, suggestDelete, suggestInsert, type Suggester, type SuggestionInfo } from "./suggestions";
 export { STYLE_MARK_KEYS, effectiveMarks, newStyleId, resolveStyle, styleList, styleOfBlock, stylesUsed, withParagraphStyle, type ResolvedStyle } from "./styles";
@@ -109,6 +113,9 @@ export {
   divider,
   heading,
   image,
+  floatingImage,
+  pageBackground,
+  textBox,
   italic,
   link,
   listItem,
@@ -127,7 +134,7 @@ export {
 
 export { usedFonts } from "./fonts";
 export { generateDocument, pathLabel, type Answers, type GenerateOptions, type GenerateResult, type TemplateIssue } from "./template/generate";
-export { describePlaceholder, placeholderSnippet, placeholdersIn, type Placeholder, type PlaceholderNames, type PlaceholderKind, type PlaceholderSnippet } from "./template/placeholders";
+export { describePlaceholder, placeholderPath, placeholderPathParts, placeholderSnippet, placeholdersIn, type Placeholder, type PlaceholderNames, type PlaceholderKind, type PlaceholderSnippet } from "./template/placeholders";
 export { templateFields, type FieldType, type FieldUse, type TemplateAnalysis, type TemplateField } from "./template/fields";
 export { TemplateError, type FilterContext, type TemplateFilter } from "./template/expression";
 export { BUILT_IN_FILTERS } from "./template/filters";

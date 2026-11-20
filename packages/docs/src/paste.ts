@@ -201,7 +201,9 @@ function flattenTable(table: TableBlock): TextBlock[] {
 
 /** What a table cell can hold: text, images and dividers. Tables become lines of text. */
 function forCell(blocks: readonly Block[]): Block[] {
-  return blocks.flatMap((b): Block[] => (b.type === "table" ? flattenTable(b) : b.type === "toc" || b.type === "page_break" || b.type === "section_break" ? [] : [b]));
+  // A picture can't be fixed to the page inside a cell, and a text box there is a table, which becomes lines of text.
+  const inline = (b: Block): Block => (b.type === "image" && b.float ? (({ float: _float, ...rest }) => rest)(b) : b);
+  return blocks.flatMap((b): Block[] => (b.type === "table" ? flattenTable(b) : b.type === "toc" || b.type === "page_break" || b.type === "section_break" ? [] : [inline(b)]));
 }
 
 function placeBefore(located: Located): { after: string | null; cell?: string } {

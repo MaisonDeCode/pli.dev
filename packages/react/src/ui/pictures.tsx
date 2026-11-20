@@ -27,8 +27,9 @@ export function pictureMenuItems(session: DocumentSession, picture: ImageBlock |
     { label: "Crop to a shape", items: [shape("Square", 1), shape("4 : 3", 4 / 3), shape("16 : 9", 16 / 9), shape("3 : 4", 3 / 4)] },
     { label: "Show all of the picture", disabled: !picture.crop, onSelect: () => { session.cropImage(picture.id, null, { rescale: true }); after(); } },
     "separator",
-    { label: "In line with text", checked: !picture.wrap, onSelect: () => { session.setImageWrap(null); after(); } },
+    { label: "In line with text", checked: !picture.wrap && !picture.float, onSelect: () => { session.setImageWrap(null); after(); } },
     { label: "Wrap text, picture on the left", checked: picture.wrap === "left", onSelect: () => { session.setImageWrap("left"); after(); } },
     { label: "Wrap text, picture on the right", checked: picture.wrap === "right", onSelect: () => { session.setImageWrap("right"); after(); } },
+    { label: "Fixed at a place on the page", checked: !!picture.float, onSelect: () => { if (picture.float) session.setImageWrap(null); else session.setFloat({}); after(); } },
   ];
 }

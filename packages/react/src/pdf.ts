@@ -20,7 +20,7 @@ export interface PdfExport {
 /** Things drawn on the page by the editor only: markers, handles, hints and other people's cursors. */
 const SKIP = [
   ".pli-spacer", ".pli-measure", ".pli-region-hint", ".pli-region-bar-page", ".pli-page-break", ".pli-section-break", ".pli-col-resizer",
-  ".pli-row-resizer", ".pli-table-grip", ".pli-image-handle", ".pli-remote-layer", ".pli-note-done", ".pli-region-done", "style", "script",
+  ".pli-row-resizer", ".pli-table-grip", ".pli-image-handle", ".pli-float-grip", ".pli-float-resize", ".pli-remote-layer", ".pli-note-done", ".pli-region-done", "style", "script",
   "[data-pli-spacer]", "[data-pli-editor-chrome]",
 ].join(",");
 
@@ -178,7 +178,8 @@ async function render(root: HTMLElement, elements: HTMLElement[], options: PdfEx
     const sheet = sheetAt(rect.top + rect.height / 2, rect.left + rect.width / 2);
     if (!sheet || rect.width <= 0 || rect.height <= 0) return;
     const bg = noBackground ? null : paint(cs.backgroundColor);
-    if (bg && bg !== "#ffffff") fill(sheet, rect.left, rect.top, rect.width, rect.height, bg);
+    // White is the paper, so it isn't drawn, except in a text box, which can sit over a picture.
+    if (bg && (bg !== "#ffffff" || el.classList.contains("pli-textbox"))) fill(sheet, rect.left, rect.top, rect.width, rect.height, bg);
     const sides = [
       ["Top", rect.left, rect.top, rect.right, rect.top],
       ["Right", rect.right, rect.top, rect.right, rect.bottom],
@@ -190,10 +191,19 @@ async function render(root: HTMLElement, elements: HTMLElement[], options: PdfEx
       const style = cs.getPropertyValue(`border-${side.toLowerCase()}-style`);
       const color = paint(cs.getPropertyValue(`border-${side.toLowerCase()}-color`));
       if (width <= 0 || !color || style === "none" || style === "hidden") continue;
-      const shift = inset ? width / 2 : 0;
-      const dx = side === "Left" ? shift : side === "Right" ? -shift : 0;
-      const dy = side === "Top" ? shift : side === "Bottom" ? -shift : 0;
-      rule(sheet, x1 + dx, y1 + dy, x2 + dx, y2 + dy, color, width);
+      // Where the border's outer edge is, counted inward from the box's edge.
+      const from = inset ? 0 : -width / 2;
+      const at = (centre: number, thickness: number) => {
+        const shift = from + centre;
+        const dx = side === "Left" ? shift : side === "Right" ? -shift : 0;
+        const dy = side === "Top" ? shift : side === "Bottom" ? -shift : 0;
+        rule(sheet, x1 + dx, y1 + dy, x2 + dx, y2 + dy, color, thickness);
+      };
+      // A double border is two lines with a gap between, each a third of its width.
+      if (style === "double" && width >= 3) {
+        at(width / 6, width / 3);
+        at(width - width / 6, width / 3);
+      } else at(width / 2, width);
     }
     void el;
   };
@@ -394,8 +404,33 @@ async function render(root: HTMLElement, elements: HTMLElement[], options: PdfEx
     if (sheet) rule(sheet, left, top + width / 2, left + px(before.width), top + width / 2, color, width);
   };
 
+  /**
+   * Pictures and text boxes that float are drawn in their own order, not the order they come in the page: behind the text of their
+   * page (before everything else on it), or in front of it (after). `placing` is set while one is being drawn.
+   */
+  const inFront: Element[] = [];
+  /** How many items at the start of each page belong to pictures behind the text, so a later one goes after an earlier one. */
+  const behindCount = sheets.map(() => 0);
+  let placing = false;
   const walk = (el: Element): void => {
     if (el.matches(SKIP)) return;
+    if (!placing && el.classList.contains("pli-float")) {
+      if (!el.hasAttribute("data-behind")) {
+        inFront.push(el);
+        return;
+      }
+      // Behind the text: draw it now, then move what it drew to the back of every page it touched.
+      const marks = sheets.map((sheet) => sheet.page.items.length);
+      placing = true;
+      walk(el);
+      placing = false;
+      sheets.forEach((sheet, i) => {
+        const drawn = sheet.page.items.splice(marks[i]!);
+        sheet.page.items.splice(behindCount[i]!, 0, ...drawn);
+        behindCount[i]! += drawn.length;
+      });
+      return;
+    }
     const cs = view.getComputedStyle(el);
     if (cs.display === "none") return;
     const rect = el.getBoundingClientRect();
@@ -419,6 +454,9 @@ async function render(root: HTMLElement, elements: HTMLElement[], options: PdfEx
   // The sheets hold the headers, footers and notes; the body is the editor beside them. Both are read.
   const canvas = elements[0]!.parentElement!;
   for (const child of canvas.children) walk(child);
+  placing = true;
+  for (const el of inFront) walk(el);
+  placing = false;
   await Promise.all(pending);
 
   const pages = sheets.map((s) => s.page);

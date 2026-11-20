@@ -293,6 +293,17 @@ export function attachEditorEvents(root: HTMLElement, session: DocumentSession, 
         if (event.shiftKey) session.outdent();
         else session.indent();
         handled = true;
+      } else if (selection && atomic() && isCollapsed(selection)) {
+        // A way past a tag shown by name from the keyboard: with the caret against one, Tab steps over it (and Shift+Tab back over it).
+        // Anywhere else Tab goes on to the next thing on the page as usual, so nobody is trapped in the editor.
+        const { block, offset } = selection.focus;
+        const tag = tagsIn(block).find((t) => (event.shiftKey ? t.to === offset : t.from === offset));
+        if (tag) {
+          const next = caret(block, event.shiftKey ? tag.from : tag.to);
+          session.select(next);
+          applySelectionToDom(root, next, true);
+          handled = true;
+        }
       }
     }
     if (handled) event.preventDefault();

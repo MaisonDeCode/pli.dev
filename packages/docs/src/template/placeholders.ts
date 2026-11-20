@@ -44,6 +44,58 @@ export function placeholderSnippet(kind: PlaceholderSnippet, subject = ""): { li
   return { lines: [`{{#each ${name || "list"} as item}}`, "", "{{/each}}"], caret: 1 };
 }
 
+// ---- where an answer is ----
+
+/**
+ * The parts of an answer's path, whichever way it is written: `client.name` and `client["name"]` are both `["client", "name"]`, and
+ * `answer["q-id"]` is `["answer", "q-id"]`.
+ */
+export function placeholderPathParts(path: string): string[] {
+  const text = path.trim();
+  const parts: string[] = [];
+  let word = "";
+  const flush = () => {
+    if (word !== "") parts.push(word);
+    word = "";
+  };
+  for (let i = 0; i < text.length; ) {
+    const ch = text[i]!;
+    if (ch === ".") {
+      flush();
+      i++;
+      continue;
+    }
+    if (ch === "[") {
+      const quoted = /^\[\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*\]/.exec(text.slice(i));
+      if (quoted) {
+        flush();
+        parts.push((quoted[1] ?? quoted[2]!).replace(/\\(.)/g, "$1"));
+        i += quoted[0].length;
+        continue;
+      }
+    }
+    word += ch;
+    i++;
+  }
+  flush();
+  return parts;
+}
+
+const plainKey = /^(?:[A-Za-z_$][\w$]*|\d+)$/;
+
+/**
+ * An answer's path as it has to be written inside a tag to be read back: a dot for each level when the name allows it, and brackets
+ * when it doesn't. `answer.q-id` becomes `answer["q-id"]`, since `answer.q-id` would be read as `answer.q` minus `id`. The editor
+ * uses this for every tag it inserts, and to find the name of a tag it draws, so both agree whichever way a path was given.
+ */
+export function placeholderPath(path: string): string {
+  const parts = placeholderPathParts(path);
+  return parts.length === 0 ? path.trim() : writePath(parts);
+}
+
+const writePath = ([head, ...keys]: string[]): string =>
+  head + keys.map((key) => (plainKey.test(key) ? `.${key}` : `[${JSON.stringify(key)}]`)).join("");
+
 // ---- saying a tag in plain words ----
 
 /** Names for answers: a map from where an answer is (`client.name`) to what to call it, or a function that gives the name. */
@@ -58,6 +110,20 @@ function humanize(word: string): string {
 /** A name that stands for the item of a list, not an answer: `item.name`, `this.name`, `s.name`. */
 const isItem = (head: string): boolean => head === "item" || head === "this" || head.length <= 1;
 
+const normalised = new WeakMap<object, Map<string, string>>();
+
+/** The names of a record, found by the path as {@link placeholderPath} writes it. */
+function namesFor(names: Readonly<Record<string, string>> | undefined): Map<string, string> {
+  if (!names) return new Map();
+  let found = normalised.get(names);
+  if (!found) {
+    found = new Map();
+    for (const [path, name] of Object.entries(names)) found.set(placeholderPath(path), name);
+    normalised.set(names, found);
+  }
+  return found;
+}
+
 function pathText(expr: Expr & { t: "path" }, names: PlaceholderNames | undefined): string {
   const keys: string[] = [];
   for (const segment of expr.rest) {
@@ -67,8 +133,9 @@ function pathText(expr: Expr & { t: "path" }, names: PlaceholderNames | undefine
   }
   const full = [expr.head, ...keys];
   const named = (path: string[]) => {
-    const key = path.join(".");
-    return typeof names === "function" ? names(key) : names?.[key];
+    // A name can be given for `answer.q-id` or for `answer["q-id"]`; either finds it.
+    if (typeof names === "function") return names(path.join(".")) ?? names(writePath(path));
+    return namesFor(names).get(writePath(path));
   };
   // `@today` and `@number` are things the document knows, not answers.
   if (expr.head === "@today") return "today's date";

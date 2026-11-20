@@ -126,6 +126,11 @@ export interface Layout {
   pageInfo: readonly { start: number; section: number }[];
   /** The footnotes whose references fall on each page (counting from 1), in order. */
   notes: ReadonlyMap<number, readonly string[]>;
+  /**
+   * Where each block that a floating object is placed against begins, down the flow with every gap applied. Only those blocks are
+   * listed (see `anchorsOf`): it is how a position measured from a paragraph is found.
+   */
+  tops: ReadonlyMap<string, number>;
 }
 
 const EPSILON = 0.5;
@@ -399,7 +404,7 @@ export function paginate(blocks: readonly FlowMetric[], g: Geometry): Layout {
   const pages = Math.max(1, pageIndex(Math.max(0, flowBottom - EPSILON * 2)) + 1);
   startOf(pages - 1);
   const pageInfo = table.slice(0, pages).map((p) => ({ start: p.start, section: p.section }));
-  return { pages, before, splits, pageOf, repeats, height: flowBottom, notes: new Map(), chunks, pageInfo };
+  return { pages, before, splits, pageOf, repeats, height: flowBottom, notes: new Map(), chunks, pageInfo, tops: new Map() };
 }
 
 /** True when two layouts would render the same spacers. Used to stop re-measuring once stable. */
@@ -429,6 +434,8 @@ export function sameLayout(a: Layout, b: Layout): boolean {
     const other = b.notes.get(page);
     if (!other || other.length !== ids.length || ids.some((id, i) => id !== other[i])) return false;
   }
+  if (a.tops.size !== b.tops.size) return false;
+  for (const [id, top] of a.tops) if (Math.abs((b.tops.get(id) ?? -1e9) - top) > 0.5) return false;
   return true;
 }
 
@@ -442,4 +449,5 @@ export const EMPTY_LAYOUT: Layout = {
   notes: new Map(),
   chunks: new Map(),
   pageInfo: [{ start: 0, section: 0 }],
+  tops: new Map(),
 };

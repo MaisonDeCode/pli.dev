@@ -33,6 +33,8 @@ In a document the picture is an ordinary image block with `wrap: "left"` or `wra
 - A page break or section break clears the float, so the next page starts with full-width text.
 - Pictures that are wrapped in a pasted web page (`float: left` or `float: right`), in a pasted Google Docs page, or in a DOCX file ("square" wrapping) come in wrapped.
 
+A picture can also be set at a place on the page instead of in a line of text, behind the text or over it, as a page background or a logo in a corner. See [Text boxes, shapes and page backgrounds](/documents/features/text-boxes-and-backgrounds/).
+
 ## How they are stored
 
 An uploaded or pasted image is embedded in the document as a `data:` URI, so a document is a single self-contained file. To keep files in your own storage instead, see [Storing files](/documents/guides/storing-files/). To keep documents small, an image whose longer side is more than 1,600 pixels is scaled down first. GIFs are left alone so they keep their animation. An image added from a URL stays a link.
